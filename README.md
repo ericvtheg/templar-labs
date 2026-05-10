@@ -1,1 +1,1 @@
-# templar-labs
+# Templar Labs

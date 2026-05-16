@@ -2,5 +2,6 @@ packages:
   - 'packages/*'
   - 'projects/*'
   - 'projects/*/*'
+  - 'tools/*'
 
 minimumReleaseAge: 4320

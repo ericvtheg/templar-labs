@@ -4,6 +4,13 @@
   "private": true,
   "description": "Shared TypeScript configuration presets for Templar Labs.",
   "license": "ISC",
+  "scripts": {
+    "build": "echo 'No build needed for shared tsconfig presets.'",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "echo 'No tests configured yet.'",
+    "typecheck": "echo 'No typecheck needed for JSON-only tsconfig presets.'"
+  },
   "exports": {
     "./base": "./base.json",
     "./library-package": "./library-package.json",

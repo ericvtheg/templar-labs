@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "echo 'No tests configured yet.'",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",

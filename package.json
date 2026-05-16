@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "build": "turbo build",
-    "check": "turbo check",
+    "check": "pnpm check:workspace && turbo check",
+    "check:workspace": "pnpm --filter @templar/workspace-check run check:workspace",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "test": "turbo test",

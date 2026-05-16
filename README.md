@@ -56,6 +56,26 @@ These are the current defaults for new packages and projects in this monorepo.
 - OpenTelemetry later for traces and metrics once the first real apps need it
 - Turbo for monorepo task orchestration unless the repo grows into workflows that justify Nx
 
+## Deployment
+
+Deploys run from GitHub Actions on the homelab self-hosted runner. Pushing to
+`main` runs `pnpm check` and then `pnpm run deploy`, which deploys every project
+with a project-level `deploy` script.
+
+Alchemy state is stored remotely with `CloudflareStateStore` through
+`@templar/deploy`. Local `.alchemy/` state is intentionally ignored and should
+not be committed; CI is the deployment source of truth.
+
+Required GitHub Actions repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `ALCHEMY_STATE_TOKEN`
+- `ALCHEMY_PASSWORD`
+
+Keep backup copies of the two Alchemy secrets in a password manager. GitHub
+secrets are write-only after creation.
+
 Critiques/reccomendations for the above?
 
 Notes: would like to enable native code in some places when desired (for example swift? rust?). Small small desire to even use technologies like Java/Scala to learn more about them for work, but meh. Idk how realistic or how much it would make sense to have them live here.

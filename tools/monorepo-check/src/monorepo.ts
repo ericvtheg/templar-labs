@@ -1,4 +1,5 @@
-import { access, readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import fg from "fast-glob";
 import { parse } from "yaml";
@@ -25,22 +26,11 @@ export type MonorepoContext = {
   packages: MonorepoPackage[];
 };
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function findWorkspaceRoot(startDir: string): Promise<string> {
+export function findWorkspaceRoot(startDir: string): string {
   let currentDir = path.resolve(startDir);
 
-  // Walking upward is intentionally sequential because each parent depends on
-  // the previous directory.
   while (true) {
-    if (await pathExists(path.join(currentDir, "pnpm-workspace.yaml"))) {
+    if (existsSync(path.join(currentDir, "pnpm-workspace.yaml"))) {
       return currentDir;
     }
 
@@ -87,7 +77,7 @@ async function findMonorepoPackages(rootDir: string): Promise<MonorepoPackage[]>
 }
 
 export async function createMonorepoContext(startDir: string): Promise<MonorepoContext> {
-  const rootDir = await findWorkspaceRoot(startDir);
+  const rootDir = findWorkspaceRoot(startDir);
   const packages = await findMonorepoPackages(rootDir);
 
   return { rootDir, packages };

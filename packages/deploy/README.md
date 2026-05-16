@@ -154,3 +154,19 @@ application abstraction.
 Alchemy is the implementation tool for deployment orchestration. The public
 package name remains `@templar/deploy` so projects are coupled to this repo's
 deployment conventions rather than the tool name.
+
+Project `alchemy.run.ts` files should initialize the app through `deployApp`
+instead of importing `alchemy` directly. `deployApp` configures the shared
+Cloudflare-backed Alchemy state store so local filesystem state is not required.
+
+CI deploys require these environment variables:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `ALCHEMY_STATE_TOKEN`
+- `ALCHEMY_PASSWORD`
+
+The Cloudflare account must have a Workers subdomain enabled because Alchemy's
+`CloudflareStateStore` provisions a token-protected internal Worker at
+`alchemy-state-service.<account>.workers.dev`. Application traffic still uses
+project domains such as `*.ericventor.com`.

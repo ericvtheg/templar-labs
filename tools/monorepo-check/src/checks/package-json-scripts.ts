@@ -1,8 +1,8 @@
-import type { WorkspaceContext, WorkspacePackage } from "../workspace.ts";
+import type { MonorepoContext, MonorepoPackage } from "../monorepo.ts";
 
 const requiredScripts = ["build", "check", "lint", "test", "typecheck"] as const;
 
-function checkPackage(workspacePackage: WorkspacePackage): string[] {
+function checkPackage(workspacePackage: MonorepoPackage): string[] {
   const { packageJson, packageJsonPath } = workspacePackage;
   const packageName = packageJson.name ?? packageJsonPath;
   const scripts = packageJson.scripts ?? {};
@@ -24,6 +24,6 @@ function checkPackage(workspacePackage: WorkspacePackage): string[] {
   return failures;
 }
 
-export function checkPackageJsonScripts(context: WorkspaceContext): string[] {
+export function checkPackageJsonScripts(context: MonorepoContext): string[] {
   return context.packages.flatMap(checkPackage);
 }

@@ -250,6 +250,8 @@ importers:
 
   packages/db: {}
 
+  packages/deploy: {}
+
   packages/email: {}
 
   packages/eslint-config: {}
@@ -258,7 +260,7 @@ importers:
 
   packages/tsconfig: {}
 
-  tools/workspace-check:
+  tools/monorepo-check:
     dependencies:
       fast-glob:
         specifier: ^3.3.3

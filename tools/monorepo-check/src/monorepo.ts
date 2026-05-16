@@ -6,21 +6,23 @@ import { parse } from "yaml";
 export type PackageJson = {
   name?: string;
   private?: boolean;
-  scripts?: Record<string, string>;
+  scripts?: Record<string, string> & {
+    deploy?: string;
+  };
 };
 
 type WorkspaceConfig = {
   packages?: string[];
 };
 
-export type WorkspacePackage = {
+export type MonorepoPackage = {
   packageJson: PackageJson;
   packageJsonPath: string;
 };
 
-export type WorkspaceContext = {
+export type MonorepoContext = {
   rootDir: string;
-  packages: WorkspacePackage[];
+  packages: MonorepoPackage[];
 };
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -35,6 +37,8 @@ async function pathExists(filePath: string): Promise<boolean> {
 export async function findWorkspaceRoot(startDir: string): Promise<string> {
   let currentDir = path.resolve(startDir);
 
+  // Walking upward is intentionally sequential because each parent depends on
+  // the previous directory.
   while (true) {
     if (await pathExists(path.join(currentDir, "pnpm-workspace.yaml"))) {
       return currentDir;
@@ -63,7 +67,7 @@ async function readWorkspaceGlobs(rootDir: string): Promise<string[]> {
   return config.packages ?? [];
 }
 
-async function findWorkspacePackages(rootDir: string): Promise<WorkspacePackage[]> {
+async function findMonorepoPackages(rootDir: string): Promise<MonorepoPackage[]> {
   const workspaceGlobs = await readWorkspaceGlobs(rootDir);
   const packageJsonGlobs = workspaceGlobs.map((workspaceGlob) =>
     path.posix.join(workspaceGlob, "package.json"),
@@ -82,9 +86,9 @@ async function findWorkspacePackages(rootDir: string): Promise<WorkspacePackage[
   );
 }
 
-export async function createWorkspaceContext(startDir: string): Promise<WorkspaceContext> {
+export async function createMonorepoContext(startDir: string): Promise<MonorepoContext> {
   const rootDir = await findWorkspaceRoot(startDir);
-  const packages = await findWorkspacePackages(rootDir);
+  const packages = await findMonorepoPackages(rootDir);
 
   return { rootDir, packages };
 }

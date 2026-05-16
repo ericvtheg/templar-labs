@@ -5,8 +5,8 @@
   "description": "",
   "scripts": {
     "build": "turbo build",
-    "check": "pnpm check:workspace && pnpm format:check && pnpm lint && turbo check",
-    "check:workspace": "pnpm --filter @templar/workspace-check run check:workspace",
+    "check": "pnpm check:monorepo && pnpm format:check && pnpm lint && turbo check",
+    "check:monorepo": "pnpm --filter @templar/monorepo-check run check:monorepo",
     "dev": "turbo dev",
     "format": "biome format --write .",
     "format:check": "biome format .",

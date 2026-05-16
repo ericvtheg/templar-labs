@@ -10,9 +10,9 @@ pre-commit:
       glob: "*.{js,jsx,ts,tsx}"
       run: pnpm exec oxlint {staged_files}
 
-    workspace:
+    monorepo:
       glob: "{package.json,pnpm-workspace.yaml}"
-      run: pnpm check:workspace
+      run: pnpm check:monorepo
 
 commit-msg:
   commands:

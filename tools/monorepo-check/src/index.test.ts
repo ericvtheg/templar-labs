@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { checkWorkspace } from "./index.ts";
+import { checkMonorepo } from "./index.ts";
 
 const validScripts = {
   build: "echo build",
@@ -13,16 +13,21 @@ const validScripts = {
   typecheck: "echo typecheck",
 };
 
-async function createTempWorkspace(): Promise<string> {
-  const rootDir = await mkdtemp(path.join(os.tmpdir(), "workspace-check-"));
+const validAppScripts = {
+  ...validScripts,
+  deploy: "echo deploy",
+};
+
+async function createTempMonorepo(): Promise<string> {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), "monorepo-check-"));
   await writeFile(path.join(rootDir, "pnpm-workspace.yaml"), "packages:\n  - 'packages/*'\n");
   await mkdir(path.join(rootDir, "packages/example"), { recursive: true });
 
   return rootDir;
 }
 
-test("passes when root and workspace packages include required scripts", async () => {
-  const rootDir = await createTempWorkspace();
+test("passes when root and monorepo packages include required scripts", async () => {
+  const rootDir = await createTempMonorepo();
 
   await writeFile(
     path.join(rootDir, "package.json"),
@@ -33,11 +38,11 @@ test("passes when root and workspace packages include required scripts", async (
     JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
   );
 
-  assert.deepEqual(await checkWorkspace(rootDir), []);
+  assert.deepEqual(await checkMonorepo(rootDir), []);
 });
 
 test("reports missing scripts", async () => {
-  const rootDir = await createTempWorkspace();
+  const rootDir = await createTempMonorepo();
 
   await writeFile(
     path.join(rootDir, "package.json"),
@@ -48,7 +53,7 @@ test("reports missing scripts", async () => {
     JSON.stringify({ name: "@templar/example", private: true, scripts: { build: "echo build" } }),
   );
 
-  assert.deepEqual(await checkWorkspace(rootDir), [
+  assert.deepEqual(await checkMonorepo(rootDir), [
     "@templar/example is missing scripts.check",
     "@templar/example is missing scripts.lint",
     "@templar/example is missing scripts.test",
@@ -57,7 +62,7 @@ test("reports missing scripts", async () => {
 });
 
 test("reports default npm placeholder scripts", async () => {
-  const rootDir = await createTempWorkspace();
+  const rootDir = await createTempMonorepo();
 
   await writeFile(
     path.join(rootDir, "package.json"),
@@ -75,14 +80,14 @@ test("reports default npm placeholder scripts", async () => {
     }),
   );
 
-  assert.deepEqual(await checkWorkspace(rootDir), [
+  assert.deepEqual(await checkMonorepo(rootDir), [
     "example has the default npm placeholder for scripts.test",
     "packages/example/package.json name must be @templar/example",
   ]);
 });
 
 test("reports package names that do not match their workspace path", async () => {
-  const rootDir = await createTempWorkspace();
+  const rootDir = await createTempMonorepo();
   await mkdir(path.join(rootDir, "tools/example-tool"), { recursive: true });
 
   await writeFile(
@@ -102,14 +107,14 @@ test("reports package names that do not match their workspace path", async () =>
     JSON.stringify({ name: "@templar/tool", private: true, scripts: validScripts }),
   );
 
-  assert.deepEqual(await checkWorkspace(rootDir), [
+  assert.deepEqual(await checkMonorepo(rootDir), [
     "packages/example/package.json name must be @templar/example",
     "tools/example-tool/package.json name must be @templar/example-tool",
   ]);
 });
 
 test("reports packages that are not private", async () => {
-  const rootDir = await createTempWorkspace();
+  const rootDir = await createTempMonorepo();
   await mkdir(path.join(rootDir, "tools/example-tool"), { recursive: true });
 
   await writeFile(
@@ -129,9 +134,62 @@ test("reports packages that are not private", async () => {
     JSON.stringify({ name: "@templar/example-tool", scripts: validScripts }),
   );
 
-  assert.deepEqual(await checkWorkspace(rootDir), [
+  assert.deepEqual(await checkMonorepo(rootDir), [
     "package.json must set private: true",
     "packages/example/package.json must set private: true",
     "tools/example-tool/package.json must set private: true",
   ]);
+});
+
+test("requires deploy scripts for project apps", async () => {
+  const rootDir = await createTempMonorepo();
+  await mkdir(path.join(rootDir, "projects/example/apps/web"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "pnpm-workspace.yaml"),
+    "packages:\n  - 'packages/*'\n  - 'projects/*/apps/*'\n",
+  );
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "projects/example/apps/web/package.json"),
+    JSON.stringify({ name: "example-web", private: true, scripts: validScripts }),
+  );
+
+  assert.deepEqual(await checkMonorepo(rootDir), ["example-web is missing scripts.deploy"]);
+});
+
+test("does not require deploy scripts for project packages", async () => {
+  const rootDir = await createTempMonorepo();
+  await mkdir(path.join(rootDir, "projects/example/apps/web"), { recursive: true });
+  await mkdir(path.join(rootDir, "projects/example/packages/domain"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "pnpm-workspace.yaml"),
+    "packages:\n  - 'packages/*'\n  - 'projects/*/apps/*'\n  - 'projects/*/packages/*'\n",
+  );
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "projects/example/apps/web/package.json"),
+    JSON.stringify({ name: "example-web", private: true, scripts: validAppScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "projects/example/packages/domain/package.json"),
+    JSON.stringify({ name: "example-domain", private: true, scripts: validScripts }),
+  );
+
+  assert.deepEqual(await checkMonorepo(rootDir), []);
 });

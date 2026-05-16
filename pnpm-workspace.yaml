@@ -1,7 +1,7 @@
 packages:
   - 'packages/*'
-  - 'projects/*'
-  - 'projects/*/*'
+  - 'projects/*/apps/*'
+  - 'projects/*/packages/*'
   - 'tools/*'
 allowBuilds:
   lefthook: true

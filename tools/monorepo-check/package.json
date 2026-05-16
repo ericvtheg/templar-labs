@@ -1,14 +1,14 @@
 {
-  "name": "@templar/workspace-check",
+  "name": "@templar/monorepo-check",
   "version": "0.0.1",
   "private": true,
-  "description": "Validate Templar Labs workspace package conventions.",
+  "description": "Validate Templar Labs monorepo package conventions.",
   "license": "ISC",
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm test",
-    "check:workspace": "node src/index.ts",
+    "check:monorepo": "node src/index.ts",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
     "test": "node --test src/index.test.ts",
     "typecheck": "tsc --noEmit"

@@ -1,7 +1,7 @@
 import path from "node:path";
-import type { WorkspaceContext, WorkspacePackage } from "../workspace.ts";
+import type { MonorepoContext, MonorepoPackage } from "../monorepo.ts";
 
-function expectedPackageName(workspacePackage: WorkspacePackage): string | undefined {
+function expectedPackageName(workspacePackage: MonorepoPackage): string | undefined {
   const pathParts = workspacePackage.packageJsonPath.split(path.posix.sep);
   const [workspaceGroup, workspaceName, fileName] = pathParts;
 
@@ -16,7 +16,7 @@ function expectedPackageName(workspacePackage: WorkspacePackage): string | undef
   return `@templar/${workspaceName}`;
 }
 
-function checkPackage(workspacePackage: WorkspacePackage): string[] {
+function checkPackage(workspacePackage: MonorepoPackage): string[] {
   const expectedName = expectedPackageName(workspacePackage);
 
   if (expectedName === undefined || workspacePackage.packageJson.name === expectedName) {
@@ -26,6 +26,6 @@ function checkPackage(workspacePackage: WorkspacePackage): string[] {
   return [`${workspacePackage.packageJsonPath} name must be ${expectedName}`];
 }
 
-export function checkPackageNames(context: WorkspaceContext): string[] {
+export function checkPackageNames(context: MonorepoContext): string[] {
   return context.packages.flatMap(checkPackage);
 }

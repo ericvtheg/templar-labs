@@ -1,13 +1,12 @@
 import { fileURLToPath } from "node:url";
 import process from "node:process";
 import { checkPackageJsonScripts } from "./checks/package-json-scripts.ts";
+import { checkPackageNames } from "./checks/package-names.ts";
 import { createWorkspaceContext, type WorkspaceContext } from "./workspace.ts";
 
 type WorkspaceCheck = (context: WorkspaceContext) => string[] | Promise<string[]>;
 
-const workspaceChecks: WorkspaceCheck[] = [
-  checkPackageJsonScripts,
-];
+const workspaceChecks: WorkspaceCheck[] = [checkPackageJsonScripts, checkPackageNames];
 
 export async function checkWorkspace(rootDir = process.cwd()): Promise<string[]> {
   const context = await createWorkspaceContext(rootDir);

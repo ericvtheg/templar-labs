@@ -1,8 +1,8 @@
+import assert from "node:assert/strict";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import assert from "node:assert/strict";
 import { checkWorkspace } from "./index.ts";
 
 const validScripts = {
@@ -26,11 +26,11 @@ test("passes when root and workspace packages include required scripts", async (
 
   await writeFile(
     path.join(rootDir, "package.json"),
-    JSON.stringify({ name: "root", scripts: validScripts }),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
   );
   await writeFile(
     path.join(rootDir, "packages/example/package.json"),
-    JSON.stringify({ name: "@templar/example", scripts: validScripts }),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
   );
 
   assert.deepEqual(await checkWorkspace(rootDir), []);
@@ -41,11 +41,11 @@ test("reports missing scripts", async () => {
 
   await writeFile(
     path.join(rootDir, "package.json"),
-    JSON.stringify({ name: "root", scripts: validScripts }),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
   );
   await writeFile(
     path.join(rootDir, "packages/example/package.json"),
-    JSON.stringify({ name: "@templar/example", scripts: { build: "echo build" } }),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: { build: "echo build" } }),
   );
 
   assert.deepEqual(await checkWorkspace(rootDir), [
@@ -61,12 +61,13 @@ test("reports default npm placeholder scripts", async () => {
 
   await writeFile(
     path.join(rootDir, "package.json"),
-    JSON.stringify({ name: "root", scripts: validScripts }),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
   );
   await writeFile(
     path.join(rootDir, "packages/example/package.json"),
     JSON.stringify({
       name: "example",
+      private: true,
       scripts: {
         ...validScripts,
         test: 'echo "Error: no test specified" && exit 1',
@@ -90,19 +91,47 @@ test("reports package names that do not match their workspace path", async () =>
   );
   await writeFile(
     path.join(rootDir, "package.json"),
-    JSON.stringify({ name: "root", scripts: validScripts }),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
   );
   await writeFile(
     path.join(rootDir, "packages/example/package.json"),
-    JSON.stringify({ name: "example", scripts: validScripts }),
+    JSON.stringify({ name: "example", private: true, scripts: validScripts }),
   );
   await writeFile(
     path.join(rootDir, "tools/example-tool/package.json"),
-    JSON.stringify({ name: "@templar/tool", scripts: validScripts }),
+    JSON.stringify({ name: "@templar/tool", private: true, scripts: validScripts }),
   );
 
   assert.deepEqual(await checkWorkspace(rootDir), [
     "packages/example/package.json name must be @templar/example",
     "tools/example-tool/package.json name must be @templar/example-tool",
+  ]);
+});
+
+test("reports packages that are not private", async () => {
+  const rootDir = await createTempWorkspace();
+  await mkdir(path.join(rootDir, "tools/example-tool"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "pnpm-workspace.yaml"),
+    "packages:\n  - 'packages/*'\n  - 'tools/*'\n",
+  );
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "tools/example-tool/package.json"),
+    JSON.stringify({ name: "@templar/example-tool", scripts: validScripts }),
+  );
+
+  assert.deepEqual(await checkWorkspace(rootDir), [
+    "package.json must set private: true",
+    "packages/example/package.json must set private: true",
+    "tools/example-tool/package.json must set private: true",
   ]);
 });

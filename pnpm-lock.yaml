@@ -251,6 +251,8 @@ importers:
 
   packages/auth: {}
 
+  packages/blob: {}
+
   packages/db: {}
 
   packages/deploy:

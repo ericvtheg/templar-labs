@@ -6,7 +6,20 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!node_modules", "!.turbo", "!pnpm-lock.yaml"]
+    "includes": [
+      "**",
+      "!node_modules",
+      "!.turbo",
+      "!pnpm-lock.yaml",
+      "!**/.alchemy",
+      "!**/.tanstack",
+      "!**/.wrangler",
+      "!**/dist",
+      "!**/dist-ssr",
+      "!**/.output",
+      "!**/.vinxi",
+      "!**/routeTree.gen.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

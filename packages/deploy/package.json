@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "Shared deployment conventions for Templar Labs projects.",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "build": "tsc --noEmit",
@@ -13,5 +14,12 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "alchemy": "^0.93.7"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./cloudflare": "./src/cloudflare/index.ts"
+  }
 }

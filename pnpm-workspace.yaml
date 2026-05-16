@@ -1,9 +1,13 @@
 packages:
   - 'packages/*'
+  - 'projects/*'
   - 'projects/*/apps/*'
   - 'projects/*/packages/*'
   - 'tools/*'
 allowBuilds:
+  esbuild: true
   lefthook: true
+  sharp: false
+  workerd: true
 
 minimumReleaseAge: 4320

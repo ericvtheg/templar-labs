@@ -41,6 +41,7 @@
     "@commitlint/config-conventional": "^21.0.1",
     "@templar/tsconfig": "workspace:*",
     "@types/node": "^24.12.4",
+    "alchemy": "^0.93.7",
     "lefthook": "^2.1.6",
     "oxlint": "^1.64.0",
     "turbo": "^2.9.12",

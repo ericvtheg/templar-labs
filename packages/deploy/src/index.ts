@@ -1,1 +1,1 @@
-export const deployPackageName = "@templar/deploy";
+export * from "./naming.ts";

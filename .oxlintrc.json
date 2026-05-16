@@ -9,5 +9,5 @@
   "options": {
     "reportUnusedDisableDirectives": "deny"
   },
-  "ignorePatterns": ["node_modules/**", ".turbo/**", "pnpm-lock.yaml"]
+  "ignorePatterns": ["node_modules/**", ".turbo/**", "pnpm-lock.yaml", "**/routeTree.gen.ts"]
 }

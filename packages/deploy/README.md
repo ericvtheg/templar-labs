@@ -11,7 +11,6 @@ the underlying deployment model clear enough to debug.
 `@templar/deploy` owns shared deployment building blocks and conventions:
 
 - standard resource naming
-- stage and environment helpers
 - Cloudflare deployment wrappers
 - shared defaults for deployable app types
 - small utilities used by those wrappers
@@ -37,16 +36,17 @@ Use project-local Alchemy files for final composition:
 
 ```txt
 projects/hello-world/
+  alchemy.run.ts
   apps/
     web/
-      alchemy.run.ts
   packages/
     domain/
 ```
 
-The project file should choose which deploy helpers and package-owned resources
-to compose. It should not reimplement shared naming, stage, or Cloudflare app
-defaults.
+The project root `alchemy.run.ts` should choose which deploy helpers,
+package-owned resources, and apps to compose. This keeps ordering explicit when
+a project has multiple apps or shared resources. App folders should contain app
+implementation details, not the whole project deployment graph.
 
 Deployable project apps live under `projects/*/apps/*` and must expose a
 `deploy` script. Project-local shared packages can live under
@@ -61,12 +61,12 @@ packages/deploy/
       resources/
         tanstack-start-app.ts
         cloudflare-worker.ts
+        r2-bucket.ts
         index.ts
       utils/
         bindings.ts
         index.ts
       index.ts
-    environment.ts
     naming.ts
     index.ts
 ```
@@ -89,6 +89,13 @@ API gateways, background processors, and small HTTP services without React UI.
 
 The exported helper should be named `cloudflareWorker`.
 
+### `src/cloudflare/resources/r2-bucket.ts`
+
+Wrapper for creating an R2 bucket with the same naming conventions used by apps
+and workers.
+
+The exported helper should be named `r2Bucket`.
+
 ### `src/cloudflare/utils/`
 
 Cloudflare-specific helper code used by the resource wrappers.
@@ -97,31 +104,34 @@ Utilities can include binding helpers, Cloudflare environment helpers, and
 small shared implementation details. Utilities should not look like deployable
 resources and should be exported deliberately.
 
-### `src/environment.ts`
-
-Shared stage and environment helpers.
-
-This should keep projects from inventing separate meanings for values like
-`dev`, `preview`, and `prod`.
-
 ### `src/naming.ts`
 
 Shared resource naming helpers.
 
 Cloud resources need stable, readable names. Naming should include enough
-context to distinguish project, stage, and resource purpose.
+context to distinguish project and resource purpose. The default assumption is a
+single production environment. Helpers may accept optional qualifiers for future
+cases, but projects should not model environments unless they actually need
+them.
 
 ## Example
 
 ```ts
 import alchemy from "alchemy";
-import { tanstackStartApp } from "@templar/deploy/cloudflare";
+import { r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
 
 const app = await alchemy("hello-world");
 
+const r2 = await r2Bucket("r2", {
+  project: "hello-world",
+});
+
 export const website = await tanstackStartApp("website", {
   project: "hello-world",
-  stage: "dev",
+  cwd: "apps/web",
+  bindings: {
+    R2: r2,
+  },
 });
 
 console.log({ url: website.url });

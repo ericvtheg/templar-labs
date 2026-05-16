@@ -1,5 +1,12 @@
 node_modules/
 .turbo/
+.alchemy/
+.tanstack/
+.wrangler/
+dist/
+dist-ssr/
+.output/
+.vinxi/
 
 .DS_Store
 

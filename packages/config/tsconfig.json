@@ -1,0 +1,4 @@
+{
+  "extends": "@templar/tsconfig/library-package",
+  "include": ["src/**/*.ts"]
+}

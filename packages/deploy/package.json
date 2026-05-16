@@ -1,0 +1,25 @@
+{
+  "name": "@templar/deploy",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared deployment conventions for Templar Labs projects.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "echo 'No tests configured yet.'",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "alchemy": "^0.93.7"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./cloudflare": "./src/cloudflare/index.ts"
+  }
+}

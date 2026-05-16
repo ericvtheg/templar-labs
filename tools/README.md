@@ -11,7 +11,7 @@ Use `tools/` for repo-specific developer workflows that may have their own comma
 Examples:
 
 - project scaffolding
-- workspace validation
+- monorepo validation
 - deploy orchestration
 - release management
 - content pipelines
@@ -36,7 +36,7 @@ A small tool can start as a single file, but if it grows command flags, multiple
 ```txt
 tools/
   project-scaffold/
-  workspace-check/
+  monorepo-check/
   deploy/
 ```
 

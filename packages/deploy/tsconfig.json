@@ -1,0 +1,7 @@
+{
+  "extends": "@templar/tsconfig/library-package",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"]
+}

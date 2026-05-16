@@ -1,0 +1,4 @@
+{
+  "extends": "@templar/tsconfig/node-script",
+  "include": ["src/**/*.ts"]
+}

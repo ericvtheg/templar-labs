@@ -3,10 +3,8 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "compilerOptions": {
     "baseUrl": ".",
-    "exactOptionalPropertyTypes": false,
     "jsx": "react-jsx",
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "noPropertyAccessFromIndexSignature": false,
     "paths": {
       "@/*": ["./src/*"]
     }

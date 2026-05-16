@@ -4,8 +4,6 @@
   "compilerOptions": {
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "exactOptionalPropertyTypes": false,
-    "noPropertyAccessFromIndexSignature": false,
     "types": ["vite/client"],
     "allowJs": true,
     "resolveJsonModule": true,

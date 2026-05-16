@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo 'Build is handled by alchemy deploy.'",
+    "build": "node ../../scripts/project-build.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
     "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",

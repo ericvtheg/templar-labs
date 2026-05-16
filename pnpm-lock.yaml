@@ -278,7 +278,17 @@ importers:
 
   packages/eslint-config: {}
 
-  packages/logger: {}
+  packages/logger:
+    dependencies:
+      '@templar/config':
+        specifier: workspace:*
+        version: link:../config
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
 
   packages/payments: {}
 

@@ -1,1 +1,2 @@
-export const packageName = "@templar/logger";
+export * from "./config";
+export * from "./service";

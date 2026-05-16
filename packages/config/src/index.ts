@@ -1,1 +1,3 @@
-export const packageName = "@templar/config";
+export * from "./app-config";
+export * from "./environment";
+export * from "./secret";

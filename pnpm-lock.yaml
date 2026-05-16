@@ -257,7 +257,14 @@ importers:
 
   packages/cache: {}
 
-  packages/config: {}
+  packages/config:
+    dependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
 
   packages/db: {}
 

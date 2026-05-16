@@ -1,7 +1,7 @@
+import { deployApp } from "@templar/deploy";
 import { r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
-import alchemy from "alchemy";
 
-const app = await alchemy("hello-world");
+const app = await deployApp("hello-world");
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",

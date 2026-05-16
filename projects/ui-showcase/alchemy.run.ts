@@ -1,7 +1,7 @@
+import { deployApp } from "@templar/deploy";
 import { tanstackStartApp } from "@templar/deploy/cloudflare";
-import alchemy from "alchemy";
 
-const app = await alchemy("ui-showcase");
+const app = await deployApp("ui-showcase");
 
 export const website = await tanstackStartApp("website", {
   project: "ui-showcase",

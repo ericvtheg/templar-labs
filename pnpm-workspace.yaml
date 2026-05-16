@@ -1,0 +1,6 @@
+packages:
+  - 'packages/*'
+  - 'projects/*'
+  - 'projects/*/*'
+
+minimumReleaseAge: 4320

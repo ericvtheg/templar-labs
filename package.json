@@ -9,5 +9,22 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.18.2"
+  "packageManager": "pnpm@11.0.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11.0.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^24.15.0",
+      "onFail": "download"
+    }
+  },
+  "dependencies": {
+    "effect": "^3.21.2"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
 }

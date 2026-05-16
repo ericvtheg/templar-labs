@@ -28,6 +28,34 @@ Some are still TBD
 - Logger (?)
 
 
+## Current Tech Choices
+
+These are the current defaults for new packages and projects in this monorepo.
+
+- TypeScript as the primary language
+- Effect as the core application/runtime model for services, workflows, dependency injection, config, retries, error handling, logging, and observability
+- TanStack Start for full-stack React apps
+- Drizzle for database access and migrations
+- Alchemy for TypeScript-native infrastructure as code
+- Cloudflare as the default cloud/runtime target
+- pnpm workspaces for package management
+- Biome for formatting, import organization, and baseline linting
+- Oxlint for fast JavaScript/TypeScript linting
+- ESLint flat config only where framework-specific or type-aware rules are still needed
+- Vitest for unit/integration tests
+- Playwright for end-to-end tests on deployable apps
+- Tailwind CSS v4 for styling
+- Radix/shadcn-style owned components for UI primitives and app components
+- Better Auth for authentication
+- PostHog for product analytics, feature flags, session replay, and experiments
+- OpenRouter behind a local `@templar/ai` provider adapter, so app code is not coupled directly to one model gateway
+- Stripe Checkout/Payment Links first for payments, with deeper Billing/Connect integrations added only when needed
+- Effect Logger as the application logging API
+- Structured JSON logs as the default sink for Cloudflare/Node log ingestion
+- Optional Pino bridge only for Node-specific transports
+- OpenTelemetry later for traces and metrics once the first real apps need it
+- Turbo for monorepo task orchestration unless the repo grows into workflows that justify Nx
+
 Critiques/reccomendations for the above?
 
 Notes: would like to enable native code in some places when desired (for example swift? rust?). Small small desire to even use technologies like Java/Scala to learn more about them for work, but meh. Idk how realistic or how much it would make sense to have them live here.

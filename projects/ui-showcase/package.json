@@ -1,0 +1,22 @@
+{
+  "name": "ui-showcase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Build is handled by alchemy deploy.'",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "echo 'No tests configured yet.'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/deploy": "workspace:*"
+  },
+  "devDependencies": {
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3"
+  }
+}

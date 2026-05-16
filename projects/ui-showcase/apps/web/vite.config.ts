@@ -7,11 +7,10 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
   server: {
-    port: 5173,
+    port: 5174,
     strictPort: true,
   },
   plugins: [
-    // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
     }),

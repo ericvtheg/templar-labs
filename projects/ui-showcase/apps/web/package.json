@@ -1,5 +1,5 @@
 {
-  "name": "hello-world-web",
+  "name": "ui-showcase-web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,7 +14,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@templar/deploy": "workspace:*",
     "@templar/ui": "workspace:*",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.2.2",

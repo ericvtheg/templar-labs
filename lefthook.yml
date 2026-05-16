@@ -8,7 +8,7 @@ pre-commit:
 
     oxlint:
       glob: "*.{js,jsx,ts,tsx}"
-      run: pnpm exec oxlint {staged_files}
+      run: pnpm exec oxlint --no-error-on-unmatched-pattern {staged_files}
 
     monorepo:
       glob: "{package.json,pnpm-workspace.yaml}"

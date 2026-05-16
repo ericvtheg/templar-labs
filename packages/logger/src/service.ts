@@ -1,27 +1,15 @@
 import { AppConfigService } from "@templar/config";
 import { Effect, Layer, Logger } from "effect";
-import {
-  defaultLoggerFormat,
-  defaultLoggerLevel,
-  LoggerFormat,
-  loggerConfigDescriptor,
-  logLevelFromName,
-} from "./config";
+import { LoggerFormat, loggerConfigDescriptorFor } from "./config";
 
 export const TemplarLoggerLive = Layer.unwrapEffect(
   Effect.gen(function* () {
     const appConfig = yield* AppConfigService;
-    const loggerConfig = yield* loggerConfigDescriptor;
-
-    const level =
-      loggerConfig.level === undefined
-        ? defaultLoggerLevel(appConfig.environment)
-        : logLevelFromName(loggerConfig.level);
-    const format = loggerConfig.format ?? defaultLoggerFormat(appConfig.environment);
+    const loggerConfig = yield* loggerConfigDescriptorFor(appConfig.environment);
 
     return Layer.mergeAll(
-      format === LoggerFormat.Json ? Logger.json : Logger.pretty,
-      Logger.minimumLogLevel(level),
+      loggerConfig.format === LoggerFormat.Json ? Logger.json : Logger.pretty,
+      Logger.minimumLogLevel(loggerConfig.level),
       Layer.scopedDiscard(
         Effect.annotateLogsScoped({
           app: appConfig.appName,

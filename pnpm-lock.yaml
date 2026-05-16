@@ -389,6 +389,9 @@ importers:
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../../../packages/deploy
+      '@templar/dev-ports':
+        specifier: workspace:*
+        version: link:../../../../tools/dev-ports
       '@templar/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui
@@ -484,6 +487,9 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.167.35(@tanstack/react-router@1.169.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0))
+      '@templar/dev-ports':
+        specifier: workspace:*
+        version: link:../../../../tools/dev-ports
       '@templar/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui
@@ -542,6 +548,18 @@ importers:
       web-vitals:
         specifier: ^4.2.4
         version: 4.2.4
+
+  tools/dev-ports:
+    devDependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../../packages/tsconfig
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   tools/monorepo-check:
     dependencies:

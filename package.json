@@ -8,6 +8,7 @@
     "check": "pnpm check:monorepo && pnpm format:check && pnpm lint && turbo check",
     "check:monorepo": "pnpm --filter @templar/monorepo-check run check:monorepo",
     "dev": "turbo dev",
+    "dev-ports": "pnpm --filter @templar/dev-ports dev-ports",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "pnpm lint:biome && pnpm lint:oxlint && turbo lint",

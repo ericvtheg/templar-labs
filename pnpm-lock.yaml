@@ -253,6 +253,10 @@ importers:
 
   packages/blob: {}
 
+  packages/cache: {}
+
+  packages/config: {}
+
   packages/db: {}
 
   packages/deploy:
@@ -266,6 +270,10 @@ importers:
   packages/eslint-config: {}
 
   packages/logger: {}
+
+  packages/payments: {}
+
+  packages/queue: {}
 
   packages/tsconfig: {}
 

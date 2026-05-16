@@ -26,4 +26,6 @@ jobs:
         run: pnpm check
 
       - name: Deploy projects
+        env:
+          ALCHEMY_CI_STATE_STORE_CHECK: "false"
         run: pnpm run deploy

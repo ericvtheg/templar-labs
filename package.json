@@ -25,6 +25,8 @@
     "effect": "^3.21.2"
   },
   "devDependencies": {
+    "@templar/tsconfig": "workspace:*",
+    "@types/node": "^24.12.4",
     "typescript": "6.0.3"
   }
 }

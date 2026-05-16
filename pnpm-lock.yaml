@@ -211,6 +211,12 @@ importers:
         specifier: ^3.21.2
         version: 3.21.2
     devDependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:packages/tsconfig
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
       node:
         specifier: runtime:^24.15.0
         version: runtime:24.15.0
@@ -238,6 +244,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@types/node@24.12.4':
+    resolution: {integrity: sha512-GUUEShf+PBCGW2KaXwcIt3Yk+e3pkKwWKb9GSyM9WQVE+ep2jzmHdGsHzu4wgcZy5fN9FBdVzjpBQsYlpfpgLA==}
 
   effect@3.21.2:
     resolution: {integrity: sha512-rXd2FGDM8KdjSIrc+mqEELo7ScW7xTVxEf1iInmPSpIde9/nyGuFM710cjTo7/EreGXiUX2MOonPpprbz2XHCg==}
@@ -375,9 +384,16 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  undici-types@7.16.0:
+    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+
 snapshots:
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@types/node@24.12.4':
+    dependencies:
+      undici-types: 7.16.0
 
   effect@3.21.2:
     dependencies:
@@ -393,3 +409,5 @@ snapshots:
   pure-rand@6.1.0: {}
 
   typescript@6.0.3: {}
+
+  undici-types@7.16.0: {}

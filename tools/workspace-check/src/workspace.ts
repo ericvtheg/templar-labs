@@ -75,7 +75,7 @@ async function findWorkspacePackages(rootDir: string): Promise<WorkspacePackage[
   });
 
   return Promise.all(
-    packageJsonPaths.sort().map(async (packageJsonPath) => ({
+    packageJsonPaths.toSorted().map(async (packageJsonPath) => ({
       packageJsonPath,
       packageJson: await readJson<PackageJson>(path.join(rootDir, packageJsonPath)),
     })),

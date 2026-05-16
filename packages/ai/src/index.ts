@@ -1,1 +1,1 @@
-export {};
+export const packageName = "@templar/ai";

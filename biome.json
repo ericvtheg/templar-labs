@@ -208,12 +208,5 @@
       }
     }
   },
-  "overrides": [
-    {
-      "includes": ["packages/ui/src/components/**"],
-      "linter": {
-        "enabled": false
-      }
-    }
-  ]
+  "overrides": []
 }

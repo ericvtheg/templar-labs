@@ -2,9 +2,13 @@
   "name": "templar-labs",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "turbo build",
+    "check": "turbo check",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +31,7 @@
   "devDependencies": {
     "@templar/tsconfig": "workspace:*",
     "@types/node": "^24.12.4",
+    "turbo": "^2.9.12",
     "typescript": "6.0.3"
   }
 }

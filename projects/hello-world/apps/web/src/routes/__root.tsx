@@ -1,4 +1,5 @@
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import templarFaviconUrl from "@templar/assets/favicon.svg?url";
 
 import appCss from "../styles.css?url";
 
@@ -17,6 +18,11 @@ export const Route = createRootRoute({
       },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: templarFaviconUrl,
+      },
       {
         rel: "stylesheet",
         href: appCss,

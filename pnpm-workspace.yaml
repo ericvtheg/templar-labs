@@ -3,5 +3,7 @@ packages:
   - 'projects/*'
   - 'projects/*/*'
   - 'tools/*'
+allowBuilds:
+  lefthook: true
 
 minimumReleaseAge: 4320

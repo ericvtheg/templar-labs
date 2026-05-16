@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,jsx,ts,tsx,json,jsonc,css,md,mdx,yml,yaml}"
+      run: pnpm exec biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+
+    oxlint:
+      glob: "*.{js,jsx,ts,tsx}"
+      run: pnpm exec oxlint {staged_files}
+
+    workspace:
+      glob: "{package.json,pnpm-workspace.yaml}"
+      run: pnpm check:workspace
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}

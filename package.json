@@ -1,13 +1,19 @@
 {
   "name": "templar-labs",
   "version": "0.0.1",
+  "private": true,
   "description": "",
   "scripts": {
     "build": "turbo build",
-    "check": "pnpm check:workspace && turbo check",
+    "check": "pnpm check:workspace && pnpm format:check && pnpm lint && turbo check",
     "check:workspace": "pnpm --filter @templar/workspace-check run check:workspace",
     "dev": "turbo dev",
-    "lint": "turbo lint",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "pnpm lint:biome && pnpm lint:oxlint && turbo lint",
+    "lint:biome": "biome lint .",
+    "lint:oxlint": "oxlint .",
+    "prepare": "lefthook install",
     "test": "turbo test",
     "typecheck": "turbo typecheck"
   },
@@ -30,8 +36,13 @@
     "effect": "^3.21.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@templar/tsconfig": "workspace:*",
     "@types/node": "^24.12.4",
+    "lefthook": "^2.1.6",
+    "oxlint": "^1.64.0",
     "turbo": "^2.9.12",
     "typescript": "6.0.3"
   }

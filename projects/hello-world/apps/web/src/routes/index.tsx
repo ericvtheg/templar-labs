@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { BlobStorage } from "@templar/blob";
+import { r2BlobStorageLayer } from "@templar/blob/r2";
+import { Database, databaseError } from "@templar/db";
+import { d1DatabaseLayer } from "@templar/db/d1";
 import { Alert, AlertDescription, AlertTitle } from "@templar/ui/components/alert";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
@@ -14,7 +18,11 @@ import {
 } from "@templar/ui/components/card";
 import { Progress } from "@templar/ui/components/progress";
 import { Separator } from "@templar/ui/components/separator";
+import { desc } from "drizzle-orm";
+import { Effect, Option } from "effect";
 import { useState, useTransition } from "react";
+import * as schema from "../../db/schema.ts";
+import { helloEvents } from "../../db/schema.ts";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -22,28 +30,124 @@ export const Route = createFileRoute("/")({
 
 const counterKey = "counter/value.txt";
 
+type HelloEvent = {
+  readonly id: number;
+  readonly message: string;
+  readonly createdAt: string;
+};
+
 const incrementCounter = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
-  const storedCounter = await env.R2.get(counterKey);
-  const currentValue = storedCounter === null ? 0 : Number(await storedCounter.text());
-  const nextValue = Number.isFinite(currentValue) ? currentValue + 1 : 1;
 
-  await env.R2.put(counterKey, String(nextValue));
+  return await Effect.runPromise(
+    Effect.gen(function* () {
+      const storedCounter = yield* BlobStorage.get(counterKey);
+      const currentValue = Option.isNone(storedCounter)
+        ? 0
+        : Number(yield* storedCounter.value.text);
+      const nextValue = Number.isFinite(currentValue) ? currentValue + 1 : 1;
 
-  return { value: nextValue };
+      yield* BlobStorage.put({
+        key: counterKey,
+        body: String(nextValue),
+        httpMetadata: {
+          contentType: "text/plain; charset=utf-8",
+        },
+      });
+
+      return { value: nextValue };
+    }).pipe(Effect.provide(r2BlobStorageLayer(env.R2))),
+  );
+});
+
+const listHelloEvents = createServerFn({ method: "GET" }).handler(async () => {
+  const { env } = await import("cloudflare:workers");
+
+  return await Effect.runPromise(
+    readHelloEvents.pipe(Effect.provide(d1DatabaseLayer(env.DB, { schema }))),
+  );
+});
+
+const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => {
+  const { env } = await import("cloudflare:workers");
+  const now = new Date();
+
+  return await Effect.runPromise(
+    Effect.gen(function* () {
+      const database = yield* Database;
+
+      yield* Effect.tryPromise({
+        try: () =>
+          database.db.insert(helloEvents).values({
+            message: `Hello D1 at ${now.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+              second: "2-digit",
+            })}`,
+            createdAt: now,
+          }),
+        catch: (cause) =>
+          databaseError({
+            operation: "insert",
+            table: "hello_events",
+            cause,
+          }),
+      });
+
+      return yield* readHelloEvents;
+    }).pipe(Effect.provide(d1DatabaseLayer(env.DB, { schema }))),
+  );
+});
+
+const readHelloEvents = Effect.gen(function* () {
+  const database = yield* Database;
+
+  const events = yield* Effect.tryPromise({
+    try: () =>
+      database.db
+        .select({
+          id: helloEvents.id,
+          message: helloEvents.message,
+          createdAt: helloEvents.createdAt,
+        })
+        .from(helloEvents)
+        .orderBy(desc(helloEvents.id))
+        .limit(5),
+    catch: (cause) =>
+      databaseError({
+        operation: "select",
+        table: "hello_events",
+        cause,
+      }),
+  });
+
+  return {
+    events: events.map(
+      (event): HelloEvent => ({
+        id: event.id,
+        message: event.message,
+        createdAt: event.createdAt.toISOString(),
+      }),
+    ),
+  };
 });
 
 function Home() {
   const incrementCounterFn = useServerFn(incrementCounter);
+  const createHelloEventFn = useServerFn(createHelloEvent);
+  const listHelloEventsFn = useServerFn(listHelloEvents);
   const [counter, setCounter] = useState<number | null>(null);
+  const [dbEvents, setDbEvents] = useState<ReadonlyArray<HelloEvent>>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [isCounterPending, startCounterTransition] = useTransition();
+  const [isDbPending, startDbTransition] = useTransition();
   const displayCount = counter ?? 0;
   const progressValue = Math.min(displayCount * 12, 100);
 
   const handleIncrement = () => {
     setError(null);
-    startTransition(async () => {
+    startCounterTransition(async () => {
       try {
         const result = await incrementCounterFn();
         setCounter(result.value);
@@ -53,9 +157,33 @@ function Home() {
     });
   };
 
+  const handleLoadEvents = () => {
+    setDbError(null);
+    startDbTransition(async () => {
+      try {
+        const result = await listHelloEventsFn();
+        setDbEvents(result.events);
+      } catch {
+        setDbError("The database rows could not be loaded.");
+      }
+    });
+  };
+
+  const handleCreateEvent = () => {
+    setDbError(null);
+    startDbTransition(async () => {
+      try {
+        const result = await createHelloEventFn();
+        setDbEvents(result.events);
+      } catch {
+        setDbError("The database row could not be written.");
+      }
+    });
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10 text-foreground">
-      <section className="grid w-full max-w-4xl gap-6 md:grid-cols-[1fr_22rem]">
+      <section className="grid w-full max-w-5xl gap-6 md:grid-cols-[1fr_22rem]">
         <Card className="justify-between">
           <CardHeader>
             <Badge className="w-fit" variant="secondary">
@@ -78,16 +206,16 @@ function Home() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button disabled={isPending} onClick={handleIncrement} size="lg" type="button">
-              {isPending ? "Incrementing..." : "Increment counter"}
+            <Button disabled={isCounterPending} onClick={handleIncrement} size="lg" type="button">
+              {isCounterPending ? "Incrementing..." : "Increment counter"}
             </Button>
           </CardFooter>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>R2 counter</CardTitle>
-            <CardDescription>Server state returned from Cloudflare R2.</CardDescription>
+            <CardTitle>Blob counter</CardTitle>
+            <CardDescription>Server state returned from the blob storage package.</CardDescription>
             <CardAction>
               <Badge variant={counter === null ? "outline" : "default"}>
                 {counter === null ? "Waiting" : "Live"}
@@ -112,6 +240,67 @@ function Home() {
                 ? "Click the button to write the first value."
                 : `Last stored value: ${counter}`}
             </p>
+          </CardFooter>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>D1 reads and writes</CardTitle>
+            <CardDescription>
+              Server functions write rows with Drizzle, then read the latest rows through
+              @templar/db.
+            </CardDescription>
+            <CardAction>
+              <Badge variant={dbEvents.length === 0 ? "outline" : "default"}>
+                {dbEvents.length === 0 ? "No rows loaded" : `${dbEvents.length} rows`}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-lg border">
+              <div className="grid grid-cols-[5rem_1fr_12rem] border-b bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
+                <span>ID</span>
+                <span>Message</span>
+                <span>Created</span>
+              </div>
+              {dbEvents.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Load rows or write the first D1 event.
+                </div>
+              ) : (
+                dbEvents.map((event) => (
+                  <div
+                    className="grid grid-cols-[5rem_1fr_12rem] border-b px-4 py-3 text-sm last:border-b-0"
+                    key={event.id}
+                  >
+                    <span className="font-mono text-muted-foreground">{event.id}</span>
+                    <span>{event.message}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(event.createdAt).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col items-stretch gap-3 sm:flex-row">
+            <Button disabled={isDbPending} onClick={handleCreateEvent} type="button">
+              {isDbPending ? "Writing..." : "Write row"}
+            </Button>
+            <Button
+              disabled={isDbPending}
+              onClick={handleLoadEvents}
+              type="button"
+              variant="outline"
+            >
+              Read rows
+            </Button>
+            {dbError === null ? null : (
+              <Alert className="sm:ml-auto sm:max-w-sm" variant="destructive">
+                <AlertTitle>Database failed</AlertTitle>
+                <AlertDescription>{dbError}</AlertDescription>
+              </Alert>
+            )}
           </CardFooter>
         </Card>
       </section>

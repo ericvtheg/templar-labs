@@ -19,6 +19,7 @@ concern:
 - `@templar/auth` should own authentication conventions.
 - `@templar/ai` should own model-provider conventions.
 - `@templar/deploy` owns infrastructure and deployment conventions.
+- `@templar/blob` owns object storage conventions.
 - `@templar/ui` owns shared React UI primitives and styling conventions.
 
 Some packages will be self-created implementations. Others will wrap external
@@ -84,6 +85,34 @@ Wrap a dependency when the wrapper buys something real:
 Do not wrap a dependency just to rename every method. If app code would still
 need to understand the full underlying library, expose a thinner helper or let
 the app use the library directly.
+
+## Provider-Backed Services
+
+When a package can have multiple provider implementations, keep provider files
+thin. Provider modules should implement only the primitive driver contract and
+translate provider-specific shapes into package-domain types.
+
+Shared service modules should own:
+
+- full service assembly from a primitive driver.
+- derived methods built from primitive methods.
+- typed package errors and generic async boundary helpers.
+- cross-cutting behavior such as logging, tracing, metrics, retries, and
+  timeouts.
+
+For Effect services, represent meaningful absence with `Option` at the package
+boundary. Keep `null` and `undefined` at external API boundaries or in plain
+provider input/output shapes when those APIs require them.
+
+Use `driver.ts` for the shared provider contract and driver helper utilities.
+Put concrete provider implementations under `drivers/`, such as
+`drivers/r2.ts`. Public subpath exports can keep stable consumer imports such
+as `@templar/blob/r2` even if the file lives under `drivers/`.
+
+For example, `@templar/blob` provider implementations should implement the
+primitive storage driver (`put`, `get`, `head`, `delete`, `list`). The shared
+blob service should assemble `getOrFail`, `text`, `json`, `arrayBuffer`, and
+logging so future R2, S3, local, or test providers get consistent behavior.
 
 ## Runtime Assumptions
 

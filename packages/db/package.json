@@ -3,13 +3,27 @@
   "version": "0.0.1",
   "private": true,
   "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'No tests configured yet.'",
+    "test": "node --test src/*.test.ts",
     "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./d1": "./src/drivers/d1.ts",
+    "./sqlite-core": "./src/sqlite-core.ts"
+  },
+  "dependencies": {
+    "@templar/tsconfig": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "effect": "^3.21.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260511.1",
+    "@types/node": "^24.12.4"
   },
   "keywords": [],
   "author": "",

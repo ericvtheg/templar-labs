@@ -1,10 +1,16 @@
 import { deployApp } from "@templar/deploy";
-import { r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
+import { d1Database, r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
 
 const app = await deployApp("hello-world");
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",
+});
+
+const db = await d1Database("db", {
+  project: "hello-world",
+  adopt: true,
+  migrationsDir: "apps/web/migrations",
 });
 
 export const website = await tanstackStartApp("website", {
@@ -19,6 +25,7 @@ export const website = await tanstackStartApp("website", {
   ],
   url: false,
   bindings: {
+    DB: db,
     R2: r2,
   },
 });

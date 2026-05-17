@@ -7,6 +7,12 @@
     "build": "turbo build",
     "check": "pnpm check:monorepo && pnpm format:check && pnpm lint && turbo check",
     "check:monorepo": "pnpm --filter @templar/monorepo-check run check:monorepo",
+    "db": "node scripts/db.mjs",
+    "db:generate": "node scripts/db.mjs generate",
+    "db:migrate": "node scripts/db.mjs migrate",
+    "db:migrate:ci": "node scripts/db.mjs migrate --prod --all",
+    "db:migrate:local": "node scripts/db.mjs migrate --local",
+    "db:migrate:prod": "node scripts/db.mjs migrate --prod",
     "deploy": "node scripts/deploy-projects.mjs",
     "dev": "turbo dev",
     "dev-ports": "pnpm --filter @templar/dev-ports dev-ports",
@@ -44,9 +50,11 @@
     "@templar/tsconfig": "workspace:*",
     "@types/node": "^24.12.4",
     "alchemy": "^0.93.7",
+    "drizzle-kit": "^0.31.8",
     "lefthook": "^2.1.6",
     "oxlint": "^1.64.0",
     "turbo": "^2.9.12",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "wrangler": "^4.90.1"
   }
 }

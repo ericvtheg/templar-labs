@@ -1,11 +1,6 @@
 import { Option } from "effect";
-import {
-  type BlobStorageDriver,
-  type BlobStorageService,
-  makeBlobStorageLayer,
-  makeBlobStorageService,
-  tryBlobStoragePromise,
-} from "./service";
+import { type BlobStorageDriver, tryBlobStoragePromise } from "../driver";
+import { type BlobStorageService, makeBlobStorageLayer, makeBlobStorageService } from "../service";
 import type {
   BlobBody,
   BlobHttpMetadata,
@@ -15,7 +10,7 @@ import type {
   ListBlobsInput,
   ListBlobsResult,
   PutBlobInput,
-} from "./types";
+} from "../types";
 
 export type R2ObjectLike = {
   readonly key: string;

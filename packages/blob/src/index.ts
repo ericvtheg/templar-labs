@@ -1,4 +1,3 @@
 export * from "./errors";
-export * from "./logging";
-export * from "./service";
+export { BlobStorage, type BlobStorageService, makeBlobStorageLayer } from "./service";
 export * from "./types";

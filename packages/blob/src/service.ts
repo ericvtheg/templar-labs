@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option } from "effect";
-import { type BlobError, BlobNotFoundError, type BlobOperation, BlobStorageError } from "./errors";
+import type { BlobStorageDriver } from "./driver";
+import { type BlobError, BlobNotFoundError, type BlobStorageError } from "./errors";
 import { withBlobLogging } from "./logging";
 import type {
   BlobObject,
@@ -20,11 +21,6 @@ export type BlobStorageService = {
   readonly json: <A = unknown>(key: string) => Effect.Effect<A, BlobError>;
   readonly arrayBuffer: (key: string) => Effect.Effect<ArrayBuffer, BlobError>;
 };
-
-export type BlobStorageDriver = Pick<
-  BlobStorageService,
-  "put" | "get" | "head" | "delete" | "list"
->;
 
 export class BlobStorage extends Context.Tag("@templar/blob/BlobStorage")<
   BlobStorage,
@@ -63,7 +59,7 @@ export function makeBlobStorageService(input: {
   });
 }
 
-export function makeGetOrFail(get: BlobStorageService["get"]): BlobStorageService["getOrFail"] {
+function makeGetOrFail(get: BlobStorageService["get"]): BlobStorageService["getOrFail"] {
   return (key) =>
     Effect.flatMap(
       get(key),
@@ -74,34 +70,18 @@ export function makeGetOrFail(get: BlobStorageService["get"]): BlobStorageServic
     );
 }
 
-export function makeText(getOrFail: BlobStorageService["getOrFail"]): BlobStorageService["text"] {
+function makeText(getOrFail: BlobStorageService["getOrFail"]): BlobStorageService["text"] {
   return (key) => Effect.flatMap(getOrFail(key), (object) => object.text);
 }
 
-export function makeJson(getOrFail: BlobStorageService["getOrFail"]): BlobStorageService["json"] {
+function makeJson(getOrFail: BlobStorageService["getOrFail"]): BlobStorageService["json"] {
   return (key) => Effect.flatMap(getOrFail(key), (object) => object.json());
 }
 
-export function makeArrayBuffer(
+function makeArrayBuffer(
   getOrFail: BlobStorageService["getOrFail"],
 ): BlobStorageService["arrayBuffer"] {
   return (key) => Effect.flatMap(getOrFail(key), (object) => object.arrayBuffer);
-}
-
-export function tryBlobStoragePromise<A>(input: {
-  readonly operation: BlobOperation;
-  readonly key?: string;
-  readonly try: () => PromiseLike<A>;
-}): Effect.Effect<A, BlobStorageError> {
-  return Effect.tryPromise({
-    try: input.try,
-    catch: (cause) =>
-      new BlobStorageError({
-        operation: input.operation,
-        key: input.key,
-        cause,
-      }),
-  });
 }
 
 function withBlobStorageLogging(provider: string, service: BlobStorageService): BlobStorageService {

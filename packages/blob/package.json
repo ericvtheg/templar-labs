@@ -13,7 +13,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./r2": "./src/r2.ts"
+    "./r2": "./src/drivers/r2.ts"
   },
   "dependencies": {
     "@templar/tsconfig": "workspace:*",

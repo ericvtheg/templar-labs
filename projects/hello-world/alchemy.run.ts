@@ -27,7 +27,7 @@ export const website = await tanstackStartApp("website", {
   url: false,
   bindings: {
     AUTH_BASE_URL: "https://hello-world.ericventor.com",
-    AUTH_SECRET: alchemy.secret.env("AUTH_SECRET"),
+    AUTH_SECRET: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
     DB: db,
     R2: r2,
   },

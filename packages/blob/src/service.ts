@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option } from "effect";
-import { type BlobError, BlobNotFoundError, type BlobStorageError } from "./errors";
+import { type BlobError, BlobNotFoundError, type BlobOperation, BlobStorageError } from "./errors";
+import { withBlobLogging } from "./logging";
 import type {
   BlobObject,
   BlobObjectBody,
@@ -19,6 +20,11 @@ export type BlobStorageService = {
   readonly json: <A = unknown>(key: string) => Effect.Effect<A, BlobError>;
   readonly arrayBuffer: (key: string) => Effect.Effect<ArrayBuffer, BlobError>;
 };
+
+export type BlobStorageDriver = Pick<
+  BlobStorageService,
+  "put" | "get" | "head" | "delete" | "list"
+>;
 
 export class BlobStorage extends Context.Tag("@templar/blob/BlobStorage")<
   BlobStorage,
@@ -40,6 +46,21 @@ export class BlobStorage extends Context.Tag("@templar/blob/BlobStorage")<
 
 export function makeBlobStorageLayer(service: BlobStorageService): Layer.Layer<BlobStorage> {
   return Layer.succeed(BlobStorage, service);
+}
+
+export function makeBlobStorageService(input: {
+  readonly provider: string;
+  readonly driver: BlobStorageDriver;
+}): BlobStorageService {
+  const getOrFail = makeGetOrFail(input.driver.get);
+
+  return withBlobStorageLogging(input.provider, {
+    ...input.driver,
+    getOrFail,
+    text: makeText(getOrFail),
+    json: makeJson(getOrFail),
+    arrayBuffer: makeArrayBuffer(getOrFail),
+  });
 }
 
 export function makeGetOrFail(get: BlobStorageService["get"]): BlobStorageService["getOrFail"] {
@@ -65,4 +86,96 @@ export function makeArrayBuffer(
   getOrFail: BlobStorageService["getOrFail"],
 ): BlobStorageService["arrayBuffer"] {
   return (key) => Effect.flatMap(getOrFail(key), (object) => object.arrayBuffer);
+}
+
+export function tryBlobStoragePromise<A>(input: {
+  readonly operation: BlobOperation;
+  readonly key?: string;
+  readonly try: () => PromiseLike<A>;
+}): Effect.Effect<A, BlobStorageError> {
+  return Effect.tryPromise({
+    try: input.try,
+    catch: (cause) =>
+      new BlobStorageError({
+        operation: input.operation,
+        key: input.key,
+        cause,
+      }),
+  });
+}
+
+function withBlobStorageLogging(provider: string, service: BlobStorageService): BlobStorageService {
+  return {
+    put: (input) =>
+      service.put(input).pipe(
+        withBlobLogging({
+          provider,
+          operation: "put",
+          key: input.key,
+        }),
+      ),
+    get: (key) =>
+      service.get(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "get",
+          key,
+        }),
+      ),
+    getOrFail: (key) =>
+      service.getOrFail(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "get",
+          key,
+        }),
+      ),
+    head: (key) =>
+      service.head(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "head",
+          key,
+        }),
+      ),
+    delete: (key) =>
+      service.delete(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "delete",
+          key,
+        }),
+      ),
+    list: (input) =>
+      service.list(input).pipe(
+        withBlobLogging({
+          provider,
+          operation: "list",
+        }),
+      ),
+    text: (key) =>
+      service.text(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "read",
+          key,
+        }),
+      ),
+    json: <A = unknown>(key: string) =>
+      service.json<A>(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "read",
+          key,
+        }),
+      ),
+    arrayBuffer: (key) =>
+      service.arrayBuffer(key).pipe(
+        withBlobLogging({
+          provider,
+          operation: "read",
+          key,
+        }),
+      ),
+  };
 }

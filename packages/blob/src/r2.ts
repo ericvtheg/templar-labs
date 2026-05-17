@@ -1,13 +1,10 @@
-import { Effect, Option } from "effect";
-import { type BlobOperation, BlobStorageError } from "./errors";
-import { withBlobLogging } from "./logging";
+import { Option } from "effect";
 import {
+  type BlobStorageDriver,
   type BlobStorageService,
-  makeArrayBuffer,
   makeBlobStorageLayer,
-  makeGetOrFail,
-  makeJson,
-  makeText,
+  makeBlobStorageService,
+  tryBlobStoragePromise,
 } from "./service";
 import type {
   BlobBody,
@@ -62,16 +59,16 @@ export type R2BucketLike = {
 };
 
 export function makeR2BlobStorage(bucket: R2BucketLike): BlobStorageService {
-  const service = {
+  const driver = {
     put: (input: PutBlobInput) =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "put",
         key: input.key,
         try: () =>
           bucket.put(input.key, input.body, putOptionsFromInput(input)).then(normalizeObject),
       }),
     get: (key: string) =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "get",
         key,
         try: async () => {
@@ -80,7 +77,7 @@ export function makeR2BlobStorage(bucket: R2BucketLike): BlobStorageService {
         },
       }),
     head: (key: string) =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "head",
         key,
         try: async () => {
@@ -89,13 +86,13 @@ export function makeR2BlobStorage(bucket: R2BucketLike): BlobStorageService {
         },
       }),
     delete: (key: string) =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "delete",
         key,
         try: () => bucket.delete(key),
       }),
     list: (input?: ListBlobsInput) =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "list",
         try: () =>
           bucket.list(input).then(
@@ -106,17 +103,12 @@ export function makeR2BlobStorage(bucket: R2BucketLike): BlobStorageService {
             }),
           ),
       }),
-  } satisfies Omit<BlobStorageService, "getOrFail" | "text" | "json" | "arrayBuffer">;
+  } satisfies BlobStorageDriver;
 
-  const getOrFail = makeGetOrFail(service.get);
-
-  return {
-    ...service,
-    getOrFail,
-    text: makeText(getOrFail),
-    json: makeJson(getOrFail),
-    arrayBuffer: makeArrayBuffer(getOrFail),
-  };
+  return makeBlobStorageService({
+    provider: "r2",
+    driver,
+  });
 }
 
 export function r2BlobStorageLayer(bucket: R2BucketLike) {
@@ -148,43 +140,21 @@ function normalizeObject(object: R2ObjectLike): BlobObject {
 function normalizeObjectBody(object: R2ObjectBodyLike): BlobObjectBody {
   return {
     ...normalizeObject(object),
-    arrayBuffer: tryR2({
+    arrayBuffer: tryBlobStoragePromise({
       operation: "read",
       key: object.key,
       try: () => object.arrayBuffer(),
     }),
-    text: tryR2({
+    text: tryBlobStoragePromise({
       operation: "read",
       key: object.key,
       try: () => object.text(),
     }),
     json: <A = unknown>() =>
-      tryR2({
+      tryBlobStoragePromise({
         operation: "read",
         key: object.key,
         try: () => object.json<A>(),
       }),
   };
-}
-
-function tryR2<A>(input: {
-  readonly operation: BlobOperation;
-  readonly key?: string;
-  readonly try: () => PromiseLike<A>;
-}): Effect.Effect<A, BlobStorageError> {
-  return Effect.tryPromise({
-    try: input.try,
-    catch: (cause) =>
-      new BlobStorageError({
-        operation: input.operation,
-        key: input.key,
-        cause,
-      }),
-  }).pipe(
-    withBlobLogging({
-      provider: "r2",
-      operation: input.operation,
-      ...(input.key === undefined ? {} : { key: input.key }),
-    }),
-  );
 }

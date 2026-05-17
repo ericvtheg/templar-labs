@@ -2,6 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./base.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "lib": ["ES2024"],
     "declaration": true,
     "declarationMap": true

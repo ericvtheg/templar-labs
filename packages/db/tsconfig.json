@@ -2,7 +2,6 @@
   "extends": "@templar/tsconfig/library-package",
   "include": ["src/**/*.ts"],
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
     "types": ["node", "@cloudflare/workers-types"]
   }
 }

@@ -253,7 +253,14 @@ importers:
 
   packages/auth: {}
 
-  packages/blob: {}
+  packages/blob:
+    dependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
 
   packages/cache: {}
 

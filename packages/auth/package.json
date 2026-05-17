@@ -3,15 +3,31 @@
   "version": "0.0.1",
   "private": true,
   "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'No tests configured yet.'",
+    "test": "node --test src/*.test.ts",
     "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./schema": "./src/schema.ts",
+    "./tanstack-start": "./src/tanstack-start.ts"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.6.11",
+    "better-auth": "^1.6.11",
+    "drizzle-orm": "^0.45.2",
+    "effect": "^3.21.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260511.1",
+    "@types/node": "^24.12.4"
+  }
 }

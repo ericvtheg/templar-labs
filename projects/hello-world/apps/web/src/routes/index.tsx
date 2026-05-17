@@ -16,13 +16,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@templar/ui/components/card";
+import { Input } from "@templar/ui/components/input";
+import { Label } from "@templar/ui/components/label";
 import { Progress } from "@templar/ui/components/progress";
 import { Separator } from "@templar/ui/components/separator";
 import { desc } from "drizzle-orm";
 import { Effect, Option } from "effect";
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import * as schema from "../../db/schema.ts";
 import { helloEvents } from "../../db/schema.ts";
+import { authClient } from "../lib/auth-client.ts";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -38,6 +41,7 @@ type HelloEvent = {
 
 const incrementCounter = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
+  const bindings = env as { readonly R2: R2Bucket };
 
   return await Effect.runPromise(
     Effect.gen(function* () {
@@ -56,20 +60,22 @@ const incrementCounter = createServerFn({ method: "POST" }).handler(async () => 
       });
 
       return { value: nextValue };
-    }).pipe(Effect.provide(r2BlobStorageLayer(env.R2))),
+    }).pipe(Effect.provide(r2BlobStorageLayer(bindings.R2))),
   );
 });
 
 const listHelloEvents = createServerFn({ method: "GET" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
+  const bindings = env as { readonly DB: D1Database };
 
   return await Effect.runPromise(
-    readHelloEvents.pipe(Effect.provide(d1DatabaseLayer(env.DB, { schema }))),
+    readHelloEvents.pipe(Effect.provide(d1DatabaseLayer(bindings.DB, { schema }))),
   );
 });
 
 const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
+  const bindings = env as { readonly DB: D1Database };
   const now = new Date();
 
   return await Effect.runPromise(
@@ -95,7 +101,7 @@ const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => 
       });
 
       return yield* readHelloEvents;
-    }).pipe(Effect.provide(d1DatabaseLayer(env.DB, { schema }))),
+    }).pipe(Effect.provide(d1DatabaseLayer(bindings.DB, { schema }))),
   );
 });
 
@@ -133,17 +139,68 @@ const readHelloEvents = Effect.gen(function* () {
 });
 
 function Home() {
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
   const incrementCounterFn = useServerFn(incrementCounter);
   const createHelloEventFn = useServerFn(createHelloEvent);
   const listHelloEventsFn = useServerFn(listHelloEvents);
+  const session = authClient.useSession();
+  const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const [authName, setAuthName] = useState("Templar User");
+  const [authEmail, setAuthEmail] = useState("hello@example.com");
+  const [authPassword, setAuthPassword] = useState("password123");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [counter, setCounter] = useState<number | null>(null);
   const [dbEvents, setDbEvents] = useState<ReadonlyArray<HelloEvent>>([]);
   const [error, setError] = useState<string | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [isAuthPending, startAuthTransition] = useTransition();
   const [isCounterPending, startCounterTransition] = useTransition();
   const [isDbPending, startDbTransition] = useTransition();
   const displayCount = counter ?? 0;
   const progressValue = Math.min(displayCount * 12, 100);
+  const currentUser = session.data?.user ?? null;
+
+  const handleAuthSubmit = () => {
+    setAuthError(null);
+    startAuthTransition(async () => {
+      try {
+        const result =
+          authMode === "sign-up"
+            ? await authClient.signUp.email({
+                name: authName,
+                email: authEmail,
+                password: authPassword,
+              })
+            : await authClient.signIn.email({
+                email: authEmail,
+                password: authPassword,
+              });
+
+        if (result.error !== null) {
+          setAuthError(result.error.message ?? "Authentication failed.");
+          return;
+        }
+
+        await session.refetch();
+      } catch {
+        setAuthError("Authentication failed.");
+      }
+    });
+  };
+
+  const handleSignOut = () => {
+    setAuthError(null);
+    startAuthTransition(async () => {
+      try {
+        await authClient.signOut();
+        await session.refetch();
+      } catch {
+        setAuthError("Sign out failed.");
+      }
+    });
+  };
 
   const handleIncrement = () => {
     setError(null);
@@ -240,6 +297,96 @@ function Home() {
                 ? "Click the button to write the first value."
                 : `Last stored value: ${counter}`}
             </p>
+          </CardFooter>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Auth session</CardTitle>
+            <CardDescription>
+              Email/password auth routed through @templar/auth and Better Auth.
+            </CardDescription>
+            <CardAction>
+              <Badge variant={currentUser === null ? "outline" : "default"}>
+                {session.isPending ? "Checking" : currentUser === null ? "Signed out" : "Signed in"}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr]">
+            <div className="rounded-lg border bg-muted/40 p-4">
+              <p className="text-sm text-muted-foreground">Current user</p>
+              <p className="mt-2 font-medium">{currentUser?.name ?? "No active session"}</p>
+              <p className="text-sm text-muted-foreground">
+                {currentUser?.email ?? "Sign in below"}
+              </p>
+            </div>
+            <div className="grid gap-3">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setAuthMode("sign-in")}
+                  size="sm"
+                  type="button"
+                  variant={authMode === "sign-in" ? "default" : "outline"}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  onClick={() => setAuthMode("sign-up")}
+                  size="sm"
+                  type="button"
+                  variant={authMode === "sign-up" ? "default" : "outline"}
+                >
+                  Sign up
+                </Button>
+              </div>
+              {authMode === "sign-up" ? (
+                <div className="grid gap-2">
+                  <Label htmlFor={nameId}>Name</Label>
+                  <Input
+                    id={nameId}
+                    onChange={(event) => setAuthName(event.currentTarget.value)}
+                    value={authName}
+                  />
+                </div>
+              ) : null}
+              <div className="grid gap-2">
+                <Label htmlFor={emailId}>Email</Label>
+                <Input
+                  id={emailId}
+                  onChange={(event) => setAuthEmail(event.currentTarget.value)}
+                  type="email"
+                  value={authEmail}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor={passwordId}>Password</Label>
+                <Input
+                  id={passwordId}
+                  onChange={(event) => setAuthPassword(event.currentTarget.value)}
+                  type="password"
+                  value={authPassword}
+                />
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col items-stretch gap-3 sm:flex-row">
+            <Button disabled={isAuthPending} onClick={handleAuthSubmit} type="button">
+              {isAuthPending ? "Working..." : authMode === "sign-up" ? "Create account" : "Sign in"}
+            </Button>
+            <Button
+              disabled={isAuthPending || currentUser === null}
+              onClick={handleSignOut}
+              type="button"
+              variant="outline"
+            >
+              Sign out
+            </Button>
+            {authError === null ? null : (
+              <Alert className="sm:ml-auto sm:max-w-sm" variant="destructive">
+                <AlertTitle>Auth failed</AlertTitle>
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
           </CardFooter>
         </Card>
 

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@templar/assets": "workspace:*",
+    "@templar/auth": "workspace:*",
     "@templar/blob": "workspace:*",
     "@templar/db": "workspace:*",
     "@templar/dev-ports": "workspace:*",

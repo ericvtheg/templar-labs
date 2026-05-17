@@ -1,5 +1,7 @@
 import { integer, sqliteTable, text } from "@templar/db/sqlite-core";
 
+export * from "@templar/auth/schema";
+
 export const helloEvents = sqliteTable("hello_events", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   message: text("message").notNull(),

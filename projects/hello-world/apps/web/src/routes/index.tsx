@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { BlobStorage } from "@templar/blob";
+import { r2BlobStorageLayer } from "@templar/blob/r2";
 import { Alert, AlertDescription, AlertTitle } from "@templar/ui/components/alert";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
@@ -14,6 +16,7 @@ import {
 } from "@templar/ui/components/card";
 import { Progress } from "@templar/ui/components/progress";
 import { Separator } from "@templar/ui/components/separator";
+import { Effect, Option } from "effect";
 import { useState, useTransition } from "react";
 
 export const Route = createFileRoute("/")({
@@ -24,13 +27,26 @@ const counterKey = "counter/value.txt";
 
 const incrementCounter = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
-  const storedCounter = await env.R2.get(counterKey);
-  const currentValue = storedCounter === null ? 0 : Number(await storedCounter.text());
-  const nextValue = Number.isFinite(currentValue) ? currentValue + 1 : 1;
 
-  await env.R2.put(counterKey, String(nextValue));
+  return await Effect.runPromise(
+    Effect.gen(function* () {
+      const storedCounter = yield* BlobStorage.get(counterKey);
+      const currentValue = Option.isNone(storedCounter)
+        ? 0
+        : Number(yield* storedCounter.value.text);
+      const nextValue = Number.isFinite(currentValue) ? currentValue + 1 : 1;
 
-  return { value: nextValue };
+      yield* BlobStorage.put({
+        key: counterKey,
+        body: String(nextValue),
+        httpMetadata: {
+          contentType: "text/plain; charset=utf-8",
+        },
+      });
+
+      return { value: nextValue };
+    }).pipe(Effect.provide(r2BlobStorageLayer(env.R2))),
+  );
 });
 
 function Home() {
@@ -86,8 +102,8 @@ function Home() {
 
         <Card>
           <CardHeader>
-            <CardTitle>R2 counter</CardTitle>
-            <CardDescription>Server state returned from Cloudflare R2.</CardDescription>
+            <CardTitle>Blob counter</CardTitle>
+            <CardDescription>Server state returned from the blob storage package.</CardDescription>
             <CardAction>
               <Badge variant={counter === null ? "outline" : "default"}>
                 {counter === null ? "Waiting" : "Live"}

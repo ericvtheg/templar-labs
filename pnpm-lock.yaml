@@ -415,6 +415,9 @@ importers:
       '@templar/assets':
         specifier: workspace:*
         version: link:../../../../packages/assets
+      '@templar/blob':
+        specifier: workspace:*
+        version: link:../../../../packages/blob
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../../../packages/deploy
@@ -424,6 +427,9 @@ importers:
       '@templar/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
       react:
         specifier: ^19.0.0
         version: 19.2.6

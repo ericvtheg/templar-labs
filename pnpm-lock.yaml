@@ -306,8 +306,6 @@ importers:
 
   packages/email: {}
 
-  packages/eslint-config: {}
-
   packages/logger:
     dependencies:
       '@templar/config':

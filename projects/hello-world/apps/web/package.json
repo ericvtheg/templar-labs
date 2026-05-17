@@ -16,6 +16,7 @@
   "dependencies": {
     "@templar/assets": "workspace:*",
     "@templar/blob": "workspace:*",
+    "@templar/db": "workspace:*",
     "@templar/dev-ports": "workspace:*",
     "@templar/deploy": "workspace:*",
     "@templar/ui": "workspace:*",
@@ -26,6 +27,7 @@
     "@tanstack/react-router-ssr-query": "^1.131.7",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
+    "drizzle-orm": "^0.45.2",
     "effect": "^3.21.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -42,6 +44,7 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "alchemy": "0.93.7",
+    "drizzle-kit": "^0.31.10",
     "jsdom": "^26.0.0",
     "typescript": "^5.7.2",
     "vite": "^7.1.9",

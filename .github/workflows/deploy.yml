@@ -25,6 +25,12 @@ jobs:
       - name: Run checks
         run: pnpm check
 
+      - name: Run database migrations
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: pnpm db:migrate:ci
+
       - name: Deploy projects
         env:
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}

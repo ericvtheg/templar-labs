@@ -1,6 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import type { DrizzleConfig } from "drizzle-orm/utils";
 import { AuthConfigError } from "./errors.ts";
+import { hashTemplarPassword, verifyTemplarPassword } from "./password.ts";
 import * as authSchema from "./schema.ts";
 
 export type AuthDatabaseSchema = Record<string, unknown>;
@@ -23,10 +24,7 @@ export type TemplarAuthConfig<TSchema extends AuthDatabaseSchema = AuthDatabaseS
   readonly db: D1Database;
   readonly schema?: TSchema;
   readonly oauth?: AuthOAuthConfig;
-  readonly emailAndPassword?: {
-    readonly enabled: boolean;
-    readonly requireEmailVerification?: boolean;
-  };
+  readonly emailAndPassword?: BetterAuthOptions["emailAndPassword"];
   readonly trustedOrigins?: readonly string[];
   readonly drizzle?: Omit<DrizzleConfig<TSchema>, "schema">;
 };
@@ -79,7 +77,7 @@ export function createBetterAuthOptions<TSchema extends AuthDatabaseSchema>(
     database,
     socialProviders: socialProviders(config.oauth),
     trustedOrigins: [...config.trustedOrigins],
-    emailAndPassword: config.emailAndPassword ?? { enabled: false },
+    emailAndPassword: emailAndPasswordOptions(config.emailAndPassword),
     account: {
       accountLinking: {
         enabled: true,
@@ -119,6 +117,22 @@ function socialProviders(oauth: AuthOAuthConfig): BetterAuthOptions["socialProvi
 
 function trustedProviderIds(oauth: AuthOAuthConfig): string[] {
   return (["github", "google"] as const).filter((provider) => oauth[provider] !== undefined);
+}
+
+function emailAndPasswordOptions(
+  options: NormalizedTemplarAuthConfig["emailAndPassword"],
+): BetterAuthOptions["emailAndPassword"] {
+  if (options === undefined || !options.enabled) {
+    return { enabled: false };
+  }
+
+  return {
+    ...options,
+    password: options.password ?? {
+      hash: hashTemplarPassword,
+      verify: verifyTemplarPassword,
+    },
+  };
 }
 
 function requireNonEmpty(field: string, value: string): string {

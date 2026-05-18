@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { BlobStorage } from "@templar/blob";
-import { r2BlobStorageLayer } from "@templar/blob/r2";
-import { Database, databaseError } from "@templar/db";
-import { d1DatabaseLayer } from "@templar/db/d1";
+import { makeBlob } from "@templar/blob";
+import { databaseError, makeDatabase } from "@templar/db";
 import { Alert, AlertDescription, AlertTitle } from "@templar/ui/components/alert";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
@@ -42,16 +40,17 @@ type HelloEvent = {
 const incrementCounter = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
   const bindings = env as { readonly R2: R2Bucket };
+  const blob = makeBlob(bindings.R2);
 
   return await Effect.runPromise(
     Effect.gen(function* () {
-      const storedCounter = yield* BlobStorage.get(counterKey);
+      const storedCounter = yield* blob.get(counterKey);
       const currentValue = Option.isNone(storedCounter)
         ? 0
         : Number(yield* storedCounter.value.text);
       const nextValue = Number.isFinite(currentValue) ? currentValue + 1 : 1;
 
-      yield* BlobStorage.put({
+      yield* blob.put({
         key: counterKey,
         body: String(nextValue),
         httpMetadata: {
@@ -60,28 +59,26 @@ const incrementCounter = createServerFn({ method: "POST" }).handler(async () => 
       });
 
       return { value: nextValue };
-    }).pipe(Effect.provide(r2BlobStorageLayer(bindings.R2))),
+    }),
   );
 });
 
 const listHelloEvents = createServerFn({ method: "GET" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
   const bindings = env as { readonly DB: D1Database };
+  const database = makeDatabase(bindings.DB, { schema });
 
-  return await Effect.runPromise(
-    readHelloEvents.pipe(Effect.provide(d1DatabaseLayer(bindings.DB, { schema }))),
-  );
+  return await Effect.runPromise(readHelloEvents(database));
 });
 
 const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
   const bindings = env as { readonly DB: D1Database };
+  const database = makeDatabase(bindings.DB, { schema });
   const now = new Date();
 
   return await Effect.runPromise(
     Effect.gen(function* () {
-      const database = yield* Database;
-
       yield* Effect.tryPromise({
         try: () =>
           database.db.insert(helloEvents).values({
@@ -100,43 +97,44 @@ const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => 
           }),
       });
 
-      return yield* readHelloEvents;
-    }).pipe(Effect.provide(d1DatabaseLayer(bindings.DB, { schema }))),
+      return yield* readHelloEvents(database);
+    }),
   );
 });
 
-const readHelloEvents = Effect.gen(function* () {
-  const database = yield* Database;
+type HelloDatabase = ReturnType<typeof makeDatabase<typeof schema>>;
 
-  const events = yield* Effect.tryPromise({
-    try: () =>
-      database.db
-        .select({
-          id: helloEvents.id,
-          message: helloEvents.message,
-          createdAt: helloEvents.createdAt,
-        })
-        .from(helloEvents)
-        .orderBy(desc(helloEvents.id))
-        .limit(5),
-    catch: (cause) =>
-      databaseError({
-        operation: "select",
-        table: "hello_events",
-        cause,
-      }),
+const readHelloEvents = (database: HelloDatabase) =>
+  Effect.gen(function* () {
+    const events = yield* Effect.tryPromise({
+      try: () =>
+        database.db
+          .select({
+            id: helloEvents.id,
+            message: helloEvents.message,
+            createdAt: helloEvents.createdAt,
+          })
+          .from(helloEvents)
+          .orderBy(desc(helloEvents.id))
+          .limit(5),
+      catch: (cause) =>
+        databaseError({
+          operation: "select",
+          table: "hello_events",
+          cause,
+        }),
+    });
+
+    return {
+      events: events.map(
+        (event): HelloEvent => ({
+          id: event.id,
+          message: event.message,
+          createdAt: event.createdAt.toISOString(),
+        }),
+      ),
+    };
   });
-
-  return {
-    events: events.map(
-      (event): HelloEvent => ({
-        id: event.id,
-        message: event.message,
-        createdAt: event.createdAt.toISOString(),
-      }),
-    ),
-  };
-});
 
 function Home() {
   const nameId = useId();

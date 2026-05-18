@@ -8,7 +8,7 @@ The package should be named `@templar/cache`, not `@templar/kv`.
 can be recomputed. `kv` names one provider. Keeping the public package named
 after the capability leaves room for a memory driver in tests, Cloudflare KV in
 Workers, and another backing store later without renaming consumers. Use `kv`
-only in provider-specific files and exports, such as `@templar/cache/kv`.
+only in provider-specific implementation files.
 
 ## Scope
 
@@ -63,14 +63,12 @@ Public exports:
 export {
   Cache,
   type CacheService,
+  makeCache,
   makeCacheLayer,
   makeCacheService,
 } from "./service.ts";
 export * from "./types.ts";
 export * from "./errors.ts";
-
-// @templar/cache/kv
-export { kvCacheLayer, makeKvCache } from "./drivers/kv.ts";
 ```
 
 The shape should mirror `@templar/blob`: providers implement only the primitive
@@ -172,17 +170,18 @@ generated Worker environment type. The implementation should still include
 Example app usage:
 
 ```ts
-import { Cache } from "@templar/cache";
-import { kvCacheLayer } from "@templar/cache/kv";
+import { makeCache } from "@templar/cache";
 import { Effect } from "effect";
 
-const program = Cache.getOrSet({
+const cache = makeCache(env.CACHE);
+
+const program = cache.getOrSet({
   key: "github:user:octocat",
   ttlSeconds: 300,
   compute: fetchGithubUser("octocat"),
 });
 
-await Effect.runPromise(program.pipe(Effect.provide(kvCacheLayer(env.CACHE))));
+await Effect.runPromise(program);
 ```
 
 ## Key Conventions

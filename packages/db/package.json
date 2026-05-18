@@ -13,7 +13,6 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./d1": "./src/drivers/d1.ts",
     "./sqlite-core": "./src/sqlite-core.ts"
   },
   "dependencies": {

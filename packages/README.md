@@ -26,6 +26,103 @@ Some packages will be self-created implementations. Others will wrap external
 libraries. In both cases, app code should depend on the Templar package when
 there is a meaningful local convention to preserve.
 
+These packages are for this monorepo first. They should be designed as shared
+internal product infrastructure, not as open-ended SDKs. When a package is used
+across projects, the package should make the recurring decisions ahead of time
+and expose the simplest useful contract to consuming services.
+
+Prefer APIs that encode Templar defaults:
+
+- Consumers should choose intent, not implementation details.
+- Provider choice, fallback behavior, retry policy, logging, and config names
+  should live inside the package when they are repo-wide conventions.
+- Escape hatches should be rare and added only after a real project needs them.
+- Avoid exposing raw provider concepts, driver names, model IDs, storage
+  implementation details, or fallback lists unless the consuming service is
+  genuinely responsible for that choice.
+- Do not expose configuration knobs just because the underlying provider has
+  them. Expose a knob only when a consuming service owns that decision.
+- Keep fallback chains, provider-specific request shapes, and generated
+  defaults inside the package. Tests can inspect internals through package-local
+  helpers, but app code should not assemble them.
+
+For example, an AI consumer should select a curated tier such as `coding` or
+`balanced`, not provider model IDs or fallback chains. The AI package owns those
+model choices because they are shared Templar Labs decisions. Likewise, a blob
+consumer should use the blob service contract, not directly depend on R2 object
+shapes unless it is wiring the provider layer.
+
+The standard should be: package APIs are small because complexity has been
+encapsulated, not because behavior is missing.
+
+Package reviews should ask:
+
+- Is this option a real product decision for the caller, or just provider
+  leakage?
+- Can this be represented as a Templar-level intent instead of a raw vendor
+  setting?
+- Would every app choose the same value? If yes, encode it in the package.
+- Does this abstraction delete repeated app code? If not, it may be the wrong
+  abstraction.
+
+## Default Providers
+
+Provider-backed packages should expose a Templar default provider from the root
+package. Consumers should not have to choose a provider for normal app code.
+
+Expose both root constructors and root layers for the default provider:
+
+```ts
+import { aiLayer, makeAI } from "@templar/ai";
+import { blobLayer, makeBlob } from "@templar/blob";
+import { cacheLayer, makeCache } from "@templar/cache";
+import { databaseLayer, makeDatabase } from "@templar/db";
+```
+
+These names mean "use the Templar default":
+
+- `@templar/ai` defaults to OpenRouter.
+- `@templar/blob` defaults to R2.
+- `@templar/cache` defaults to KV.
+- `@templar/db` defaults to D1.
+
+Root package APIs should stay provider-agnostic after construction. Provider
+details such as R2, KV, D1, OpenRouter, model IDs, fallback chains, request
+formats, or vendor clients should not appear in operation inputs unless that is
+the actual domain being modeled.
+
+Use `makeThing(...)` for direct app code that already has runtime bindings in
+hand:
+
+```ts
+const blob = makeBlob(bindings.R2);
+
+const result = await Effect.runPromise(blob.text("counter/value.txt"));
+```
+
+Use `thingLayer(...)` when composing reusable Effect programs or higher-level
+packages that should receive dependencies from the outside:
+
+```ts
+const program = BlobStorage.text("counter/value.txt");
+
+const result = await Effect.runPromise(
+  program.pipe(Effect.provide(blobLayer(bindings.R2))),
+);
+```
+
+Provider-specific constructors should not be exposed until a real project needs
+to opt out of the default. When that happens, add an explicit provider subpath
+without changing the root contract.
+
+The standard shape is:
+
+- `@templar/package`: default Templar provider through both `makeThing(...)`
+  and `thingLayer(...)`.
+- `@templar/package/provider`: explicit provider constructors only after a real
+  project needs them.
+- operation methods stay provider-agnostic and identical across providers.
+
 ## Effect
 
 Effect is the default wrapper model for non-UI packages when it fits the
@@ -106,8 +203,9 @@ provider input/output shapes when those APIs require them.
 
 Use `driver.ts` for the shared provider contract and driver helper utilities.
 Put concrete provider implementations under `drivers/`, such as
-`drivers/r2.ts`. Public subpath exports can keep stable consumer imports such
-as `@templar/blob/r2` even if the file lives under `drivers/`.
+`drivers/r2.ts`. Driver files are internal by default; expose a provider subpath
+only when the repo has an actual consumer that must opt into a non-default
+provider.
 
 For example, `@templar/blob` provider implementations should implement the
 primitive storage driver (`put`, `get`, `head`, `delete`, `list`). The shared

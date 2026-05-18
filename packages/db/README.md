@@ -42,14 +42,13 @@ export const users = sqliteTable("users", {
 ## Cloudflare D1
 
 ```ts
-import { Database, databaseError } from "@templar/db";
-import { d1DatabaseLayer } from "@templar/db/d1";
+import { databaseError, makeDatabase } from "@templar/db";
 import { Effect } from "effect";
 import * as schema from "../../db/schema";
 
-const program = Effect.gen(function* () {
-  const database = yield* Database;
+const database = makeDatabase(env.DB, { schema });
 
+const program = Effect.gen(function* () {
   return yield* Effect.tryPromise({
     try: () => database.db.select().from(schema.users),
     catch: (cause) =>
@@ -60,7 +59,7 @@ const program = Effect.gen(function* () {
   });
 });
 
-await Effect.runPromise(program.pipe(Effect.provide(d1DatabaseLayer(env.DB, { schema }))));
+await Effect.runPromise(program);
 ```
 
 Apps still use normal Drizzle APIs. The package boundary exists so every app

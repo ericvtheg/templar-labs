@@ -69,9 +69,13 @@ export function makeKvCache(namespace: KvNamespaceLike): CacheService {
   });
 }
 
+export const makeCache = makeKvCache;
+
 export function kvCacheLayer(namespace: KvNamespaceLike) {
   return makeCacheLayer(makeKvCache(namespace));
 }
+
+export const cacheLayer = kvCacheLayer;
 
 function kvGetOptions(options: CacheReadOptions | undefined): KvGetOptions {
   return {

@@ -12,8 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    ".": "./src/index.ts",
-    "./r2": "./src/drivers/r2.ts"
+    ".": "./src/index.ts"
   },
   "dependencies": {
     "@templar/tsconfig": "workspace:*",

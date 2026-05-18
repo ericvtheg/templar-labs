@@ -106,9 +106,13 @@ export function makeR2BlobStorage(bucket: R2BucketLike): BlobStorageService {
   });
 }
 
+export const makeBlob = makeR2BlobStorage;
+
 export function r2BlobStorageLayer(bucket: R2BucketLike) {
   return makeBlobStorageLayer(makeR2BlobStorage(bucket));
 }
+
+export const blobLayer = r2BlobStorageLayer;
 
 function putOptionsFromInput(input: PutBlobInput): R2PutOptionsLike | undefined {
   if (input.httpMetadata === undefined && input.metadata === undefined) {

@@ -21,9 +21,13 @@ export function makeD1Database<TSchema extends DatabaseSchema>(
   });
 }
 
+export const makeDatabase = makeD1Database;
+
 export function d1DatabaseLayer<TSchema extends DatabaseSchema>(
   binding: D1DatabaseBinding,
   options: D1DatabaseOptions<TSchema>,
 ) {
   return makeDatabaseLayer(makeD1Database(binding, options));
 }
+
+export const databaseLayer = d1DatabaseLayer;

@@ -1,4 +1,4 @@
-import { defineTemplarBindings } from "@templar/deploy";
+import { defineTemplarBindings } from "@templar/deploy/bindings";
 
 export const templarBindings = defineTemplarBindings({
   authBaseUrl: "AUTH_BASE_URL",

@@ -3,6 +3,7 @@ const PASSWORD_VERSION = "v1";
 const PASSWORD_ITERATIONS = 100_000;
 const PASSWORD_SALT_BYTES = 16;
 const PASSWORD_HASH_BITS = 256;
+const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 type VerifyPasswordInput = {
   readonly hash: string;
@@ -110,24 +111,79 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
 }
 
 function base64Encode(bytes: Uint8Array): string {
-  let binary = "";
+  let encoded = "";
 
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+  for (let index = 0; index < bytes.byteLength; index += 3) {
+    const first = bytes[index] ?? 0;
+    const second = bytes[index + 1] ?? 0;
+    const third = bytes[index + 2] ?? 0;
+    const hasSecond = index + 1 < bytes.byteLength;
+    const hasThird = index + 2 < bytes.byteLength;
+
+    encoded += BASE64_ALPHABET.charAt(first >> 2);
+    encoded += BASE64_ALPHABET.charAt(((first & 0x03) << 4) | (second >> 4));
+    encoded += hasSecond ? BASE64_ALPHABET.charAt(((second & 0x0f) << 2) | (third >> 6)) : "=";
+    encoded += hasThird ? BASE64_ALPHABET.charAt(third & 0x3f) : "=";
   }
 
-  return btoa(binary);
+  return encoded;
 }
 
 function base64Decode(value: string): Uint8Array {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  if (value.length % 4 !== 0) {
+    throw new Error("Invalid base64 length.");
+  }
 
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  const bytes = new Uint8Array((value.length / 4) * 3 - padding);
+  let byteIndex = 0;
+
+  for (let index = 0; index < value.length; index += 4) {
+    const isLastChunk = index === value.length - 4;
+    const first = value.charAt(index);
+    const second = value.charAt(index + 1);
+    const third = value.charAt(index + 2);
+    const fourth = value.charAt(index + 3);
+
+    if (
+      first === "=" ||
+      second === "=" ||
+      (!isLastChunk && (third === "=" || fourth === "=")) ||
+      (third === "=" && fourth !== "=")
+    ) {
+      throw new Error("Invalid base64 padding.");
+    }
+
+    const firstValue = decodeBase64Char(first);
+    const secondValue = decodeBase64Char(second);
+    const thirdValue = third === "=" ? 0 : decodeBase64Char(third);
+    const fourthValue = fourth === "=" ? 0 : decodeBase64Char(fourth);
+
+    bytes[byteIndex] = (firstValue << 2) | (secondValue >> 4);
+    byteIndex += 1;
+
+    if (byteIndex < bytes.byteLength) {
+      bytes[byteIndex] = ((secondValue & 0x0f) << 4) | (thirdValue >> 2);
+      byteIndex += 1;
+    }
+
+    if (byteIndex < bytes.byteLength) {
+      bytes[byteIndex] = ((thirdValue & 0x03) << 6) | fourthValue;
+      byteIndex += 1;
+    }
   }
 
   return bytes;
+}
+
+function decodeBase64Char(value: string): number {
+  const decoded = BASE64_ALPHABET.indexOf(value);
+
+  if (decoded === -1) {
+    throw new Error("Invalid base64 character.");
+  }
+
+  return decoded;
 }
 
 function arrayBufferFromBytes(bytes: Uint8Array): ArrayBuffer {

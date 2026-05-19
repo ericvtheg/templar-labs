@@ -1,6 +1,7 @@
 node_modules/
 .turbo/
 .alchemy/
+.templar/
 .tanstack/
 .wrangler/
 dist/

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
 import { makeBlob } from "@templar/blob";
 import { databaseError, makeDatabase } from "@templar/db";
+import { makeQueue } from "@templar/queue";
 import { Alert, AlertDescription, AlertTitle } from "@templar/ui/components/alert";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
@@ -21,8 +22,9 @@ import { Separator } from "@templar/ui/components/separator";
 import { desc } from "drizzle-orm";
 import { Effect, Option } from "effect";
 import { useId, useState, useTransition } from "react";
+import { templarBindings } from "../../../../templar-bindings.ts";
 import * as schema from "../../db/schema.ts";
-import { helloEvents } from "../../db/schema.ts";
+import { helloEvents, queueEvents } from "../../db/schema.ts";
 import { authClient } from "../lib/auth-client.ts";
 
 export const Route = createFileRoute("/")({
@@ -35,6 +37,21 @@ type HelloEvent = {
   readonly id: number;
   readonly message: string;
   readonly createdAt: string;
+};
+
+type QueueEvent = {
+  readonly id: number;
+  readonly messageId: string;
+  readonly message: string;
+  readonly status: "queued" | "processed";
+  readonly publishedAt: string;
+  readonly processedAt: string | null;
+};
+
+type QueueJob = {
+  readonly id: string;
+  readonly message: string;
+  readonly publishedAt: string;
 };
 
 const incrementCounter = createServerFn({ method: "POST" }).handler(async () => {
@@ -65,16 +82,16 @@ const incrementCounter = createServerFn({ method: "POST" }).handler(async () => 
 
 const listHelloEvents = createServerFn({ method: "GET" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
-  const bindings = env as { readonly DB: D1Database };
-  const database = makeDatabase(bindings.DB, { schema });
+  const bindings = env as { readonly [templarBindings.db]: D1Database };
+  const database = makeDatabase(bindings[templarBindings.db], { schema });
 
   return await Effect.runPromise(readHelloEvents(database));
 });
 
 const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => {
   const { env } = await import("cloudflare:workers");
-  const bindings = env as { readonly DB: D1Database };
-  const database = makeDatabase(bindings.DB, { schema });
+  const bindings = env as { readonly [templarBindings.db]: D1Database };
+  const database = makeDatabase(bindings[templarBindings.db], { schema });
   const now = new Date();
 
   return await Effect.runPromise(
@@ -98,6 +115,68 @@ const createHelloEvent = createServerFn({ method: "POST" }).handler(async () => 
       });
 
       return yield* readHelloEvents(database);
+    }),
+  );
+});
+
+const listQueueEvents = createServerFn({ method: "GET" }).handler(async () => {
+  const { env } = await import("cloudflare:workers");
+  const bindings = env as { readonly [templarBindings.db]: D1Database };
+  const database = makeDatabase(bindings[templarBindings.db], { schema });
+
+  return await Effect.runPromise(readQueueEvents(database));
+});
+
+const publishQueueEvent = createServerFn({ method: "POST" }).handler(async () => {
+  const { env } = await import("cloudflare:workers");
+  const bindings = env as {
+    readonly [templarBindings.db]: D1Database;
+    readonly [templarBindings.jobsQueue]: Queue<string>;
+  };
+  const database = makeDatabase(bindings[templarBindings.db], { schema });
+  const queue = makeQueue(bindings[templarBindings.jobsQueue]);
+  const publishedAt = new Date();
+  const job: QueueJob = {
+    id: crypto.randomUUID(),
+    message: `Published from the client at ${publishedAt.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    })}`,
+    publishedAt: publishedAt.toISOString(),
+  };
+
+  return await Effect.runPromise(
+    Effect.gen(function* () {
+      yield* Effect.tryPromise({
+        try: () =>
+          database.db.insert(queueEvents).values({
+            messageId: job.id,
+            message: job.message,
+            status: "queued",
+            publishedAt,
+          }),
+        catch: (cause) =>
+          databaseError({
+            operation: "insert",
+            table: "queue_events",
+            cause,
+          }),
+      });
+
+      yield* queue.send({
+        body: job,
+        metadata: {
+          kind: "hello-world-client-message",
+        },
+      });
+
+      const result = yield* readQueueEvents(database);
+
+      return {
+        ...result,
+        messageId: job.id,
+      };
     }),
   );
 });
@@ -136,6 +215,49 @@ const readHelloEvents = (database: HelloDatabase) =>
     };
   });
 
+const readQueueEvents = (database: HelloDatabase) =>
+  Effect.gen(function* () {
+    const events = yield* Effect.tryPromise({
+      try: () =>
+        database.db
+          .select({
+            id: queueEvents.id,
+            messageId: queueEvents.messageId,
+            message: queueEvents.message,
+            status: queueEvents.status,
+            publishedAt: queueEvents.publishedAt,
+            processedAt: queueEvents.processedAt,
+          })
+          .from(queueEvents)
+          .orderBy(desc(queueEvents.id))
+          .limit(5),
+      catch: (cause) =>
+        databaseError({
+          operation: "select",
+          table: "queue_events",
+          cause,
+        }),
+    });
+
+    return {
+      events: events.map(
+        (event): QueueEvent => ({
+          id: event.id,
+          messageId: event.messageId,
+          message: event.message,
+          status: event.status,
+          publishedAt: event.publishedAt.toISOString(),
+          processedAt: event.processedAt?.toISOString() ?? null,
+        }),
+      ),
+    };
+  });
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+
 function Home() {
   const nameId = useId();
   const emailId = useId();
@@ -143,6 +265,8 @@ function Home() {
   const incrementCounterFn = useServerFn(incrementCounter);
   const createHelloEventFn = useServerFn(createHelloEvent);
   const listHelloEventsFn = useServerFn(listHelloEvents);
+  const listQueueEventsFn = useServerFn(listQueueEvents);
+  const publishQueueEventFn = useServerFn(publishQueueEvent);
   const session = authClient.useSession();
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [authName, setAuthName] = useState("Templar User");
@@ -151,11 +275,14 @@ function Home() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [counter, setCounter] = useState<number | null>(null);
   const [dbEvents, setDbEvents] = useState<ReadonlyArray<HelloEvent>>([]);
+  const [queueEventRows, setQueueEventRows] = useState<ReadonlyArray<QueueEvent>>([]);
   const [error, setError] = useState<string | null>(null);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
   const [isAuthPending, startAuthTransition] = useTransition();
   const [isCounterPending, startCounterTransition] = useTransition();
   const [isDbPending, startDbTransition] = useTransition();
+  const [isQueuePending, startQueueTransition] = useTransition();
   const displayCount = counter ?? 0;
   const progressValue = Math.min(displayCount * 12, 100);
   const currentUser = session.data?.user ?? null;
@@ -232,6 +359,45 @@ function Home() {
         setDbEvents(result.events);
       } catch {
         setDbError("The database row could not be written.");
+      }
+    });
+  };
+
+  const handleLoadQueueEvents = () => {
+    setQueueError(null);
+    startQueueTransition(async () => {
+      try {
+        const result = await listQueueEventsFn();
+        setQueueEventRows(result.events);
+      } catch {
+        setQueueError("The queue events could not be loaded.");
+      }
+    });
+  };
+
+  const handlePublishQueueEvent = () => {
+    setQueueError(null);
+    startQueueTransition(async () => {
+      try {
+        const result = await publishQueueEventFn();
+        setQueueEventRows(result.events);
+
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+          await wait(1000);
+
+          const nextResult = await listQueueEventsFn();
+          setQueueEventRows(nextResult.events);
+
+          const publishedEvent = nextResult.events.find(
+            (event) => event.messageId === result.messageId,
+          );
+
+          if (publishedEvent?.status === "processed") {
+            return;
+          }
+        }
+      } catch {
+        setQueueError("The queue message could not complete.");
       }
     });
   };
@@ -444,6 +610,77 @@ function Home() {
               <Alert className="sm:ml-auto sm:max-w-sm" variant="destructive">
                 <AlertTitle>Database failed</AlertTitle>
                 <AlertDescription>{dbError}</AlertDescription>
+              </Alert>
+            )}
+          </CardFooter>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Queue round trip</CardTitle>
+            <CardDescription>
+              Client publishes to Cloudflare Queues; the consumer processes the job and writes the
+              result back to D1.
+            </CardDescription>
+            <CardAction>
+              <Badge variant={queueEventRows.length === 0 ? "outline" : "default"}>
+                {queueEventRows.length === 0 ? "No messages" : `${queueEventRows.length} messages`}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-lg border">
+              <div className="grid grid-cols-[6rem_1fr_11rem_11rem] border-b bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground">
+                <span>Status</span>
+                <span>Message</span>
+                <span>Published</span>
+                <span>Processed</span>
+              </div>
+              {queueEventRows.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Publish a queue message to watch it come back through the consumer.
+                </div>
+              ) : (
+                queueEventRows.map((event) => (
+                  <div
+                    className="grid grid-cols-[6rem_1fr_11rem_11rem] border-b px-4 py-3 text-sm last:border-b-0"
+                    key={event.id}
+                  >
+                    <span>
+                      <Badge variant={event.status === "processed" ? "default" : "outline"}>
+                        {event.status}
+                      </Badge>
+                    </span>
+                    <span>{event.message}</span>
+                    <span className="text-muted-foreground">
+                      {new Date(event.publishedAt).toLocaleTimeString()}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {event.processedAt === null
+                        ? "Pending"
+                        : new Date(event.processedAt).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col items-stretch gap-3 sm:flex-row">
+            <Button disabled={isQueuePending} onClick={handlePublishQueueEvent} type="button">
+              {isQueuePending ? "Waiting..." : "Publish message"}
+            </Button>
+            <Button
+              disabled={isQueuePending}
+              onClick={handleLoadQueueEvents}
+              type="button"
+              variant="outline"
+            >
+              Refresh messages
+            </Button>
+            {queueError === null ? null : (
+              <Alert className="sm:ml-auto sm:max-w-sm" variant="destructive">
+                <AlertTitle>Queue failed</AlertTitle>
+                <AlertDescription>{queueError}</AlertDescription>
               </Alert>
             )}
           </CardFooter>

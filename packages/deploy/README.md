@@ -96,6 +96,37 @@ and workers.
 
 The exported helper should be named `r2Bucket`.
 
+### D1 Migrations
+
+`d1Database` accepts the underlying Alchemy `migrationsDir` option for a single
+directory, and also supports a Templar `migrationsDirs` option for composing
+package-owned and app-owned migrations into one generated D1 migration stream.
+
+Use `migrationsDirs` when a database contains tables owned by shared packages:
+
+```ts
+import { withAuthMigrations } from "@templar/auth/deploy";
+import { d1Database } from "@templar/deploy/cloudflare";
+
+const db = await d1Database(
+  "db",
+  withAuthMigrations({
+    project: "hello-world",
+    migrationsDirs: ["apps/web/migrations"],
+  }),
+);
+```
+
+The wrapper writes a generated directory under `.templar/d1-migrations/<id>`
+and passes that single directory to Alchemy. Migration filenames remain stable;
+duplicate filenames across source directories fail the deploy instead of being
+overwritten. Package migration filenames should be namespaced, such as
+`-0001_templar_auth.sql`, when they need to run before app migrations.
+
+For now, use this at the app database resource. If a project later uses one
+database shared by multiple apps, declare the composed migration list once on
+that shared database resource and bind the resulting DB to each app.
+
 ### `src/cloudflare/utils/`
 
 Cloudflare-specific helper code used by the resource wrappers.

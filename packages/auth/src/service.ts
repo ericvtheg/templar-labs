@@ -12,6 +12,8 @@ export type AuthTenant = {
   readonly id: string;
 };
 
+export type AuthTenantResolver = (session: AuthSession) => Effect.Effect<AuthTenant | null>;
+
 export type AuthService = {
   readonly getSession: (request: Request) => Effect.Effect<AuthSession | null>;
   readonly requireUser: (
@@ -26,13 +28,22 @@ export class Auth extends Context.Tag("@templar/auth/Auth")<Auth, AuthService>()
   static readonly requireTenant = Effect.serviceFunctionEffect(this, (auth) => auth.requireTenant);
 }
 
+export type AuthServiceInput = {
+  readonly api: AuthApi;
+  readonly tenant?: AuthTenantResolver;
+};
+
 export function makeAuthLayer(service: AuthService): Layer.Layer<Auth> {
   return Layer.succeed(Auth, service);
 }
 
-export function makeAuthService(auth: { readonly api: AuthApi }): AuthService {
+export function authLayer(input: AuthServiceInput): Layer.Layer<Auth> {
+  return makeAuthLayer(makeAuthService(input));
+}
+
+export function makeAuthService(input: AuthServiceInput): AuthService {
   const getSession: AuthService["getSession"] = (request) =>
-    Effect.promise(() => auth.api.getSession({ headers: request.headers }));
+    Effect.promise(() => input.api.getSession({ headers: request.headers }));
 
   const requireUser: AuthService["requireUser"] = (request) =>
     Effect.flatMap(getSession(request), (session) =>
@@ -41,9 +52,25 @@ export function makeAuthService(auth: { readonly api: AuthApi }): AuthService {
         : Effect.succeed(session.user),
     );
 
+  const resolveTenant = input.tenant ?? defaultTenantResolver;
+  const requireTenant: AuthService["requireTenant"] = (request) =>
+    Effect.flatMap(getSession(request), (session) =>
+      session === null
+        ? Effect.fail(new AuthTenantRequiredError({ reason: "missing-tenant" }))
+        : Effect.flatMap(resolveTenant(session), (tenant) =>
+            tenant === null
+              ? Effect.fail(new AuthTenantRequiredError({ reason: "missing-tenant" }))
+              : Effect.succeed(tenant),
+          ),
+    );
+
   return {
     getSession,
     requireUser,
-    requireTenant: () => Effect.fail(new AuthTenantRequiredError({ reason: "missing-tenant" })),
+    requireTenant,
   };
+}
+
+function defaultTenantResolver(session: AuthSession): Effect.Effect<AuthTenant> {
+  return Effect.succeed({ id: session.user.id });
 }

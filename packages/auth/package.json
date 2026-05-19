@@ -14,6 +14,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./deploy": "./src/deploy.ts",
     "./schema": "./src/schema.ts",
     "./tanstack-start": "./src/tanstack-start.ts"
   },

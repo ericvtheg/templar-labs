@@ -1,4 +1,7 @@
 {
   "extends": "@templar/tsconfig/library-package",
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "types": ["node"]
+  }
 }

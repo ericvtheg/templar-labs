@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { normalizeTemplarAuthConfig, templarAuthCookiePrefix } from "./config.ts";
+import type { BetterAuthOptions } from "better-auth";
+import {
+  createBetterAuthOptions,
+  normalizeTemplarAuthConfig,
+  templarAuthCookiePrefix,
+  templarAuthSessionExpiresInSeconds,
+  templarAuthSessionFreshAgeSeconds,
+  templarAuthSessionUpdateAgeSeconds,
+} from "./config.ts";
 import { AuthConfigError } from "./errors.ts";
 
 const db = {} as D1Database;
@@ -56,4 +64,19 @@ test("builds stable cookie prefixes", () => {
     templarAuthCookiePrefix("UI Showcase", "Admin Web"),
     "templar.ui-showcase.admin-web.auth",
   );
+});
+
+test("uses Templar session lifetime defaults", () => {
+  const config = normalizeTemplarAuthConfig({
+    project: "Hello World",
+    app: "Web",
+    baseURL: "https://example.com/",
+    secret: "secret",
+    db,
+  });
+  const options = createBetterAuthOptions(config, {} as BetterAuthOptions["database"], []);
+
+  assert.equal(options.session?.expiresIn, templarAuthSessionExpiresInSeconds);
+  assert.equal(options.session?.updateAge, templarAuthSessionUpdateAgeSeconds);
+  assert.equal(options.session?.freshAge, templarAuthSessionFreshAgeSeconds);
 });

@@ -371,7 +371,18 @@ importers:
 
   packages/payments: {}
 
-  packages/queue: {}
+  packages/queue:
+    dependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
+    devDependencies:
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
 
   packages/tsconfig: {}
 
@@ -450,6 +461,9 @@ importers:
 
   projects/hello-world:
     dependencies:
+      '@templar/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../packages/deploy
@@ -502,6 +516,9 @@ importers:
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../../../tools/dev-ports
+      '@templar/queue':
+        specifier: workspace:*
+        version: link:../../../../packages/queue
       '@templar/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui

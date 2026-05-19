@@ -1,6 +1,8 @@
+import { withAuthMigrations } from "@templar/auth/deploy";
 import { deployApp } from "@templar/deploy";
-import { d1Database, r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
+import { d1Database, queue, r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
 import alchemy from "alchemy";
+import { templarBindings } from "./templar-bindings.ts";
 
 const app = await deployApp("hello-world");
 
@@ -8,10 +10,17 @@ const r2 = await r2Bucket("r2", {
   project: "hello-world",
 });
 
-const db = await d1Database("db", {
+const db = await d1Database(
+  "db",
+  withAuthMigrations({
+    project: "hello-world",
+    adopt: true,
+    migrationsDirs: ["apps/web/migrations"],
+  }),
+);
+
+const jobs = await queue("jobs", {
   project: "hello-world",
-  adopt: true,
-  migrationsDir: "apps/web/migrations",
 });
 
 export const website = await tanstackStartApp("website", {
@@ -26,11 +35,23 @@ export const website = await tanstackStartApp("website", {
   ],
   url: false,
   bindings: {
-    AUTH_BASE_URL: "https://hello-world.ericventor.com",
-    AUTH_SECRET: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
-    DB: db,
-    R2: r2,
+    [templarBindings.authBaseUrl]: "https://hello-world.ericventor.com",
+    [templarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
+    [templarBindings.db]: db,
+    [templarBindings.jobsQueue]: jobs,
+    [templarBindings.r2]: r2,
   },
+  eventSources: [
+    {
+      queue: jobs,
+      settings: {
+        batchSize: 10,
+        maxConcurrency: 2,
+        maxRetries: 3,
+        retryDelay: 30,
+      },
+    },
+  ],
 });
 
 console.log({

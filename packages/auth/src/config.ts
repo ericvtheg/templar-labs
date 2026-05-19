@@ -6,6 +6,10 @@ import * as authSchema from "./schema.ts";
 
 export type AuthDatabaseSchema = Record<string, unknown>;
 
+export const templarAuthSessionExpiresInSeconds = 60 * 60 * 24 * 180;
+export const templarAuthSessionUpdateAgeSeconds = 60 * 60 * 24;
+export const templarAuthSessionFreshAgeSeconds = 60 * 60 * 24;
+
 export type AuthOAuthProviderConfig = {
   readonly clientId: string;
   readonly clientSecret: string;
@@ -78,6 +82,11 @@ export function createBetterAuthOptions<TSchema extends AuthDatabaseSchema>(
     socialProviders: socialProviders(config.oauth),
     trustedOrigins: [...config.trustedOrigins],
     emailAndPassword: emailAndPasswordOptions(config.emailAndPassword),
+    session: {
+      expiresIn: templarAuthSessionExpiresInSeconds,
+      updateAge: templarAuthSessionUpdateAgeSeconds,
+      freshAge: templarAuthSessionFreshAgeSeconds,
+    },
     account: {
       accountLinking: {
         enabled: true,

@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@templar/auth": "workspace:*",
     "@templar/deploy": "workspace:*"
   },
   "devDependencies": {

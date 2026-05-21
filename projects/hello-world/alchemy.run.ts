@@ -1,8 +1,6 @@
 import { withAuthMigrations } from "@templar/auth/deploy";
 import { deployApp } from "@templar/deploy";
-import { d1Database, queue, r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
-import alchemy from "alchemy";
-import { templarBindings } from "./templar-bindings.ts";
+import { d1Database, queue, r2Bucket, templarApp } from "@templar/deploy/cloudflare";
 
 const app = await deployApp("hello-world");
 
@@ -23,35 +21,16 @@ const jobs = await queue("jobs", {
   project: "hello-world",
 });
 
-export const website = await tanstackStartApp("website", {
+export const website = await templarApp("website", {
   project: "hello-world",
   adopt: true,
   cwd: "apps/web",
-  domains: [
-    {
-      domainName: "hello-world.ericventor.com",
-      adopt: true,
-    },
-  ],
+  domainName: "hello-world.ericventor.com",
   url: false,
-  bindings: {
-    [templarBindings.authBaseUrl]: "https://hello-world.ericventor.com",
-    [templarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
-    [templarBindings.db]: db,
-    [templarBindings.jobsQueue]: jobs,
-    [templarBindings.r2]: r2,
-  },
-  eventSources: [
-    {
-      queue: jobs,
-      settings: {
-        batchSize: 10,
-        maxConcurrency: 2,
-        maxRetries: 3,
-        retryDelay: 30,
-      },
-    },
-  ],
+  auth: true,
+  db,
+  blob: r2,
+  queue: jobs,
 });
 
 console.log({

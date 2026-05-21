@@ -1,0 +1,49 @@
+name: Destroy Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: Project workspace to destroy
+        required: true
+        type: choice
+        options:
+          - launch-room
+          - hello-world
+          - ui-showcase
+      confirm:
+        description: Type destroy to confirm resource deletion
+        required: true
+        type: string
+
+concurrency:
+  group: destroy-${{ inputs.project }}
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    name: Destroy ${{ inputs.project }}
+    runs-on: [self-hosted, linux, homelab, templar-labs]
+
+    steps:
+      - name: Require confirmation
+        if: ${{ inputs.confirm != 'destroy' }}
+        run: |
+          echo "Confirmation input must exactly equal: destroy"
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node + pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Destroy project
+        env:
+          ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
+          ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_TOKEN }}
+          TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+        run: pnpm --filter "${{ inputs.project }}" destroy

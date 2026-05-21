@@ -640,9 +640,6 @@ importers:
       '@templar/ai':
         specifier: workspace:*
         version: link:../../../../packages/ai
-      '@templar/analytics':
-        specifier: workspace:*
-        version: link:../../../../packages/analytics
       '@templar/assets':
         specifier: workspace:*
         version: link:../../../../packages/assets

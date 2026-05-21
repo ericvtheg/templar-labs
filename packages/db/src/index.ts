@@ -1,4 +1,9 @@
 export {
+  and,
+  desc,
+  eq,
+} from "drizzle-orm";
+export {
   type D1DatabaseBinding,
   type D1DatabaseOptions,
   databaseLayer,

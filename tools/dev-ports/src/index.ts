@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 export const devPorts = {
   "hello-world-web": 5173,
+  "launch-room-web": 5175,
   "ui-showcase-web": 5174,
 } as const;
 

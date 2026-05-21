@@ -17,8 +17,6 @@ type EventSource = NonNullable<TanStackStartProps<Bindings>["eventSources"]>[num
 
 export type TemplarAppOptions<B extends StandardTemplarBindings = typeof defaultTemplarBindings> =
   Omit<TanStackStartAppOptions, "bindings" | "eventSources"> & {
-    readonly ai?: boolean;
-    readonly auth?: boolean;
     readonly bindings?: Bindings;
     readonly blob?: Bindings[string];
     readonly cache?: Bindings[string];
@@ -40,8 +38,6 @@ export async function templarApp<
   const B extends StandardTemplarBindings = typeof defaultTemplarBindings,
 >(id: string, options: TemplarAppOptions<B>) {
   const {
-    ai,
-    auth,
     bindings,
     blob,
     cache,
@@ -69,17 +65,9 @@ export async function templarApp<
         }),
     bindings: {
       ...bindings,
-      ...(auth === true
-        ? {
-            [templarBindings.authBaseUrl]: domainName === undefined ? "" : `https://${domainName}`,
-            [templarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
-          }
-        : {}),
-      ...(ai === true
-        ? {
-            [templarBindings.openRouterApiToken]: alchemy.secret.env("OPENROUTER_API_TOKEN"),
-          }
-        : {}),
+      [templarBindings.authBaseUrl]: domainName === undefined ? "" : `https://${domainName}`,
+      [templarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
+      [templarBindings.openRouterApiToken]: alchemy.secret.env("OPENROUTER_API_TOKEN"),
       ...(db === undefined ? {} : { [templarBindings.db]: db }),
       ...(blob === undefined ? {} : { [templarBindings.r2]: blob }),
       ...(cache === undefined ? {} : { [templarBindings.cache]: cache }),

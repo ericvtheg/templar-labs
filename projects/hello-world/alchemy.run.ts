@@ -27,7 +27,6 @@ export const website = await templarApp("website", {
   cwd: "apps/web",
   domainName: "hello-world.ericventor.com",
   url: false,
-  auth: true,
   db,
   blob: r2,
   queue: jobs,

@@ -1,5 +1,5 @@
 import { createTemplarAuth } from "@templar/auth/tanstack-start";
-import * as schema from "../../db/schema.ts";
+import * as schema from "../../../../db/schema.ts";
 
 export async function getAuth() {
   const { env } = await import("cloudflare:workers");

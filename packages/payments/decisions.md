@@ -69,8 +69,9 @@
 
 - Multiple projects should reuse the existing Stripe account through soft
   tenancy.
-- Each app has its own database.
-- Local database tables do not need a project scope column for tenancy.
+- Each project has its own database by default. Apps within that project reuse
+  the project backend/service layer and source-of-truth database.
+- Local database tables do not need an app scope column for tenancy.
 - `projectKey` should still be included for Stripe resource namespacing and
   Stripe metadata.
 - Prices and products should not be shared across apps.
@@ -171,4 +172,3 @@
 - Metered billing.
 - Advanced dynamic tax behavior.
 - Refund automation.
-

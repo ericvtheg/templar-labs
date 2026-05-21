@@ -9,7 +9,7 @@ export type D1DatabaseOptions = Omit<D1DatabaseProps, "name"> &
     /**
      * Multiple migration sources to compose into one generated Alchemy-compatible
      * migration directory. Use this when package-owned tables share a database
-     * with app-owned tables.
+     * with project-owned tables.
      */
     migrationsDirs?: readonly string[];
     name?: string;

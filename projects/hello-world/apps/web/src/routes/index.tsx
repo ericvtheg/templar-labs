@@ -22,9 +22,9 @@ import { Separator } from "@templar/ui/components/separator";
 import { desc } from "drizzle-orm";
 import { Effect, Option } from "effect";
 import { useId, useState, useTransition } from "react";
+import * as schema from "../../../../db/schema.ts";
+import { helloEvents, queueEvents } from "../../../../db/schema.ts";
 import { templarBindings } from "../../../../templar-bindings.ts";
-import * as schema from "../../db/schema.ts";
-import { helloEvents, queueEvents } from "../../db/schema.ts";
 import { authClient } from "../lib/auth-client.ts";
 
 export const Route = createFileRoute("/")({

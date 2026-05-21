@@ -138,7 +138,7 @@ async function loadProjectDbConfigs(projectName, projectDir) {
   throw new Error(
     `Missing database config. Add one of ${configNames.join(
       ", ",
-    )} under ${projectDir}/apps/<app>. Use a project-level config only for shared project databases.${hint}`,
+    )} under ${projectDir}/db for the project database.${hint}`,
   );
 }
 
@@ -158,25 +158,48 @@ async function loadAllProjectDbConfigs() {
 }
 
 async function findProjectDbConfigs(projectName, projectDir) {
+  const sharedConfigPath = await findProjectLevelDbConfig(projectDir);
   const appConfigs = await findAppDbConfigs(projectName, projectDir);
+
+  if (sharedConfigPath !== undefined && appConfigs.length > 0) {
+    throw new Error(
+      `Project ${projectName} has both project-level and app-level database configs. ` +
+        "Keep the source-of-truth database config at the project level.",
+    );
+  }
+
+  if (sharedConfigPath !== undefined) {
+    return [
+      await loadDbConfigFromPath({
+        projectName,
+        configDir: path.dirname(sharedConfigPath),
+        configPath: sharedConfigPath,
+      }),
+    ];
+  }
 
   if (appConfigs.length > 0) {
     return appConfigs;
   }
 
-  const sharedConfigPath = await findOptionalConfigPath(projectDir);
+  return [];
+}
 
-  if (sharedConfigPath === undefined) {
-    return [];
+async function findProjectLevelDbConfig(projectDir) {
+  const configPaths = [
+    ...configNames.map((configName) => path.join(projectDir, configName)),
+    ...configNames.map((configName) => path.join(projectDir, "db", configName)),
+  ];
+  const existenceResults = await Promise.all(configPaths.map((configPath) => exists(configPath)));
+  const existingConfigPaths = configPaths.filter((_, index) => existenceResults[index] === true);
+
+  if (existingConfigPaths.length > 1) {
+    throw new Error(
+      `Multiple project-level database configs found:\n${existingConfigPaths.join("\n")}`,
+    );
   }
 
-  return [
-    await loadDbConfigFromPath({
-      projectName,
-      configDir: projectDir,
-      configPath: sharedConfigPath,
-    }),
-  ];
+  return existingConfigPaths[0];
 }
 
 async function findAppDbConfigs(projectName, projectDir) {
@@ -310,7 +333,7 @@ function printUsage() {
   pnpm db:migrate:ci
 
 Project config:
-  projects/<project>/apps/<app>/db.config.mjs
+  projects/<project>/db/db.config.mjs
 
 Example:
   export default {

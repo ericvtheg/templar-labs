@@ -37,6 +37,9 @@ Use project-local Alchemy files for final composition:
 ```txt
 projects/hello-world/
   alchemy.run.ts
+  db/
+    schema.ts
+    migrations/
   apps/
     web/
   packages/
@@ -100,7 +103,7 @@ The exported helper should be named `r2Bucket`.
 
 `d1Database` accepts the underlying Alchemy `migrationsDir` option for a single
 directory, and also supports a Templar `migrationsDirs` option for composing
-package-owned and app-owned migrations into one generated D1 migration stream.
+package-owned and project-owned migrations into one generated D1 migration stream.
 
 Use `migrationsDirs` when a database contains tables owned by shared packages:
 
@@ -112,7 +115,7 @@ const db = await d1Database(
   "db",
   withAuthMigrations({
     project: "hello-world",
-    migrationsDirs: ["apps/web/migrations"],
+    migrationsDirs: ["db/migrations"],
   }),
 );
 ```
@@ -123,9 +126,9 @@ duplicate filenames across source directories fail the deploy instead of being
 overwritten. Package migration filenames should be namespaced, such as
 `-0001_templar_auth.sql`, when they need to run before app migrations.
 
-For now, use this at the app database resource. If a project later uses one
-database shared by multiple apps, declare the composed migration list once on
-that shared database resource and bind the resulting DB to each app.
+Use this at the project database resource. When multiple apps need the same
+state, declare the composed migration list once on that shared database
+resource and bind the resulting DB to each app.
 
 ### `src/cloudflare/utils/`
 

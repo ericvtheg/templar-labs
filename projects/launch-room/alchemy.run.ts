@@ -24,7 +24,7 @@ const db = await d1Database(
   withAuthMigrations({
     project,
     adopt: true,
-    migrationsDirs: ["apps/web/migrations"],
+    migrationsDirs: ["db/migrations"],
   }),
 );
 

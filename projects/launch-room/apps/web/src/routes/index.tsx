@@ -27,15 +27,15 @@ import { Effect } from "effect";
 import { CheckCircle2Icon, ClipboardListIcon, LightbulbIcon, RocketIcon } from "lucide-react";
 import { useId, useState, useTransition } from "react";
 import { z } from "zod";
-import { templarBindings } from "../../../../templar-bindings.ts";
-import * as schema from "../../db/schema.ts";
+import * as schema from "../../../../db/schema.ts";
 import {
   launchAnalysisJobs,
   launchArtifacts,
   launchEvents,
   launchProjects,
   launchReports,
-} from "../../db/schema.ts";
+} from "../../../../db/schema.ts";
+import { templarBindings } from "../../../../templar-bindings.ts";
 import { authClient } from "../lib/auth-client.ts";
 
 export const Route = createFileRoute("/")({

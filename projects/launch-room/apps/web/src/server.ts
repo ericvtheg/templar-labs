@@ -6,15 +6,15 @@ import { and, databaseError, desc, eq, makeDatabase } from "@templar/db";
 import { cloudflareQueueMessage, makeQueue } from "@templar/queue";
 import { Effect } from "effect";
 import { z } from "zod";
-import { templarBindings } from "../../../templar-bindings.ts";
-import * as schema from "../db/schema.ts";
+import * as schema from "../../../db/schema.ts";
 import {
   launchAnalysisJobs,
   launchArtifacts,
   launchEvents,
   launchProjects,
   launchReports,
-} from "../db/schema.ts";
+} from "../../../db/schema.ts";
+import { templarBindings } from "../../../templar-bindings.ts";
 
 type AnalysisQueueJob = {
   readonly id: string;

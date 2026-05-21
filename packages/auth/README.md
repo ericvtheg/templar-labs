@@ -64,18 +64,18 @@ import { d1Database } from "@templar/deploy/cloudflare";
 
 const db = await d1Database("db", withAuthMigrations({
   project: "hello-world",
-  migrationsDirs: ["apps/web/migrations"],
+  migrationsDirs: ["db/migrations"],
 }));
 ```
 
-App Drizzle configs should point at app-owned tables only:
+Project Drizzle configs should point at project-owned tables only:
 
 ```ts
-// apps/web/drizzle.config.ts
+// db/drizzle.config.ts
 export default defineConfig({
   dialect: "sqlite",
   out: "./migrations",
-  schema: "./db/schema.ts",
+  schema: "./schema.ts",
 });
 ```
 
@@ -86,8 +86,8 @@ needs them:
 import { user } from "@templar/auth";
 ```
 
-Most app `db/schema.ts` files should contain only app-owned tables. When an app
-truly wants one runtime schema object that includes auth tables, compose the
+Most project `db/schema.ts` files should contain only project-owned tables. When
+an app truly wants one runtime schema object that includes auth tables, compose the
 package-owned schema explicitly:
 
 ```ts

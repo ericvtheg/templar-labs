@@ -18,13 +18,13 @@ Schemas should live with the project that owns the data model:
 
 ```txt
 projects/example/
-  apps/web/
-    db/
-      schema.ts
+  db/
+    schema.ts
     migrations/
       0000_initial.sql
     db.config.mjs
     drizzle.config.ts
+  apps/web/
 ```
 
 Example schema:
@@ -44,7 +44,7 @@ export const users = sqliteTable("users", {
 ```ts
 import { databaseError, makeDatabase } from "@templar/db";
 import { Effect } from "effect";
-import * as schema from "../../db/schema";
+import * as schema from "../../../db/schema";
 
 const database = makeDatabase(env.DB, { schema });
 
@@ -70,8 +70,10 @@ shape.
 
 Migrations are project workflow, not runtime library behavior.
 
-By default each app should own its Drizzle schema, generated migration files,
-and `db.config.*` file. Root commands provide one monorepo entry point:
+By default each project should own its Drizzle schema, generated migration
+files, and `db.config.*` file. Apps in the project reuse that database through
+the project backend/service layer. Root commands provide one monorepo entry
+point:
 
 ```sh
 pnpm db:generate example
@@ -83,7 +85,7 @@ pnpm db:migrate:ci
 Minimal project config:
 
 ```ts
-// projects/example/apps/web/db.config.mjs
+// projects/example/db/db.config.mjs
 export default {
   provider: "d1",
   databaseName: "example",
@@ -93,17 +95,17 @@ export default {
 ```
 
 For all providers, `pnpm db:generate <project>` runs Drizzle Kit from the
-app directory with that app's Drizzle config. For D1, `pnpm db:migrate:*`
-runs Wrangler from the app directory when `wranglerConfig` is set, so the app's
-Wrangler config can own D1 details such as bindings and `migrations_dir`. If
-`wranglerConfig` is omitted, the command skips that app and expects deploy-time
-infrastructure, such as Alchemy, to apply D1 migrations. For Postgres and
-libSQL, migrate dispatches to `drizzle-kit migrate`.
+project database directory with that project's Drizzle config. For D1,
+`pnpm db:migrate:*` runs Wrangler from the same directory when `wranglerConfig`
+is set, so the DB config can own D1 details such as bindings and
+`migrations_dir`. If `wranglerConfig` is omitted, the command skips that project
+and expects deploy-time infrastructure, such as Alchemy, to apply D1 migrations.
+For Postgres and libSQL, migrate dispatches to `drizzle-kit migrate`.
 
-Deploy CI runs `pnpm db:migrate:ci`, which applies prod migrations for every app
-that has a `db.config.*` file before deployment. Projects/apps without DB config
-are skipped. A project-level `db.config.*` is still supported for the less common
-case where multiple apps share one database.
+Deploy CI runs `pnpm db:migrate:ci`, which applies prod migrations for every
+project that has a `db.config.*` file before deployment. Projects without DB
+config are skipped. App-level DB configs are legacy/exceptional and should not
+be mixed with a project-level DB config.
 
 ## Package-Owned Tables
 
@@ -111,15 +113,15 @@ Packages can own tables and migrations when the tables are part of a shared
 package contract. `@templar/auth` is the first example: it owns Better Auth
 tables and ships package migrations.
 
-Apps should keep app migration schemas focused on app-owned tables. When an app
-uses package-owned tables:
+Projects should keep migration schemas focused on project-owned tables. When a
+project uses package-owned tables:
 
-- `db/schema.ts` should usually contain only app-owned tables and should be the
+- `db/schema.ts` should usually contain only project-owned tables and should be the
   schema used by Drizzle Kit migration generation.
 - runtime code that needs package-owned tables should import them from the
   owning package, such as `import { user } from "@templar/auth"`.
 - if a runtime needs one combined schema object, compose it explicitly from
-  package-owned schema objects and app-owned schema objects.
+  package-owned schema objects and project-owned schema objects.
 
 The deploy layer can compose package and app migration directories into one D1
 migration stream:
@@ -129,7 +131,7 @@ const db = await d1Database(
   "db",
   withAuthMigrations({
     project: "hello-world",
-    migrationsDirs: ["apps/web/migrations"],
+    migrationsDirs: ["db/migrations"],
   }),
 );
 ```
@@ -140,12 +142,11 @@ appropriate:
 ```ts
 const db = await d1Database("db", {
   project: "hello-world",
-  migrationsDirs: [authMigrationsDir, "apps/web/migrations"],
+  migrationsDirs: [authMigrationsDir, "db/migrations"],
 });
 ```
 
-Future shared project databases should use the same idea at the project
-database resource: one database declares every package/app migration directory
-that contributes tables to that database, then multiple apps bind to the same
-database. Avoid having multiple apps independently apply migrations to the same
-shared database.
+Use the same idea at the project database resource: one database declares every
+package/project migration directory that contributes tables to that database,
+then multiple apps bind to the same database. Avoid having multiple apps
+independently apply migrations to the same shared database.

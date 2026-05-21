@@ -1,260 +1,287 @@
-# Payments And Entitlements Plan
+# Analytics Package Plan
 
 ## Vision
 
-Templar projects should be able to add paid access quickly without rebuilding
-payments, billing management, webhook handling, or entitlement logic for every
-new app.
+Templar projects should be able to add product analytics with a small, stable
+Templar API while keeping PostHog-specific details behind a provider driver.
+
+The initial provider is a self-hosted PostHog instance running in a homelab.
+The package should make that deployment detail easy to configure without
+spreading PostHog client setup, host URLs, API keys, event naming, or identity
+rules across app code.
 
 The target experience is:
 
-> Give the agent a product idea, and it can create an app that supports login,
-> payment, subscription management, deployment, and paid feature access using
-> shared Templar primitives.
-
-The payments package should therefore own more than a Stripe adapter. It should
-connect payment events to app-level access decisions.
-
-## Primary End User Stories
-
-### Subscribe To A Plan
-
-As a logged-in user, I can choose a paid plan, complete checkout through Stripe,
-return to the app, and receive access to the paid features attached to that
-plan.
-
-### Start A Trial
-
-As a logged-in user, I can start a trial for a paid plan, use the paid features
-during the trial period, and transition into paid billing when the trial ends.
-
-### Buy A One-Time Item
-
-As a logged-in user, I can buy a one-time product or service, complete checkout
-through Stripe, return to the app, and receive access to the purchased item or
-result.
-
-### Manage Billing
-
-As a subscriber, I can manage my billing through a Stripe-hosted billing portal,
-including canceling my subscription or updating payment details.
-
-### Keep Access In Sync
-
-As a user, my paid access updates when billing state changes, such as a
-trial starting, trial ending, successful subscription renewal, failed payment,
-cancellation, or subscription deletion.
-
-### Return Later With Access Preserved
-
-As a returning user, the app remembers what I have paid for and can decide
-whether I still have access to paid features.
-
-## Product Owner Stories
-
-### Reuse One Stripe Account Across Projects
-
-As the product owner, I can launch multiple projects from one existing Stripe
-account while keeping each project logically separated.
-
-Each project should have its own project key, products, prices, checkout
-sessions, webhook handling, customer mapping, and entitlement records.
-
-### Create A New Paid Project Quickly
-
-As the product owner, I can define the paid offerings for a new app in code and
-have the system create or reuse the necessary Stripe resources without visiting
-the Stripe Dashboard for normal project setup.
-
-### Avoid Disturbing Existing Products
-
-As the product owner, creating a new project should not mutate unrelated Stripe
-products, prices, subscriptions, or webhook behavior from existing products.
-
-### Track Access By App Tenant
-
-As the product owner, I can tell which app, tenant, user, plan, product, or
-order a payment belongs to.
-
-## App Developer Stories
-
-### Start Checkout
-
-As an app developer, I can ask the package to start checkout for either a
-one-time purchase or subscription without directly assembling Stripe-specific
-request shapes in app code.
-
-### Open Customer Portal
-
-As an app developer, I can send a logged-in subscriber to a billing management
-page without building custom subscription cancellation or card update UI.
-
-### Handle Verified Webhooks
-
-As an app developer, I can pass raw Stripe webhook data to the package and have
-it verify authenticity before changing payment or entitlement state.
-
-### Check Entitlements
-
-As an app developer, I can ask whether a user or tenant currently has a specific
-entitlement before allowing access to a paid feature.
-
-### List Entitlements
-
-As an app developer, I can list a user or tenant's current paid access so the UI
-can show plan state, purchased items, or available premium features.
-
-### Test Paid Workflows
-
-As an app developer, I can test app behavior around checkout, webhooks, and
-entitlements without requiring live Stripe calls.
-
-## Required Functional Areas
-
-### Stripe Checkout
-
-The package should support Stripe-hosted checkout for:
-
-- one-time purchases
-- recurring subscriptions
-- subscription trials
-
-Checkout should support app-owned context such as project key, user ID, tenant
-ID, product key, plan key, order ID, and success/cancel return URLs.
-
-### Trials
-
-The package should support trial access for subscription plans.
-
-Trial support should allow apps to:
-
-- define that a plan has a trial
-- grant entitlement access during an active trial
-- distinguish trial access from paid subscription access
-- update entitlement state when the trial converts, fails to convert, or is
-  canceled
-
-### Stripe Customer Portal
-
-The package should support creating billing portal sessions for existing
-customers so users can self-manage subscription billing.
-
-### Webhook Verification
-
-The package should verify Stripe webhook signatures before accepting billing
-events as true.
-
-Webhook handling is required because app access should not be granted based only
-on a browser redirect after checkout.
-
-### Normalized Billing Events
-
-The package should translate relevant Stripe events into Templar-level payment
-and subscription events.
-
-Initial event coverage should include:
-
-- checkout completed
-- trial will end
-- invoice payment succeeded
-- invoice payment failed
-- subscription created
-- subscription updated
-- subscription deleted
-
-### Entitlement Storage
-
-The package should maintain app-readable entitlement state.
-
-Entitlements should answer:
-
-- who has access
-- what they have access to
-- which project the access belongs to
-- whether access is active
-- what payment or subscription caused the access
-- when access expires, if applicable
-
-### Entitlement Queries
-
-Apps should be able to query entitlement state directly for authorization and UI
-purposes.
-
-Important queries include:
-
-- does this user or tenant have this entitlement?
-- what entitlements does this user or tenant currently have?
-- what billing source created this entitlement?
-
-### Project Tenancy
-
-The package should require project-level separation so several Templar projects
-can safely share one Stripe account.
-
-The project key should be a first-class concept in payment setup, checkout,
-webhooks, entitlements, and reporting.
-
-### Idempotent Setup
-
-The broader payments system should support repeated setup runs without creating
-duplicate products, prices, or webhook endpoints for the same project and
-offering.
-
-This is necessary for agent-driven app generation and deployment.
+> Give a Templar app an analytics service, call a few obvious methods from
+> server and client code, and get consistent events, identities, and feature
+> flag checks in PostHog.
+
+## Existing Package Pattern To Follow
+
+The package should follow the same shape as mature provider-backed packages in
+this repo:
+
+- `src/service.ts` defines the public `AnalyticsService`, an Effect
+  `Context.Tag`, `makeAnalyticsService`, and `makeAnalyticsLayer`.
+- `src/driver.ts` defines the narrow provider contract used by the service.
+- `src/types.ts` owns package-level input and result types.
+- `src/errors.ts` defines tagged validation and provider errors.
+- `src/logging.ts` wraps operations with package/provider annotations.
+- `src/drivers/posthog.ts` adapts PostHog to the Templar driver.
+- `src/index.ts` re-exports the public API and the default PostHog helpers.
+
+The Templar API should stay smaller than PostHog's API surface. PostHog remains
+the implementation detail for v1, not the type system that every app imports.
+
+## Primary V1 API Patterns To Clarify
+
+The PostHog surface area is large. Before implementing, decide which of these
+patterns should be first-class in v1.
+
+### 1. Event Capture
+
+Recommended v1 default:
+
+```ts
+Analytics.capture({
+  event: "project.created",
+  userId,
+  properties: {
+    projectId,
+    source: "dashboard",
+  },
+});
+```
+
+Open questions:
+
+- Should the primary identifier be named `userId`, `distinctId`, or support
+  both with one normalized internal field?
+- Should anonymous events be allowed in v1, or should capture require a known
+  user/session identity?
+- Should event names be plain strings, or should apps define typed event maps?
+- Should the package add default properties such as app name, environment,
+  project key, deployment ID, or request ID?
+- Should capture be fire-and-forget, or should callers always receive an
+  Effect that can fail if PostHog is unavailable?
+
+### 2. Identity
+
+Recommended v1 default:
+
+```ts
+Analytics.identify({
+  userId,
+  properties: {
+    email,
+    name,
+  },
+});
+```
+
+Open questions:
+
+- Do we want `identify` in v1, or is event capture with user properties enough
+  initially?
+- Should the package expose `alias` for anonymous-to-known-user merging?
+- Which user properties are acceptable defaults, and which should apps pass
+  explicitly to avoid leaking unnecessary personal data?
+- Should identity calls be server-only, client-only, or supported in both?
+
+### 3. Feature Flags
+
+Recommended v1 default:
+
+```ts
+Analytics.getFeatureFlag({
+  key: "new-onboarding",
+  userId,
+  properties,
+});
+```
+
+Open questions:
+
+- Are PostHog feature flags in scope for v1, or should v1 only capture events?
+- Should flags return only boolean values, or support string payloads and
+  multivariate values?
+- Should missing flag evaluation fail closed with a default value?
+- Should we expose `isFeatureEnabled` as the simple boolean API and keep
+  `getFeatureFlag` for advanced cases?
+- Should flag calls be server-side only at first?
+
+### 4. Page And Screen Views
+
+Recommended v1 default:
+
+```ts
+Analytics.page({
+  path: "/settings/billing",
+  title: "Billing settings",
+  userId,
+  properties,
+});
+```
+
+Open questions:
+
+- Should page views be a separate API, or should apps call `capture` with a
+  conventional event name?
+- Do we need TanStack Start route helpers for automatic page view capture?
+- Should client-side autocapture be enabled, disabled, or left to app code?
+
+### 5. Groups And Tenancy
+
+Recommended v1 default:
+
+```ts
+Analytics.group({
+  type: "project",
+  key: projectId,
+  userId,
+  properties: {
+    projectName,
+  },
+});
+```
+
+Open questions:
+
+- Are PostHog groups needed in v1 for project/team/workspace analytics?
+- What should the standard group keys be: `app`, `project`, `tenant`,
+  `organization`, or something else?
+- Should every event carry `app` or `projectKey` properties even when PostHog
+  groups are not used?
+
+### 6. Server And Client Runtime Split
+
+Recommended v1 default:
+
+- Server package API first.
+- Browser helper second, if a real app needs direct client capture.
+- Do not expose the PostHog personal API key to browser code.
+
+Open questions:
+
+- Will v1 analytics calls mostly happen on the server, in the browser, or both?
+- Should browser events be sent directly to PostHog or proxied through app
+  routes?
+- Do we need a `createAnalyticsClient` browser API separate from the Effect
+  service?
+- Should the package include TanStack Start route helpers for event ingestion?
+
+### 7. Privacy And Controls
+
+Recommended v1 default:
+
+```ts
+Analytics.capture({
+  event,
+  userId,
+  properties,
+  context: {
+    consent: "granted",
+  },
+});
+```
+
+Open questions:
+
+- Should the package require an explicit consent state before sending events?
+- Should analytics be disabled by default in local development and tests?
+- Should apps be able to configure event/property allowlists?
+- Should sensitive property names be blocked or redacted by default?
+- Should the package provide a no-op driver for tests, local development, and
+  privacy-disabled environments?
+
+## Proposed Initial Service Surface
+
+This is the narrowest useful v1 if event capture and feature flags are both in
+scope:
+
+```ts
+export type AnalyticsService = {
+  readonly capture: (input: CaptureEventInput) => Effect.Effect<void, AnalyticsError>;
+  readonly identify: (input: IdentifyUserInput) => Effect.Effect<void, AnalyticsError>;
+  readonly getFeatureFlag: (
+    input: GetFeatureFlagInput,
+  ) => Effect.Effect<FeatureFlagValue, AnalyticsError>;
+};
+```
+
+Potential additions if explicitly chosen for v1:
+
+- `page(input)`
+- `alias(input)`
+- `group(input)`
+- `isFeatureEnabled(input)`
+- `flush()`
+- `shutdown()`
+
+## Proposed Initial Configuration
+
+The PostHog driver should be configurable from app code or Effect config:
+
+```ts
+makePostHogAnalytics({
+  host: "https://posthog.example.internal",
+  projectApiKey,
+  personalApiKey,
+  defaults: {
+    app: "launch-room",
+    environment: "prod",
+  },
+});
+```
+
+Open questions:
+
+- What is the actual homelab PostHog base URL shape?
+- Do apps have one PostHog project each, or do multiple Templar apps share one
+  PostHog project with an `app` property?
+- Which secrets should be required for v1: project API key only, or project API
+  key plus personal API key for feature flags/admin operations?
+- Should config use `@templar/config` helpers for secrets and environment?
 
 ## Intentional Deferrals
 
-These are not part of the first functional scope unless a real project needs
-them.
+Unless a real project needs them immediately, v1 should defer:
 
-### Refund Automation
+- cohorts management
+- surveys
+- experiments management
+- dashboards and insights API
+- session replay controls beyond basic enable/disable configuration
+- data export
+- plugin management
+- PostHog organization/project provisioning
+- full generated typed analytics schema
+- cross-provider support beyond the internal driver boundary
 
-Refunds can be handled manually in the Stripe Dashboard at first. Package
-support is only needed when an app needs self-serve refunds, admin refund flows,
-or automated entitlement changes from refunds.
+## First Implementation Milestones
 
-### Coupons And Promotion Codes
+1. Confirm the primary v1 API surface from the questions above.
+2. Add package files following the repo pattern:
+   `types.ts`, `errors.ts`, `logging.ts`, `driver.ts`, `service.ts`,
+   `drivers/posthog.ts`, and public exports.
+3. Implement a minimal PostHog driver for server-side `capture`.
+4. Add validation, provider error normalization, and operation logging.
+5. Add a no-op or memory test driver if local tests need deterministic
+   analytics behavior.
+6. Add focused tests for validation, default property merging, provider error
+   mapping, and service-to-driver translation.
+7. Add feature flag and identity APIs only after the v1 pattern is confirmed.
 
-Coupons can be configured in Stripe. Package support is only needed when apps
-must dynamically create, apply, or reason about discounts.
+## Clarification Checkpoint
 
-### Metered Billing
+Before writing code, decide the answers to these highest-impact questions:
 
-Metered billing requires app usage tracking and usage reporting. This should be
-added only when a product actually needs usage-based pricing.
-
-### Advanced Tax Handling
-
-Stripe Tax can be configured at the account/product level first. Package support
-is only needed when apps need runtime tax decisions or product-specific tax
-behavior.
-
-### Stripe Connect
-
-Connect is for marketplaces and platforms that route money to other parties. It
-is not needed for normal Templar apps where users pay this business directly.
-
-### Custom Payment Forms
-
-Stripe Checkout should be the default. Custom PaymentIntent flows should wait
-until an app has a strong product reason to own payment UI directly.
-
-### Multiple Stripe Accounts Per Project
-
-Multiple Stripe accounts may be useful for major projects that need separate
-merchant identity, reporting, legal separation, or branding. The first version
-should optimize for soft tenancy within one existing Stripe account.
-
-## Initial Success Criteria
-
-The first useful version is successful when a new Templar app can:
-
-- define one subscription plan
-- define trial behavior for that subscription plan
-- define one one-time purchase
-- create checkout sessions for both
-- send subscribers to the billing portal
-- verify Stripe webhooks
-- update entitlement state from verified billing events
-- check paid access for a user or tenant
-- keep all Stripe resources namespaced by project key
+1. Is v1 event capture only, or capture plus identify plus feature flags?
+2. Are events emitted server-side only, browser-side only, or both?
+3. Do we use `userId`, `distinctId`, or a normalized Templar identity type?
+4. Do multiple apps share one PostHog project, or does each app get its own
+   PostHog project?
+5. Should analytics fail the calling workflow when PostHog is unavailable, or
+   should failures be logged and swallowed by default?
+6. Should privacy controls such as consent, disabled environments, and
+   redaction be part of v1?

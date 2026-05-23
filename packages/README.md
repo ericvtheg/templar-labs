@@ -18,9 +18,16 @@ concern:
 - `@templar/db` should own database access and migration conventions.
 - `@templar/auth` should own authentication conventions.
 - `@templar/ai` should own model-provider conventions.
+- `@templar/email` owns transactional email conventions.
 - `@templar/deploy` owns infrastructure and deployment conventions.
 - `@templar/blob` owns object storage conventions.
+- `@templar/cache` owns cache and key-value storage conventions.
+- `@templar/queue` owns background queue conventions.
+- `@templar/analytics` owns product analytics conventions.
+- `@templar/payments` should own payment-provider conventions.
 - `@templar/ui` owns shared React UI primitives and styling conventions.
+- `@templar/assets` owns shared brand and default app assets.
+- `@templar/tsconfig` owns shared TypeScript configuration presets.
 
 Some packages will be self-created implementations. Others will wrap external
 libraries. In both cases, app code should depend on the Templar package when
@@ -74,9 +81,12 @@ Expose both root constructors and root layers for the default provider:
 
 ```ts
 import { aiLayer, makeAI } from "@templar/ai";
+import { analyticsLayer, makeAnalytics } from "@templar/analytics";
 import { blobLayer, makeBlob } from "@templar/blob";
 import { cacheLayer, makeCache } from "@templar/cache";
 import { databaseLayer, makeDatabase } from "@templar/db";
+import { emailLayer, makeEmail } from "@templar/email";
+import { makeQueue, queueLayer } from "@templar/queue";
 ```
 
 These names mean "use the Templar default":
@@ -85,6 +95,9 @@ These names mean "use the Templar default":
 - `@templar/blob` defaults to R2.
 - `@templar/cache` defaults to KV.
 - `@templar/db` defaults to D1.
+- `@templar/email` defaults to Cloudflare Email Workers.
+- `@templar/queue` defaults to Cloudflare Queues.
+- `@templar/analytics` defaults to PostHog.
 
 Root package APIs should stay provider-agnostic after construction. Provider
 details such as R2, KV, D1, OpenRouter, model IDs, fallback chains, request

@@ -11,6 +11,7 @@ on:
           - launch-room
           - hello-world
           - ui-showcase
+          - loan-payment-calculator
       confirm:
         description: Type destroy to confirm resource deletion
         required: true

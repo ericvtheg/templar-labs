@@ -3,13 +3,25 @@
   "version": "0.0.1",
   "private": true,
   "description": "",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'No tests configured yet.'",
+    "test": "node --test src/*.test.ts src/drivers/*.test.ts",
     "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@templar/config": "workspace:*",
+    "@templar/tsconfig": "workspace:*",
+    "effect": "^3.21.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.4"
   },
   "keywords": [],
   "author": "",

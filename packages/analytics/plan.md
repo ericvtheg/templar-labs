@@ -2,19 +2,20 @@
 
 ## Vision
 
-Templar projects should be able to add product analytics with a small, stable
-Templar API while keeping PostHog-specific details behind a provider driver.
+Templar projects should be able to add product analytics with a small, typed,
+server-side Templar API while keeping PostHog-specific details behind a provider
+driver.
 
 The initial provider is a self-hosted PostHog instance running in a homelab.
 The package should make that deployment detail easy to configure without
-spreading PostHog client setup, host URLs, API keys, event naming, or identity
-rules across app code.
+spreading PostHog client setup, host URLs, API keys, event naming, identity
+rules, or default metadata across app code.
 
 The target experience is:
 
-> Give a Templar app an analytics service, call a few obvious methods from
-> server and client code, and get consistent events, identities, and feature
-> flag checks in PostHog.
+> Define the app's analytics event map, create a PostHog-backed analytics
+> service, and call `track` or `identify` from server code without depending on
+> PostHog terminology in app logic.
 
 ## Existing Package Pattern To Follow
 
@@ -33,17 +34,81 @@ this repo:
 The Templar API should stay smaller than PostHog's API surface. PostHog remains
 the implementation detail for v1, not the type system that every app imports.
 
-## Primary V1 API Patterns To Clarify
+## Confirmed V1 Scope
 
-The PostHog surface area is large. Before implementing, decide which of these
-patterns should be first-class in v1.
+V1 includes:
 
-### 1. Event Capture
+- typed `track`
+- typed `identify`
+- server-side usage only
+- direct PostHog HTTP API transport through `fetch`
+- shared PostHog project support through required Templar metadata
+- production-only emission
+- provider error logging without blocking app workflows
 
-Recommended v1 default:
+V1 excludes:
+
+- feature flags
+- page view helper
+- browser/client analytics helper
+- autocapture
+- PostHog groups
+- consent storage or consent checks
+- route helpers
+- PostHog project provisioning
+- PostHog SDK lifecycle management
+
+Feature flags should become a future `@templar/feature-flags` package if needed.
+Consent should become a future durable consent or preferences primitive rather
+than being owned by analytics.
+
+## Service Surface
+
+The public API uses `track`, not PostHog's `capture` terminology.
 
 ```ts
-Analytics.capture({
+export type AnalyticsService<
+  Events extends AnalyticsEventMap,
+  UserProperties extends AnalyticsProperties,
+> = {
+  readonly track: <EventName extends keyof Events & string>(
+    input: TrackEventInput<Events, EventName>,
+  ) => Effect.Effect<void>;
+
+  readonly identify: (
+    input: IdentifyUserInput<UserProperties>,
+  ) => Effect.Effect<void>;
+};
+```
+
+`track` and `identify` return effects that do not fail. Validation and provider
+errors should be logged and swallowed so analytics never blocks core app flows.
+
+## Typed Events
+
+Apps must define an event map. This prevents event name typos and gives each
+event an explicit property shape.
+
+```ts
+type AppAnalyticsEvents = {
+  "signup.completed": undefined;
+  "project.created": {
+    projectId: string;
+    source: "dashboard" | "template";
+  };
+};
+```
+
+Events with properties must pass `properties`. Events with `undefined`
+properties may omit `properties`.
+
+```ts
+yield* Analytics.track({
+  event: "signup.completed",
+  userId,
+});
+
+yield* Analytics.track({
   event: "project.created",
   userId,
   properties: {
@@ -53,235 +118,227 @@ Analytics.capture({
 });
 ```
 
-Open questions:
+The event map type should include TSDoc recommending lowercase `object.action`
+names, such as `project.created`, `deploy.started`, or `user.invited`. The
+package should not enforce that format.
 
-- Should the primary identifier be named `userId`, `distinctId`, or support
-  both with one normalized internal field?
-- Should anonymous events be allowed in v1, or should capture require a known
-  user/session identity?
-- Should event names be plain strings, or should apps define typed event maps?
-- Should the package add default properties such as app name, environment,
-  project key, deployment ID, or request ID?
-- Should capture be fire-and-forget, or should callers always receive an
-  Effect that can fail if PostHog is unavailable?
+## Typed User Properties
 
-### 2. Identity
-
-Recommended v1 default:
+Apps must also define the user property shape used by `identify`.
 
 ```ts
-Analytics.identify({
+type AppAnalyticsUserProperties = {
+  email?: string;
+  name?: string;
+  plan?: "free" | "pro";
+};
+
+yield* Analytics.identify({
   userId,
   properties: {
-    email,
-    name,
+    plan: "pro",
   },
 });
 ```
 
-Open questions:
+`identify.properties` should be partial so callers can update only the fields
+they know at the call site.
 
-- Do we want `identify` in v1, or is event capture with user properties enough
-  initially?
-- Should the package expose `alias` for anonymous-to-known-user merging?
-- Which user properties are acceptable defaults, and which should apps pass
-  explicitly to avoid leaking unnecessary personal data?
-- Should identity calls be server-only, client-only, or supported in both?
+## Property Values
 
-### 3. Feature Flags
-
-Recommended v1 default:
+Analytics properties must be JSON-safe. Dates should be converted to ISO strings
+before being passed to analytics.
 
 ```ts
-Analytics.getFeatureFlag({
-  key: "new-onboarding",
-  userId,
-  properties,
-});
-```
+export type AnalyticsPropertyValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ReadonlyArray<AnalyticsPropertyValue>
+  | { readonly [key: string]: AnalyticsPropertyValue };
 
-Open questions:
-
-- Are PostHog feature flags in scope for v1, or should v1 only capture events?
-- Should flags return only boolean values, or support string payloads and
-  multivariate values?
-- Should missing flag evaluation fail closed with a default value?
-- Should we expose `isFeatureEnabled` as the simple boolean API and keep
-  `getFeatureFlag` for advanced cases?
-- Should flag calls be server-side only at first?
-
-### 4. Page And Screen Views
-
-Recommended v1 default:
-
-```ts
-Analytics.page({
-  path: "/settings/billing",
-  title: "Billing settings",
-  userId,
-  properties,
-});
-```
-
-Open questions:
-
-- Should page views be a separate API, or should apps call `capture` with a
-  conventional event name?
-- Do we need TanStack Start route helpers for automatic page view capture?
-- Should client-side autocapture be enabled, disabled, or left to app code?
-
-### 5. Groups And Tenancy
-
-Recommended v1 default:
-
-```ts
-Analytics.group({
-  type: "project",
-  key: projectId,
-  userId,
-  properties: {
-    projectName,
-  },
-});
-```
-
-Open questions:
-
-- Are PostHog groups needed in v1 for project/team/workspace analytics?
-- What should the standard group keys be: `app`, `project`, `tenant`,
-  `organization`, or something else?
-- Should every event carry `app` or `projectKey` properties even when PostHog
-  groups are not used?
-
-### 6. Server And Client Runtime Split
-
-Recommended v1 default:
-
-- Server package API first.
-- Browser helper second, if a real app needs direct client capture.
-- Do not expose the PostHog personal API key to browser code.
-
-Open questions:
-
-- Will v1 analytics calls mostly happen on the server, in the browser, or both?
-- Should browser events be sent directly to PostHog or proxied through app
-  routes?
-- Do we need a `createAnalyticsClient` browser API separate from the Effect
-  service?
-- Should the package include TanStack Start route helpers for event ingestion?
-
-### 7. Privacy And Controls
-
-Recommended v1 default:
-
-```ts
-Analytics.capture({
-  event,
-  userId,
-  properties,
-  context: {
-    consent: "granted",
-  },
-});
-```
-
-Open questions:
-
-- Should the package require an explicit consent state before sending events?
-- Should analytics be disabled by default in local development and tests?
-- Should apps be able to configure event/property allowlists?
-- Should sensitive property names be blocked or redacted by default?
-- Should the package provide a no-op driver for tests, local development, and
-  privacy-disabled environments?
-
-## Proposed Initial Service Surface
-
-This is the narrowest useful v1 if event capture and feature flags are both in
-scope:
-
-```ts
-export type AnalyticsService = {
-  readonly capture: (input: CaptureEventInput) => Effect.Effect<void, AnalyticsError>;
-  readonly identify: (input: IdentifyUserInput) => Effect.Effect<void, AnalyticsError>;
-  readonly getFeatureFlag: (
-    input: GetFeatureFlagInput,
-  ) => Effect.Effect<FeatureFlagValue, AnalyticsError>;
+export type AnalyticsProperties = {
+  readonly [key: string]: AnalyticsPropertyValue;
 };
 ```
 
-Potential additions if explicitly chosen for v1:
+## Identity
 
-- `page(input)`
-- `alias(input)`
-- `group(input)`
-- `isFeatureEnabled(input)`
-- `flush()`
-- `shutdown()`
+The public API uses `userId`, not `distinctId`.
 
-## Proposed Initial Configuration
+The PostHog driver maps `userId` to PostHog's `distinct_id`.
 
-The PostHog driver should be configurable from app code or Effect config:
+Anonymous analytics are out of scope for v1. If anonymous-to-known-user tracking
+becomes important later, add a deliberate identity model rather than leaking
+provider terminology into app code.
+
+## Runtime
+
+V1 is server-only.
+
+Analytics calls should happen from server routes, server functions, jobs, auth
+hooks, webhook handlers, and other server-side workflows. There is no browser
+helper and no direct browser PostHog setup in v1.
+
+## PostHog Tenancy
+
+The default model is one shared PostHog project for the Templar portfolio.
+Individual project views are achieved through required metadata properties.
+Portfolio views can group or filter by the same metadata.
+
+Every service instance must be created with:
+
+- `app`
+- `projectKey`
+- `environment`
+
+Every emitted PostHog event/person update must include these exact property
+names:
 
 ```ts
-makePostHogAnalytics({
+{
+  app,
+  projectKey,
+  environment,
+}
+```
+
+The package should support one PostHog project per app later by changing
+configuration, but the same metadata remains required and useful.
+
+## Configuration
+
+The PostHog helper should use direct HTTP transport through `fetch`, not the
+PostHog Node or browser SDK.
+
+```ts
+makePostHogAnalytics<AppAnalyticsEvents, AppAnalyticsUserProperties>({
   host: "https://posthog.example.internal",
   projectApiKey,
-  personalApiKey,
-  defaults: {
-    app: "launch-room",
-    environment: "prod",
+  app: "launch-room",
+  projectKey: "launch-room",
+  environment: AppEnvironment.Prod,
+  defaultProperties: {
+    deploymentId,
   },
 });
 ```
 
-Open questions:
+Configuration notes:
 
-- What is the actual homelab PostHog base URL shape?
-- Do apps have one PostHog project each, or do multiple Templar apps share one
-  PostHog project with an `app` property?
-- Which secrets should be required for v1: project API key only, or project API
-  key plus personal API key for feature flags/admin operations?
-- Should config use `@templar/config` helpers for secrets and environment?
+- `environment` should use `AppEnvironment` from `@templar/config`.
+- Only `AppEnvironment.Prod` emits analytics.
+- Non-prod environments no-op.
+- `projectApiKey` is required for v1.
+- A PostHog personal API key is not required because v1 does not include feature
+  flags, admin APIs, or provisioning.
+- Optional custom `fetch` may be supported for tests.
+
+## Default Property Precedence
+
+Reserved metadata must always win over caller-provided properties.
+
+Merge order for track events:
+
+```ts
+{
+  ...defaultProperties,
+  ...eventProperties,
+  app,
+  projectKey,
+  environment,
+}
+```
+
+This prevents event call sites from accidentally changing portfolio/project
+partitioning data.
+
+## Failure Behavior
+
+Analytics should not hold up product workflows.
+
+Behavior:
+
+1. If `environment !== AppEnvironment.Prod`, no-op.
+2. Validate the event or identify input.
+3. Translate the Templar input to the PostHog HTTP request shape.
+4. Send with `fetch`.
+5. Log provider or validation errors.
+6. Return `void` either way.
+
+Provider/network/PostHog failures are swallowed after logging.
+
+## PostHog Mapping
+
+`track` maps to PostHog capture over HTTP.
+
+Templar input:
+
+```ts
+{
+  event: "project.created",
+  userId: "user_123",
+  properties: {
+    projectId: "project_123",
+    source: "dashboard",
+  },
+}
+```
+
+PostHog payload should include:
+
+```ts
+{
+  api_key: projectApiKey,
+  event: "project.created",
+  distinct_id: "user_123",
+  properties: {
+    projectId: "project_123",
+    source: "dashboard",
+    app: "launch-room",
+    projectKey: "launch-room",
+    environment: "prod",
+  },
+}
+```
+
+`identify` should map to the simplest PostHog HTTP-compatible identity update
+for server ingestion. Keep this mapping in the PostHog driver so app code does
+not depend on PostHog event names or special property keys.
 
 ## Intentional Deferrals
 
 Unless a real project needs them immediately, v1 should defer:
 
+- feature flags
+- page view helper
+- browser analytics helper
+- route ingestion helpers
+- anonymous identity and aliasing
+- PostHog groups
 - cohorts management
 - surveys
 - experiments management
 - dashboards and insights API
-- session replay controls beyond basic enable/disable configuration
+- session replay
 - data export
 - plugin management
 - PostHog organization/project provisioning
-- full generated typed analytics schema
+- consent storage and consent checks
 - cross-provider support beyond the internal driver boundary
 
 ## First Implementation Milestones
 
-1. Confirm the primary v1 API surface from the questions above.
-2. Add package files following the repo pattern:
+1. Add package files following the repo pattern:
    `types.ts`, `errors.ts`, `logging.ts`, `driver.ts`, `service.ts`,
    `drivers/posthog.ts`, and public exports.
-3. Implement a minimal PostHog driver for server-side `capture`.
-4. Add validation, provider error normalization, and operation logging.
-5. Add a no-op or memory test driver if local tests need deterministic
-   analytics behavior.
-6. Add focused tests for validation, default property merging, provider error
-   mapping, and service-to-driver translation.
-7. Add feature flag and identity APIs only after the v1 pattern is confirmed.
-
-## Clarification Checkpoint
-
-Before writing code, decide the answers to these highest-impact questions:
-
-1. Is v1 event capture only, or capture plus identify plus feature flags?
-2. Are events emitted server-side only, browser-side only, or both?
-3. Do we use `userId`, `distinctId`, or a normalized Templar identity type?
-4. Do multiple apps share one PostHog project, or does each app get its own
-   PostHog project?
-5. Should analytics fail the calling workflow when PostHog is unavailable, or
-   should failures be logged and swallowed by default?
-6. Should privacy controls such as consent, disabled environments, and
-   redaction be part of v1?
+2. Define generic `AnalyticsService<Events, UserProperties>` with typed
+   `track` and `identify`.
+3. Implement production-only service behavior using `AppEnvironment`.
+4. Implement default property merging with reserved metadata winning.
+5. Implement a PostHog HTTP driver using `fetch`.
+6. Add validation, provider error normalization, and operation logging.
+7. Add focused tests for event typing helpers, validation, non-prod no-op
+   behavior, property merging, provider error swallowing, and service-to-driver
+   translation.

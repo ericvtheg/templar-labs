@@ -1,5 +1,5 @@
 import { Config, Context, Layer } from "effect";
-import { type AppEnvironment, appEnvironmentConfig } from "./environment";
+import { type AppEnvironment, appEnvironmentConfig } from "./environment.ts";
 
 export type AppConfig = {
   readonly appName: string;

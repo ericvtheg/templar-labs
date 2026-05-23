@@ -1,3 +1,3 @@
-export * from "./app-config";
-export * from "./environment";
-export * from "./secret";
+export * from "./app-config.ts";
+export * from "./environment.ts";
+export * from "./secret.ts";

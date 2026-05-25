@@ -8,8 +8,8 @@ import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
 import { type SyntheticEvent, useCallback, useEffect, useId, useState, useTransition } from "react";
 import {
   initialPeoplePlaceholderNames,
-  MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
   nextPeoplePlaceholderNames,
+  PEOPLE_PLACEHOLDER_CYCLE_LENGTH,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
 
@@ -28,7 +28,6 @@ const tripNamePlaceholders = [
 ] as const;
 
 const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
-const PEOPLE_PLACEHOLDER_BUFFER_ROWS = MAX_VISIBLE_PEOPLE_PLACEHOLDERS;
 const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 4;
 
 function Home() {
@@ -39,7 +38,7 @@ function Home() {
   const [tripName, setTripName] = useState("");
   const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
   const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
-    initialPeoplePlaceholderNames().slice(0, PEOPLE_PLACEHOLDER_BUFFER_ROWS),
+    initialPeoplePlaceholderNames(),
   );
   const [peoplePlaceholderSlideState, setPeoplePlaceholderSlideState] = useState<
     "idle" | "primed" | "sliding"
@@ -55,7 +54,7 @@ function Home() {
   const peoplePlaceholder = visiblePeoplePlaceholderNames.join("\n");
   const settlePeoplePlaceholderSlide = useCallback(() => {
     setPeoplePlaceholderNames((currentNames) =>
-      currentNames.slice(0, PEOPLE_PLACEHOLDER_BUFFER_ROWS),
+      currentNames.slice(0, PEOPLE_PLACEHOLDER_CYCLE_LENGTH),
     );
     setPeoplePlaceholderSlideState("idle");
   }, []);
@@ -63,7 +62,7 @@ function Home() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setPeoplePlaceholderNames((currentNames) => {
-        if (currentNames.length > PEOPLE_PLACEHOLDER_BUFFER_ROWS) {
+        if (currentNames.length > PEOPLE_PLACEHOLDER_CYCLE_LENGTH) {
           return currentNames;
         }
 
@@ -242,11 +241,19 @@ function Home() {
                           }
                         }}
                       >
-                        {peoplePlaceholderNames.map((placeholderName) => (
-                          <span className="people-name-placeholder" key={placeholderName}>
-                            {placeholderName}
-                          </span>
-                        ))}
+                        {peoplePlaceholderNames.map((placeholderName, index) => {
+                          const placeholderKey =
+                            peoplePlaceholderNames.length > PEOPLE_PLACEHOLDER_CYCLE_LENGTH &&
+                            index === 0
+                              ? `${placeholderName}-incoming`
+                              : placeholderName;
+
+                          return (
+                            <span className="people-name-placeholder" key={placeholderKey}>
+                              {placeholderName}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null}

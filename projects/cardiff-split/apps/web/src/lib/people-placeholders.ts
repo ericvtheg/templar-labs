@@ -30,24 +30,38 @@ export const PEOPLE_PLACEHOLDER_NAMES = [
 export type PeoplePlaceholderName = (typeof PEOPLE_PLACEHOLDER_NAMES)[number];
 
 export const MAX_VISIBLE_PEOPLE_PLACEHOLDERS = 6;
+export const PEOPLE_PLACEHOLDER_CYCLE_LENGTH = PEOPLE_PLACEHOLDER_NAMES.length;
 
-export function initialPeoplePlaceholderNames(): PeoplePlaceholderName[] {
-  return PEOPLE_PLACEHOLDER_NAMES.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS);
+export function initialPeoplePlaceholderNames(
+  randomIndex: (maxExclusive: number) => number = randomInteger,
+): PeoplePlaceholderName[] {
+  const names = [...PEOPLE_PLACEHOLDER_NAMES];
+
+  for (let index = names.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    const currentName = names[index];
+    const swapName = names[swapIndex];
+
+    if (currentName === undefined || swapName === undefined) {
+      continue;
+    }
+
+    [names[index], names[swapIndex]] = [swapName, currentName];
+  }
+
+  return names;
 }
 
 export function nextPeoplePlaceholderNames(
   currentNames: readonly PeoplePlaceholderName[],
-  randomIndex: (maxExclusive: number) => number = randomInteger,
 ): PeoplePlaceholderName[] {
-  const visibleNames = new Set(currentNames);
-  const candidateNames = PEOPLE_PLACEHOLDER_NAMES.filter((name) => !visibleNames.has(name));
-  const nextName = candidateNames[randomIndex(candidateNames.length)];
+  const nextName = currentNames[currentNames.length - 1];
 
   if (nextName === undefined) {
-    return currentNames.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS);
+    return [];
   }
 
-  return [nextName, ...currentNames].slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS);
+  return [nextName, ...currentNames.slice(0, -1)];
 }
 
 function randomInteger(maxExclusive: number) {

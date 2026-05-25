@@ -5,12 +5,22 @@ import { Input } from "@templar/ui/components/input";
 import { Label } from "@templar/ui/components/label";
 import { Textarea } from "@templar/ui/components/textarea";
 import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
-import { type SyntheticEvent, useId, useState, useTransition } from "react";
+import { type SyntheticEvent, useEffect, useId, useState, useTransition } from "react";
 import { createTrip } from "../lib/trip-server-functions.ts";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
+
+const tripNamePlaceholders = [
+  "Tulum Trip",
+  "Mexico Bachelor Trip",
+  "Kimi & Skylar Wedding",
+  "Costa Rica Trip",
+  "Sweden Midsommar Trip",
+  "Basslake 4th of July Trip",
+  "Dan Handler Sponsored Hawaii Trip",
+] as const;
 
 function Home() {
   const tripNameId = useId();
@@ -18,9 +28,20 @@ function Home() {
   const navigate = useNavigate();
   const createTripFn = useServerFn(createTrip);
   const [tripName, setTripName] = useState("");
+  const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
   const [participantNames, setParticipantNames] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setTripNamePlaceholderIndex((currentIndex) => {
+        return (currentIndex + 1) % tripNamePlaceholders.length;
+      });
+    }, 2500);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -104,7 +125,7 @@ function Home() {
                   data-testid="create-trip-name"
                   id={tripNameId}
                   onChange={(event) => setTripName(event.currentTarget.value)}
-                  placeholder="Cardiff weekend"
+                  placeholder={tripNamePlaceholders[tripNamePlaceholderIndex]}
                   value={tripName}
                 />
               </div>

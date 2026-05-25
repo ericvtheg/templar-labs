@@ -36,7 +36,7 @@ import {
   parsePercentInput,
 } from "../lib/money.ts";
 import { exactSplitMismatchMessage, exactSplitToleranceCents } from "../lib/split-math.ts";
-import type { TripSnapshot } from "../lib/trip-model.ts";
+import type { ActivityEvent, TripSnapshot } from "../lib/trip-model.ts";
 import {
   type Expense,
   type Participant,
@@ -1368,23 +1368,33 @@ function SettlementForm({
 }
 
 function ActivityView({ snapshot }: { readonly snapshot: TripSnapshot }) {
+  const expenseActivityEvents = snapshot.activityEvents.filter(
+    (event) =>
+      event.entityType === "expense" &&
+      (event.eventType === "created" ||
+        event.eventType === "edited" ||
+        event.eventType === "deleted"),
+  );
+
   return (
     <section className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
       <h2 className="text-xl font-semibold tracking-normal text-[#12343B]">Activity</h2>
       <div className="mt-4 grid gap-2" data-testid="activity-list">
-        {snapshot.activityEvents.length === 0 ? (
+        {expenseActivityEvents.length === 0 ? (
           <p className="rounded-md bg-[#ECE7DB] px-3 py-3 text-sm text-[#52645E]">
             No activity yet.
           </p>
         ) : (
-          snapshot.activityEvents.map((event) => (
+          expenseActivityEvents.map((event) => (
             <article
               className="rounded-md border border-[#ECE7DB] bg-white/75 px-3 py-3"
               key={event.id}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-[#12343B]">{event.summary}</p>
+                  <p className="font-medium text-[#12343B]">
+                    {formatExpenseActivitySummary(event, snapshot.expenses)}
+                  </p>
                   <p className="text-sm text-[#52645E]">{event.actorLabel}</p>
                 </div>
                 <time className="text-right text-xs text-[#52645E]" dateTime={event.createdAt}>
@@ -1397,6 +1407,37 @@ function ActivityView({ snapshot }: { readonly snapshot: TripSnapshot }) {
       </div>
     </section>
   );
+}
+
+function formatExpenseActivitySummary(
+  event: ActivityEvent,
+  expenses: TripSnapshot["expenses"],
+): string {
+  const normalizedSummary = event.summary.replace(/^Updated /, "Modified ");
+
+  if (/\$\d/.test(normalizedSummary)) {
+    return normalizedSummary;
+  }
+
+  const amountCents =
+    parseActivityAmountCents(event.metadataJson) ??
+    expenses.find((expense) => expense.id === event.entityId)?.amountCents;
+
+  if (amountCents === undefined) {
+    return normalizedSummary;
+  }
+
+  return `${normalizedSummary.replace(/\.$/, "")} - ${formatCurrency(amountCents)}.`;
+}
+
+function parseActivityAmountCents(metadataJson: string): number | undefined {
+  try {
+    const metadata = JSON.parse(metadataJson) as { readonly amountCents?: unknown };
+
+    return typeof metadata.amountCents === "number" ? metadata.amountCents : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function ShareView({ tripName }: { readonly tripName: string }) {

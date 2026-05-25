@@ -274,8 +274,14 @@ export const saveExpense = createServerFn({ method: "POST" })
       eventType: data.expenseId === undefined ? "created" : "edited",
       entityType: "expense",
       entityId: expenseId,
-      summary: `${data.expenseId === undefined ? "Added" : "Updated"} ${data.title}.`,
+      summary: `${data.expenseId === undefined ? "Added" : "Modified"} ${
+        data.title
+      } - ${formatCurrency(data.amountCents)}.`,
       createdAt: now,
+      metadata: {
+        amountCents: data.amountCents,
+        title: data.title,
+      },
     });
 
     return await readTripSnapshot(data.tripSlug);
@@ -304,8 +310,12 @@ export const deleteExpense = createServerFn({ method: "POST" })
       eventType: "deleted",
       entityType: "expense",
       entityId: data.expenseId,
-      summary: `Deleted ${existingExpense.title}.`,
+      summary: `Deleted ${existingExpense.title} - ${formatCurrency(existingExpense.amountCents)}.`,
       createdAt: now,
+      metadata: {
+        amountCents: existingExpense.amountCents,
+        title: existingExpense.title,
+      },
     });
 
     return await readTripSnapshot(data.tripSlug);

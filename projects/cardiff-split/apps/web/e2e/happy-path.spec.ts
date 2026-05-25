@@ -41,7 +41,8 @@ test("create a trip, add an expense, and mark a recommendation paid", async ({ p
   await expect(page.getByTestId("balance-Alex")).toContainText("+$30.00");
 
   await page.getByRole("button", { name: "Activity" }).click();
-  await expect(page.getByTestId("activity-list")).toContainText("paid Alex $30.00");
+  await expect(page.getByTestId("activity-list")).toContainText("Added Dinner - $90.00");
+  await expect(page.getByTestId("activity-list")).not.toContainText("paid Alex $30.00");
 });
 
 test("add an expense with exact split amounts", async ({ page }) => {

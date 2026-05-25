@@ -28,7 +28,8 @@ const tripNamePlaceholders = [
 ] as const;
 
 const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
-const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = MAX_VISIBLE_PEOPLE_PLACEHOLDERS;
+const PEOPLE_PLACEHOLDER_BUFFER_ROWS = MAX_VISIBLE_PEOPLE_PLACEHOLDERS;
+const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 4;
 
 function Home() {
   const tripNameId = useId();
@@ -38,7 +39,7 @@ function Home() {
   const [tripName, setTripName] = useState("");
   const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
   const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
-    initialPeoplePlaceholderNames().slice(0, PEOPLE_PLACEHOLDER_VISIBLE_ROWS),
+    initialPeoplePlaceholderNames().slice(0, PEOPLE_PLACEHOLDER_BUFFER_ROWS),
   );
   const [peoplePlaceholderSlideState, setPeoplePlaceholderSlideState] = useState<
     "idle" | "primed" | "sliding"
@@ -54,7 +55,7 @@ function Home() {
   const peoplePlaceholder = visiblePeoplePlaceholderNames.join("\n");
   const settlePeoplePlaceholderSlide = useCallback(() => {
     setPeoplePlaceholderNames((currentNames) =>
-      currentNames.slice(0, PEOPLE_PLACEHOLDER_VISIBLE_ROWS),
+      currentNames.slice(0, PEOPLE_PLACEHOLDER_BUFFER_ROWS),
     );
     setPeoplePlaceholderSlideState("idle");
   }, []);
@@ -62,7 +63,7 @@ function Home() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setPeoplePlaceholderNames((currentNames) => {
-        if (currentNames.length > PEOPLE_PLACEHOLDER_VISIBLE_ROWS) {
+        if (currentNames.length > PEOPLE_PLACEHOLDER_BUFFER_ROWS) {
           return currentNames;
         }
 
@@ -216,12 +217,12 @@ function Home() {
                 <Label htmlFor={participantNamesId}>People</Label>
                 <div className="relative">
                   <Textarea
-                    className="resize-none placeholder:text-transparent"
+                    className="resize-none [field-sizing:fixed] placeholder:text-transparent"
                     data-testid="create-trip-participants"
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
-                    rows={3}
+                    rows={4}
                     value={participantNames}
                   />
                   {participantNames.length === 0 ? (

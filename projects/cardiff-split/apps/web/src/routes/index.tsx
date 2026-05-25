@@ -105,13 +105,7 @@ function Home() {
   }, [peoplePlaceholderSlideState, settlePeoplePlaceholderSlide]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setTripNamePlaceholderIndex((currentIndex) => {
-        return (currentIndex + 1) % tripNamePlaceholders.length;
-      });
-    }, 4200);
-
-    return () => window.clearInterval(intervalId);
+    setTripNamePlaceholderIndex(Math.floor(Math.random() * tripNamePlaceholders.length));
   }, []);
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {

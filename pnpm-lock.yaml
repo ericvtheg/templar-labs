@@ -371,6 +371,9 @@ importers:
 
   packages/email:
     dependencies:
+      '@templar/config':
+        specifier: workspace:*
+        version: link:../config
       '@templar/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig

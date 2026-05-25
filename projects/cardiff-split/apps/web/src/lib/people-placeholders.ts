@@ -23,6 +23,7 @@ export const PEOPLE_PLACEHOLDER_NAMES = [
   "Kyle",
   "Megan",
   "Mitchell",
+  "Neo",
   "Silver",
   "Skylar",
   "Timmy",

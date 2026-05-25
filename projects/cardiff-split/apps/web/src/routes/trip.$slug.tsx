@@ -261,10 +261,16 @@ function TripRoute() {
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
-                  Total settled
+                  Amount left to settle
                 </p>
-                <p className="text-xl font-semibold tabular-nums text-[#12343B]">
-                  {formatCurrency(snapshot.totalSettledCents)}
+                <p
+                  className={
+                    snapshot.amountLeftToSettleCents === 0
+                      ? "text-xl font-semibold tabular-nums text-[#126C5A]"
+                      : "text-xl font-semibold tabular-nums text-[#B94F36]"
+                  }
+                >
+                  {formatCurrency(snapshot.amountLeftToSettleCents)}
                 </p>
               </div>
             </div>

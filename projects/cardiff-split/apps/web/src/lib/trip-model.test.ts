@@ -59,7 +59,7 @@ const expense: Expense = {
 };
 
 describe("summarizeTrip", () => {
-  test("counts the payer's own expense share as settled", () => {
+  test("only counts unsettled balances as left to settle", () => {
     const snapshot = summarizeTrip({
       trip,
       participants,
@@ -69,10 +69,10 @@ describe("summarizeTrip", () => {
     });
 
     expect(snapshot.totalSpentCents).toBe(1000);
-    expect(snapshot.totalSettledCents).toBe(500);
+    expect(snapshot.amountLeftToSettleCents).toBe(500);
   });
 
-  test("counts a fully settled expense as fully settled", () => {
+  test("shows zero left to settle for a fully settled expense", () => {
     const snapshot = summarizeTrip({
       trip,
       participants,
@@ -91,6 +91,6 @@ describe("summarizeTrip", () => {
     });
 
     expect(snapshot.totalSpentCents).toBe(1000);
-    expect(snapshot.totalSettledCents).toBe(1000);
+    expect(snapshot.amountLeftToSettleCents).toBe(0);
   });
 });

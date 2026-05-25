@@ -70,7 +70,7 @@ textarea {
 
 .people-name-placeholder-window {
   --people-name-placeholder-line-height: 1.5rem;
-  --people-name-placeholder-gap: 0.25rem;
+  --people-name-placeholder-gap: 0.125rem;
   --people-name-placeholder-step: calc(
     var(--people-name-placeholder-line-height) +
     var(--people-name-placeholder-gap)
@@ -81,6 +81,12 @@ textarea {
     (var(--people-name-placeholder-gap) * 3)
   );
   overflow: hidden;
+}
+
+@media (width >= 48rem) {
+  .people-name-placeholder-window {
+    --people-name-placeholder-line-height: 1.25rem;
+  }
 }
 
 .people-name-placeholder-stack {

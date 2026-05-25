@@ -228,13 +228,13 @@ function Home() {
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
-                    rows={5}
+                    rows={4}
                     value={participantNames}
                   />
                   {participantNames.length === 0 ? (
                     <div
                       aria-hidden="true"
-                      className="people-name-placeholder-window pointer-events-none absolute inset-x-3 top-2.5 text-base text-[#52645E] md:text-sm"
+                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 top-2 text-base text-[#52645E] md:text-sm"
                     >
                       <div
                         className="people-name-placeholder-stack"

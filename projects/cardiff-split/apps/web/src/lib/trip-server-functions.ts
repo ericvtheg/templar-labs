@@ -11,6 +11,7 @@ import {
   trips,
 } from "../../../../db/schema.ts";
 import { templarBindings } from "../../../../templar-bindings.ts";
+import { findMatchingSettlementRecommendation } from "./balances.ts";
 import { formatCurrency } from "./money.ts";
 import { calculateExpenseSplits } from "./split-math.ts";
 import { summarizeTrip, type TripSnapshot } from "./trip-model.ts";
@@ -94,6 +95,8 @@ const settlementInput = z.object({
   toParticipantId: z.string().min(1),
   amountCents: z.number().int().positive(),
 });
+
+const markRecommendationPaidInput = settlementInput.omit({ settlementId: true });
 
 const deleteSettlementInput = z.object({
   tripSlug: z.string().min(8),
@@ -366,6 +369,70 @@ export const saveSettlement = createServerFn({ method: "POST" })
     await writeActivity(database.db, {
       tripId: trip.id,
       eventType: data.settlementId === undefined ? "settled" : "edited",
+      entityType: "settlement",
+      entityId: settlementId,
+      summary: `${fromParticipant?.name ?? "Someone"} paid ${
+        toParticipant?.name ?? "someone"
+      } ${formatCurrency(data.amountCents)}.`,
+      createdAt: now,
+    });
+
+    return await readTripSnapshot(data.tripSlug);
+  });
+
+export const markRecommendationPaid = createServerFn({ method: "POST" })
+  .inputValidator(markRecommendationPaidInput)
+  .handler(async ({ data }) => {
+    const database = await getDatabase();
+    const trip = await findTripBySlug(database.db, data.tripSlug);
+    const tripParticipants = await readParticipants(database.db, trip.id);
+    const participantIds = new Set(tripParticipants.map((participant) => participant.id));
+    const fromParticipant = tripParticipants.find(
+      (participant) => participant.id === data.fromParticipantId,
+    );
+    const toParticipant = tripParticipants.find(
+      (participant) => participant.id === data.toParticipantId,
+    );
+
+    assertTripParticipant(participantIds, data.fromParticipantId);
+    assertTripParticipant(participantIds, data.toParticipantId);
+
+    if (data.fromParticipantId === data.toParticipantId) {
+      throw new Error("Choose two different people.");
+    }
+
+    const currentSnapshot = await readTripSnapshot(data.tripSlug);
+    const matchingRecommendation = findMatchingSettlementRecommendation(
+      currentSnapshot.settlementRecommendations,
+      {
+        fromParticipantId: data.fromParticipantId,
+        toParticipantId: data.toParticipantId,
+        amountCents: data.amountCents,
+      },
+    );
+
+    if (matchingRecommendation === undefined) {
+      throw new Error(
+        "That payment recommendation is no longer current. Refresh the trip and try again.",
+      );
+    }
+
+    const now = new Date();
+    const settlementId = crypto.randomUUID();
+
+    await database.db.insert(settlements).values({
+      id: settlementId,
+      tripId: trip.id,
+      fromParticipantId: data.fromParticipantId,
+      toParticipantId: data.toParticipantId,
+      amountCents: data.amountCents,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await writeActivity(database.db, {
+      tripId: trip.id,
+      eventType: "settled",
       entityType: "settlement",
       entityId: settlementId,
       summary: `${fromParticipant?.name ?? "Someone"} paid ${

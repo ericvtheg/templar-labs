@@ -48,6 +48,7 @@ import {
   deleteExpense,
   deleteSettlement,
   loadTrip,
+  markRecommendationPaid,
   saveExpense,
   saveSettlement,
   updateParticipant,
@@ -93,6 +94,7 @@ function TripRoute() {
   const updateParticipantFn = useServerFn(updateParticipant);
   const saveExpenseFn = useServerFn(saveExpense);
   const deleteExpenseFn = useServerFn(deleteExpense);
+  const markRecommendationPaidFn = useServerFn(markRecommendationPaid);
   const saveSettlementFn = useServerFn(saveSettlement);
   const deleteSettlementFn = useServerFn(deleteSettlement);
   const [snapshot, setSnapshot] = useState<TripSnapshot | null>(null);
@@ -196,6 +198,21 @@ function TripRoute() {
       setEditingSettlement(null);
       return nextSnapshot;
     }, "Could not save that payment.");
+  };
+
+  const handleMarkRecommendationPaid = (payload: SettlementPayload) => {
+    runTripAction(
+      () =>
+        markRecommendationPaidFn({
+          data: {
+            tripSlug: slug,
+            fromParticipantId: payload.fromParticipantId,
+            toParticipantId: payload.toParticipantId,
+            amountCents: payload.amountCents,
+          },
+        }),
+      "Could not mark that payment paid.",
+    );
   };
 
   const handleDeleteSettlement = (settlementId: string) => {
@@ -331,6 +348,7 @@ function TripRoute() {
             onCancelEdit={() => setEditingSettlement(null)}
             onDeleteSettlement={handleDeleteSettlement}
             onEditSettlement={setEditingSettlement}
+            onMarkRecommendationPaid={handleMarkRecommendationPaid}
             onSaveSettlement={handleSaveSettlement}
             participants={snapshot.participants}
             settlements={snapshot.settlements}
@@ -1148,6 +1166,7 @@ function SettleView({
   editingSettlement,
   isPending,
   onSaveSettlement,
+  onMarkRecommendationPaid,
   onEditSettlement,
   onCancelEdit,
   onDeleteSettlement,
@@ -1158,6 +1177,7 @@ function SettleView({
   readonly editingSettlement: Settlement | null;
   readonly isPending: boolean;
   readonly onSaveSettlement: (payload: SettlementPayload) => void;
+  readonly onMarkRecommendationPaid: (payload: SettlementPayload) => void;
   readonly onEditSettlement: (settlement: Settlement) => void;
   readonly onCancelEdit: () => void;
   readonly onDeleteSettlement: (settlementId: string) => void;
@@ -1195,7 +1215,7 @@ function SettleView({
                     data-testid="mark-paid"
                     disabled={isPending}
                     onClick={() =>
-                      onSaveSettlement({
+                      onMarkRecommendationPaid({
                         fromParticipantId: recommendation.fromParticipantId,
                         toParticipantId: recommendation.toParticipantId,
                         amountCents: recommendation.amountCents,

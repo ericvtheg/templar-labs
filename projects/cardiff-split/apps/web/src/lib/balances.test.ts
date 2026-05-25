@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { computeParticipantBalances, simplifySettlementRecommendations } from "./balances.ts";
+import {
+  computeParticipantBalances,
+  findMatchingSettlementRecommendation,
+  simplifySettlementRecommendations,
+} from "./balances.ts";
 import { calculateExpenseSplits, SplitValidationError } from "./split-math.ts";
 
 const participants = [{ id: "alice" }, { id: "bea" }, { id: "cam" }];
@@ -159,5 +163,31 @@ describe("simplifySettlementRecommendations", () => {
       { fromParticipantId: "bea", toParticipantId: "alice", amountCents: 500 },
       { fromParticipantId: "cam", toParticipantId: "alice", amountCents: 400 },
     ]);
+  });
+});
+
+describe("findMatchingSettlementRecommendation", () => {
+  test("matches the exact current recommendation", () => {
+    const recommendations = [
+      { fromParticipantId: "bea", toParticipantId: "alice", amountCents: 500 },
+      { fromParticipantId: "cam", toParticipantId: "alice", amountCents: 400 },
+    ];
+
+    expect(
+      findMatchingSettlementRecommendation(recommendations, {
+        fromParticipantId: "bea",
+        toParticipantId: "alice",
+        amountCents: 500,
+      }),
+    ).toEqual({ fromParticipantId: "bea", toParticipantId: "alice", amountCents: 500 });
+  });
+
+  test("does not match stale recommendation amounts", () => {
+    expect(
+      findMatchingSettlementRecommendation(
+        [{ fromParticipantId: "bea", toParticipantId: "alice", amountCents: 300 }],
+        { fromParticipantId: "bea", toParticipantId: "alice", amountCents: 500 },
+      ),
+    ).toBeUndefined();
   });
 });

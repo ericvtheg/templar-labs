@@ -110,6 +110,18 @@ export function simplifySettlementRecommendations(
   return recommendations;
 }
 
+export function findMatchingSettlementRecommendation(
+  recommendations: readonly SettlementRecommendation[],
+  recommendation: SettlementRecommendation,
+): SettlementRecommendation | undefined {
+  return recommendations.find(
+    (currentRecommendation) =>
+      currentRecommendation.fromParticipantId === recommendation.fromParticipantId &&
+      currentRecommendation.toParticipantId === recommendation.toParticipantId &&
+      currentRecommendation.amountCents === recommendation.amountCents,
+  );
+}
+
 function addBalance(balances: Map<string, number>, participantId: string, amountCents: number) {
   balances.set(participantId, (balances.get(participantId) ?? 0) + amountCents);
 }

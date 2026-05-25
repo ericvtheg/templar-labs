@@ -44,6 +44,40 @@ test("create a trip, add an expense, and mark a recommendation paid", async ({ p
   await expect(page.getByTestId("activity-list")).toContainText("paid Alex $30.00");
 });
 
+test("rejects stale payment recommendations from another open page", async ({ browser, page }) => {
+  await page.goto("/");
+
+  await page.getByTestId("create-trip-name").fill("Playwright Stale Recommendation Trip");
+  await page.getByTestId("create-trip-participants").fill("Alex\nJordan\nSam");
+  await page.getByTestId("create-trip-submit").click();
+  await expect(page).toHaveURL(/\/trip\//);
+  const tripUrl = page.url();
+
+  await page.getByTestId("add-expense-open").click();
+  await page.getByTestId("expense-title").fill("Dinner");
+  await page.getByTestId("expense-amount").fill("90.00");
+  await page.getByTestId("expense-payer").selectOption({ label: "Alex" });
+  await page.getByTestId("save-expense").click();
+  await expect(page.getByTestId("balance-Alex")).toContainText("+$60.00");
+
+  await navButton(page, "Settle up").click();
+  await expect(page.getByTestId("mark-paid")).toHaveCount(2);
+
+  const otherPage = await browser.newPage();
+  await otherPage.goto(tripUrl);
+  await navButton(otherPage, "Settle up").click();
+  await expect(otherPage.getByTestId("mark-paid")).toHaveCount(2);
+
+  await page.getByTestId("mark-paid").first().click();
+  await expect(page.getByTestId("mark-paid")).toHaveCount(1);
+
+  await otherPage.getByTestId("mark-paid").first().click();
+  await expect(
+    otherPage.getByText("That payment recommendation is no longer current."),
+  ).toBeVisible();
+  await otherPage.close();
+});
+
 test("add an expense with exact split amounts", async ({ page }) => {
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => pageErrors.push(error));

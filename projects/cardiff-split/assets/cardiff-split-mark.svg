@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Cardiff Split mark</title>
+  <desc id="desc">A rounded castle-house icon inspired by Cardiff Castle.</desc>
+  <rect width="128" height="128" rx="30" fill="#12343B" />
+  <path
+    fill="#126C5A"
+    d="M20 55c0-5.5 4.5-10 10-10h5V29h18v16h22V29h18v16h5c5.5 0 10 4.5 10 10v47H20V55Z"
+  />
+  <path
+    fill="#E8DDC8"
+    d="M33 58c0-2.2 1.8-4 4-4h54c2.2 0 4 1.8 4 4v44H33V58Z"
+  />
+  <path
+    fill="#F2B84B"
+    d="M52 102V81c0-6.6 5.4-12 12-12s12 5.4 12 12v21H52Z"
+  />
+  <path
+    fill="#12343B"
+    d="M62 69.2c-5.7 1-10 5.9-10 11.8v21h12V69c-.7 0-1.3.1-2 .2Z"
+    opacity=".18"
+  />
+  <path
+    fill="#8ECAE6"
+    d="M45 68a5 5 0 1 1-10 0 5 5 0 0 1 10 0Zm48 0a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z"
+  />
+  <path
+    fill="#12343B"
+    d="M20 98h88v4H20z"
+    opacity=".18"
+  />
+</svg>

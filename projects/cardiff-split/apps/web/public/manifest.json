@@ -1,0 +1,16 @@
+{
+  "short_name": "Cardiff Split",
+  "name": "Cardiff Split",
+  "icons": [
+    {
+      "src": "/cardiff-split-mark.svg",
+      "type": "image/svg+xml",
+      "sizes": "128x128",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#126C5A",
+  "background_color": "#F7F5EF"
+}

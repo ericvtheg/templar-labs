@@ -18,9 +18,9 @@ describe("people placeholders", () => {
     const nextNames = nextPeoplePlaceholderNames(currentNames, () => 0);
 
     expect(nextNames).toHaveLength(MAX_VISIBLE_PEOPLE_PLACEHOLDERS);
-    expect(nextNames[0]).toBe("Jackie");
-    expect(nextNames).toEqual(["Jackie", "Fiona", "Emma", "Eric"]);
-    expect(nextNames).not.toContain("K'love");
+    expect(nextNames[0]).toBe("Emilie");
+    expect(nextNames).toEqual(["Emilie", "Alexis", "Andi", "Brent"]);
+    expect(nextNames).not.toContain("Carlo");
   });
 
   test("does not show the same name twice", () => {

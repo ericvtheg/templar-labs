@@ -61,12 +61,12 @@
       <rect width="370" height="118" rx="18" fill="#F7F5EF" stroke="#D9D1C3" />
       <text x="22" y="38" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Settle up</text>
       <g transform="translate(22 58)">
-        <circle cx="18" cy="18" r="18" fill="#F2B84B" />
+        <circle cx="18" cy="18" r="13" fill="#F2B84B" />
         <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Eric pays Gavin</text>
         <text x="284" y="24" fill="#126C5A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="750">$41.43</text>
       </g>
       <g transform="translate(22 90)">
-        <circle cx="18" cy="18" r="18" fill="#8ECAE6" />
+        <circle cx="18" cy="18" r="13" fill="#8ECAE6" />
         <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Fiona pays K'love</text>
         <text x="284" y="24" fill="#126C5A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="750">$28.10</text>
       </g>

@@ -68,6 +68,10 @@ textarea {
   animation: trip-name-placeholder-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.people-name-placeholder {
+  animation: people-name-placeholder-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 @keyframes trip-name-placeholder-in {
   from {
     opacity: 0;
@@ -80,8 +84,21 @@ textarea {
   }
 }
 
+@keyframes people-name-placeholder-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.55rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .trip-name-placeholder {
+  .trip-name-placeholder,
+  .people-name-placeholder {
     animation: none;
   }
 }

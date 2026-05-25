@@ -167,14 +167,34 @@ function Home() {
 
               <div className="space-y-2">
                 <Label htmlFor={participantNamesId}>People</Label>
-                <Textarea
-                  data-testid="create-trip-participants"
-                  id={participantNamesId}
-                  onChange={(event) => setParticipantNames(event.currentTarget.value)}
-                  placeholder={peoplePlaceholder}
-                  rows={5}
-                  value={participantNames}
-                />
+                <div className="relative">
+                  <Textarea
+                    className="placeholder:text-transparent"
+                    data-testid="create-trip-participants"
+                    id={participantNamesId}
+                    onChange={(event) => setParticipantNames(event.currentTarget.value)}
+                    placeholder={peoplePlaceholder}
+                    rows={5}
+                    value={participantNames}
+                  />
+                  {participantNames.length === 0 ? (
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-3 top-2.5 grid gap-1 text-base text-[#52645E] md:text-sm"
+                      key={peoplePlaceholder}
+                    >
+                      {peoplePlaceholderNames.map((placeholderName, index) => (
+                        <span
+                          className="people-name-placeholder"
+                          key={placeholderName}
+                          style={{ animationDelay: `${index * 55}ms` }}
+                        >
+                          {placeholderName}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {error === null ? null : (

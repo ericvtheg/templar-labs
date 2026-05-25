@@ -8,7 +8,6 @@ import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
 import { type SyntheticEvent, useCallback, useEffect, useId, useState, useTransition } from "react";
 import {
   initialPeoplePlaceholderNames,
-  MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
   nextPeoplePlaceholderNames,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
@@ -28,6 +27,7 @@ const tripNamePlaceholders = [
 ] as const;
 
 const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
+const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 3;
 
 function Home() {
   const tripNameId = useId();
@@ -37,7 +37,7 @@ function Home() {
   const [tripName, setTripName] = useState("");
   const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
   const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
-    initialPeoplePlaceholderNames(),
+    initialPeoplePlaceholderNames().slice(0, PEOPLE_PLACEHOLDER_VISIBLE_ROWS),
   );
   const [peoplePlaceholderSlideState, setPeoplePlaceholderSlideState] = useState<
     "idle" | "primed" | "sliding"
@@ -48,12 +48,12 @@ function Home() {
   const tripNamePlaceholder = tripNamePlaceholders[tripNamePlaceholderIndex];
   const visiblePeoplePlaceholderNames = peoplePlaceholderNames.slice(
     0,
-    MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
+    PEOPLE_PLACEHOLDER_VISIBLE_ROWS,
   );
   const peoplePlaceholder = visiblePeoplePlaceholderNames.join("\n");
   const settlePeoplePlaceholderSlide = useCallback(() => {
     setPeoplePlaceholderNames((currentNames) =>
-      currentNames.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS),
+      currentNames.slice(0, PEOPLE_PLACEHOLDER_VISIBLE_ROWS),
     );
     setPeoplePlaceholderSlideState("idle");
   }, []);
@@ -61,7 +61,7 @@ function Home() {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setPeoplePlaceholderNames((currentNames) => {
-        if (currentNames.length > MAX_VISIBLE_PEOPLE_PLACEHOLDERS) {
+        if (currentNames.length > PEOPLE_PLACEHOLDER_VISIBLE_ROWS) {
           return currentNames;
         }
 
@@ -217,18 +217,18 @@ function Home() {
                 <Label htmlFor={participantNamesId}>People</Label>
                 <div className="relative">
                   <Textarea
-                    className="placeholder:text-transparent"
+                    className="resize-none placeholder:text-transparent"
                     data-testid="create-trip-participants"
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
-                    rows={4}
+                    rows={3}
                     value={participantNames}
                   />
                   {participantNames.length === 0 ? (
                     <div
                       aria-hidden="true"
-                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 top-2 text-base text-[#52645E] md:text-sm"
+                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 bottom-px text-base text-[#52645E] md:text-sm"
                     >
                       <div
                         className="people-name-placeholder-stack"

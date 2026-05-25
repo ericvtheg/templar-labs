@@ -77,8 +77,8 @@ textarea {
   );
 
   height: calc(
-    (var(--people-name-placeholder-line-height) * 4) +
-    (var(--people-name-placeholder-gap) * 3)
+    (var(--people-name-placeholder-line-height) * 3) +
+    (var(--people-name-placeholder-gap) * 2)
   );
   overflow: hidden;
 }
@@ -95,6 +95,10 @@ textarea {
   gap: var(--people-name-placeholder-gap);
   line-height: var(--people-name-placeholder-line-height);
   transform: translateY(0);
+}
+
+.people-name-placeholder {
+  height: var(--people-name-placeholder-line-height);
 }
 
 .people-name-placeholder-stack[data-state="primed"] {

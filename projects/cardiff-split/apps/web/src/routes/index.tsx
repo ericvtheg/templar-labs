@@ -10,6 +10,7 @@ import {
   initialPeoplePlaceholderNames,
   nextPeoplePlaceholderNames,
   PEOPLE_PLACEHOLDER_CYCLE_LENGTH,
+  PEOPLE_PLACEHOLDER_NAMES,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
 
@@ -37,12 +38,13 @@ function Home() {
   const createTripFn = useServerFn(createTrip);
   const [tripName, setTripName] = useState("");
   const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
-  const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
-    initialPeoplePlaceholderNames(),
-  );
+  const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() => [
+    ...PEOPLE_PLACEHOLDER_NAMES,
+  ]);
   const [peoplePlaceholderSlideState, setPeoplePlaceholderSlideState] = useState<
     "idle" | "primed" | "sliding"
   >("idle");
+  const [isHydrated, setIsHydrated] = useState(false);
   const [participantNames, setParticipantNames] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -106,7 +108,9 @@ function Home() {
   }, [peoplePlaceholderSlideState, settlePeoplePlaceholderSlide]);
 
   useEffect(() => {
+    setIsHydrated(true);
     setTripNamePlaceholderIndex(Math.floor(Math.random() * tripNamePlaceholders.length));
+    setPeoplePlaceholderNames(initialPeoplePlaceholderNames());
   }, []);
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
@@ -195,6 +199,7 @@ function Home() {
                     autoComplete="off"
                     className="placeholder:text-transparent"
                     data-testid="create-trip-name"
+                    disabled={!isHydrated}
                     id={tripNameId}
                     onChange={(event) => setTripName(event.currentTarget.value)}
                     placeholder={tripNamePlaceholder}
@@ -218,6 +223,7 @@ function Home() {
                   <Textarea
                     className="people-textarea resize-none [field-sizing:fixed] placeholder:text-transparent"
                     data-testid="create-trip-participants"
+                    disabled={!isHydrated}
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
@@ -269,7 +275,7 @@ function Home() {
               <Button
                 className="h-12 w-full justify-between text-base"
                 data-testid="create-trip-submit"
-                disabled={isPending}
+                disabled={!isHydrated || isPending}
                 type="submit"
               >
                 {isPending ? "Creating..." : "Create trip"}

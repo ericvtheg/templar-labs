@@ -42,8 +42,9 @@ export const exactSplitToleranceCents = 200;
 
 export function exactSplitMismatchMessage(totalCents: number, targetCents: number): string {
   const differenceCents = Math.abs(targetCents - totalCents);
+  const direction = totalCents < targetCents ? "higher" : "lower";
 
-  return `Exact split amounts must equal the expense total. The total sum is off by ${formatCurrency(differenceCents)}.`;
+  return `Exact split amounts must equal the expense total. The total sum needs to be ${formatCurrency(differenceCents)} ${direction}.`;
 }
 
 export function calculateExpenseSplits(input: CalculateSplitInput): ExpenseSplitAllocation[] {

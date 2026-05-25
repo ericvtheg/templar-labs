@@ -27,7 +27,7 @@ const tripNamePlaceholders = [
 ] as const;
 
 const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
-const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 3;
+const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 4;
 
 function Home() {
   const tripNameId = useId();
@@ -222,13 +222,13 @@ function Home() {
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
-                    rows={3}
+                    rows={4}
                     value={participantNames}
                   />
                   {participantNames.length === 0 ? (
                     <div
                       aria-hidden="true"
-                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 bottom-px text-base text-[#52645E] md:text-sm"
+                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 top-2 text-base text-[#52645E] md:text-sm"
                     >
                       <div
                         className="people-name-placeholder-stack"

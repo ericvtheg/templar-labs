@@ -1,6 +1,7 @@
 export const PEOPLE_PLACEHOLDER_NAMES = [
   "Alexis",
   "Andi",
+  "Bo",
   "Brent",
   "Carlo",
   "Emilie",

@@ -718,7 +718,6 @@ function ParticipantEditor({
   }) => void;
 }) {
   const [name, setName] = useState(participant.name);
-  const [avatarType, setAvatarType] = useState<"emoji" | "initials">(participant.avatarType);
   const [avatarValue, setAvatarValue] = useState(participant.avatarValue);
   const [color, setColor] = useState(participant.color);
 
@@ -727,7 +726,7 @@ function ParticipantEditor({
     onUpdateParticipant({
       participantId: participant.id,
       name,
-      avatarType,
+      avatarType: "initials",
       avatarValue,
       color,
     });
@@ -739,13 +738,13 @@ function ParticipantEditor({
         <ParticipantAvatar
           participant={{
             ...participant,
-            avatarType,
+            avatarType: "initials",
             avatarValue,
             color,
             name,
           }}
         />
-        <div className="grid flex-1 gap-3 sm:grid-cols-[1fr_8rem_7rem_auto] sm:items-end">
+        <div className="grid flex-1 gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
           <div className="space-y-2">
             <Label>Name</Label>
             <Input onChange={(event) => setName(event.currentTarget.value)} value={name} />
@@ -757,17 +756,6 @@ function ParticipantEditor({
               onChange={(event) => setAvatarValue(event.currentTarget.value)}
               value={avatarValue}
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Style</Label>
-            <NativeSelect
-              className="w-full"
-              onChange={(event) => setAvatarType(event.currentTarget.value as "emoji" | "initials")}
-              value={avatarType}
-            >
-              <NativeSelectOption value="initials">Initials</NativeSelectOption>
-              <NativeSelectOption value="emoji">Emoji</NativeSelectOption>
-            </NativeSelect>
           </div>
           <div className="flex items-end gap-2">
             <Input

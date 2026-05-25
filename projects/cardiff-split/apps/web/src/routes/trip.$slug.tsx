@@ -35,6 +35,7 @@ import {
   parseDollarInput,
   parsePercentInput,
 } from "../lib/money.ts";
+import { exactSplitMismatchMessage, exactSplitToleranceCents } from "../lib/split-math.ts";
 import type { TripSnapshot } from "../lib/trip-model.ts";
 import {
   type Expense,
@@ -927,8 +928,8 @@ function ExpenseForm({
 
       const total = exactSplits.reduce((sum, split) => sum + split.amountCents, 0);
 
-      if (total !== nextAmountCents) {
-        setFormError("Exact split amounts must equal the total.");
+      if (Math.abs(total - nextAmountCents) > exactSplitToleranceCents) {
+        setFormError(exactSplitMismatchMessage(total, nextAmountCents));
         return;
       }
     }

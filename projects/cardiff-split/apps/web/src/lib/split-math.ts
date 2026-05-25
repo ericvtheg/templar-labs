@@ -1,3 +1,5 @@
+import { formatCurrency } from "./money.ts";
+
 export type SplitMethod = "equal" | "exact" | "percentage";
 
 export type ExpenseSplitAllocation = {
@@ -34,6 +36,15 @@ export class SplitValidationError extends Error {
     super(message);
     this.name = "SplitValidationError";
   }
+}
+
+export const exactSplitToleranceCents = 200;
+
+export function exactSplitMismatchMessage(totalCents: number, targetCents: number): string {
+  const differenceCents = Math.abs(targetCents - totalCents);
+  const direction = totalCents < targetCents ? "increase" : "decrease";
+
+  return `Exact split amounts must equal the expense total. ${capitalize(direction)} the split sum by ${formatCurrency(differenceCents)}.`;
 }
 
 export function calculateExpenseSplits(input: CalculateSplitInput): ExpenseSplitAllocation[] {
@@ -79,8 +90,8 @@ function calculateExactSplits(
     return sum + split.amountCents;
   }, 0);
 
-  if (total !== amountCents) {
-    throw new SplitValidationError("Exact split amounts must equal the expense total.");
+  if (Math.abs(total - amountCents) > exactSplitToleranceCents) {
+    throw new SplitValidationError(exactSplitMismatchMessage(total, amountCents));
   }
 
   return splits.map((split) => ({
@@ -171,4 +182,8 @@ function assertNonNegativeCents(value: number, message: string) {
   if (!Number.isInteger(value) || value < 0) {
     throw new SplitValidationError(message);
   }
+}
+
+function capitalize(value: string): string {
+  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
 }

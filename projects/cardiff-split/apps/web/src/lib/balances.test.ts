@@ -47,6 +47,19 @@ describe("calculateExpenseSplits", () => {
     ]);
   });
 
+  test("accepts exact amount splits within two dollars of the total", () => {
+    expect(
+      calculateExpenseSplits({
+        amountCents: 1800,
+        method: "exact",
+        splits: [
+          { participantId: "alice", amountCents: 1000 },
+          { participantId: "bea", amountCents: 600 },
+        ],
+      }).map((split) => split.amountCents),
+    ).toEqual([1000, 600]);
+  });
+
   test("rejects exact amount splits that do not equal the total", () => {
     expect(() =>
       calculateExpenseSplits({
@@ -57,7 +70,7 @@ describe("calculateExpenseSplits", () => {
           { participantId: "bea", amountCents: 500 },
         ],
       }),
-    ).toThrow(SplitValidationError);
+    ).toThrow("Increase the split sum by $3.00.");
   });
 
   test("computes percentage splits with cent rounding", () => {

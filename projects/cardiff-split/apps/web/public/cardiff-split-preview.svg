@@ -44,15 +44,15 @@
     <rect width="438" height="468" rx="30" fill="#FFFDF8" stroke="#D9D1C3" stroke-width="2" />
     <rect x="0" y="0" width="438" height="94" rx="30" fill="#2F7467" />
     <path d="M0 64h438v30H0z" fill="#2F7467" />
-    <text x="34" y="48" fill="#F7F5EF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Costa Rica Trip</text>
+    <text x="34" y="48" fill="#F7F5EF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Skylar &amp; Kimi's Wedding</text>
     <text x="34" y="76" fill="#CFE2D9" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="500">6 friends - $2,184.50 tracked</text>
 
     <g transform="translate(34 124)">
       <text fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" x="0" y="0">Add expense</text>
       <rect x="0" y="18" width="370" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
-      <text x="18" y="54" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Bo's treats</text>
+      <text x="18" y="54" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Hank treats</text>
       <rect x="0" y="92" width="176" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
-      <text x="18" y="128" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">$248.60</text>
+      <text x="18" y="128" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">$15.00</text>
       <rect x="194" y="92" width="176" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
       <text x="212" y="128" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Everyone</text>
     </g>
@@ -62,7 +62,7 @@
       <text x="22" y="38" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Settle up</text>
       <g transform="translate(22 58)">
         <circle cx="18" cy="18" r="18" fill="#F2B84B" />
-        <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Eric pays Bo</text>
+        <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Eric pays Gavin</text>
         <text x="284" y="24" fill="#126C5A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="750">$41.43</text>
       </g>
       <g transform="translate(22 90)">

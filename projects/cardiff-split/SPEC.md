@@ -39,7 +39,7 @@ Brand direction lives in [BRAND.md](BRAND.md). The first-pass SVG mark lives at 
 
 Recommended launch tagline:
 
-> Fast, private trip splitting with friends.
+> Fast, private trip splitting with our friends.
 
 ## Product Principles
 

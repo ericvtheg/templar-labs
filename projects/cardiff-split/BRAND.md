@@ -144,4 +144,4 @@ Avoid:
 
 Recommended launch tagline:
 
-> Fast, private trip splitting with friends.
+> Fast, private trip splitting with our friends.

@@ -68,7 +68,9 @@ function Home() {
             />
             <div>
               <p className="text-lg font-semibold tracking-normal text-[#12343B]">Cardiff Split</p>
-              <p className="text-sm text-[#52645E]">Fast, private trip splitting with friends.</p>
+              <p className="text-sm text-[#52645E]">
+                Fast, private trip splitting with our friends.
+              </p>
             </div>
           </div>
         </header>
@@ -81,10 +83,10 @@ function Home() {
             </div>
             <div className="space-y-3">
               <h1 className="text-4xl font-semibold tracking-normal text-[#12343B] sm:text-5xl">
-                Split the trip in seconds.
+                Another trip in the books. Let's split it.
               </h1>
               <p className="max-w-xl text-base leading-7 text-[#52645E]">
-                Create a private trip link, add people, track expenses, and settle up whenever the
+                Create a private trip link, add folk, track expenses, and settle up whenever the
                 group is ready.
               </p>
             </div>
@@ -113,7 +115,7 @@ function Home() {
                   data-testid="create-trip-participants"
                   id={participantNamesId}
                   onChange={(event) => setParticipantNames(event.currentTarget.value)}
-                  placeholder={"Alex\nJordan\nSam"}
+                  placeholder={"K'love\nKimi\nGavin\nFiona"}
                   rows={5}
                   value={participantNames}
                 />

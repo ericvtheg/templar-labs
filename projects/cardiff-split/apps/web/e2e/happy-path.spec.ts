@@ -24,6 +24,9 @@ test("create a trip, add an expense, and mark a recommendation paid", async ({ p
   await page.getByTestId("add-expense-open").click();
   await page.getByTestId("expense-title").fill("Dinner");
   await page.getByTestId("expense-amount").fill("90.00");
+  await expect(page.getByTestId("expense-payer")).toHaveValue("");
+  await page.getByTestId("save-expense").click();
+  await expect(page.getByText("Who paid is required.")).toBeVisible();
   await page.getByTestId("expense-payer").selectOption({ label: "Alex" });
   await page.getByTestId("save-expense").click();
 

@@ -794,8 +794,8 @@ function ExpenseForm({
   const [amount, setAmount] = useState(
     expense === null ? "" : centsToDollarInput(expense.amountCents),
   );
-  const [payerParticipantId, setPayerParticipantId] = useState(
-    expense?.payerParticipantId ?? participants[0]?.id ?? "",
+  const [payerParticipantId, setPayerParticipantId] = useState<string | null>(
+    expense?.payerParticipantId ?? null,
   );
   const [expenseDate, setExpenseDate] = useState(
     expense === null ? today : expense.expenseDate.slice(0, 10),
@@ -879,8 +879,8 @@ function ExpenseForm({
       return;
     }
 
-    if (payerParticipantId.length === 0) {
-      setFormError("Who paid?");
+    if (payerParticipantId === null) {
+      setFormError("Who paid is required.");
       return;
     }
 
@@ -953,6 +953,7 @@ function ExpenseForm({
   return (
     <form
       className="mx-auto grid w-full max-w-3xl gap-4 rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4"
+      noValidate
       onSubmit={handleSubmit}
     >
       <div className="flex items-center justify-between gap-3">
@@ -999,12 +1000,17 @@ function ExpenseForm({
           <NativeSelect
             className="w-full"
             data-testid="expense-payer"
+            required
+            aria-invalid={payerParticipantId === null && formError !== null}
             onChange={(event) => {
               setFormError(null);
-              setPayerParticipantId(event.currentTarget.value);
+              setPayerParticipantId(
+                event.currentTarget.value.length === 0 ? null : event.currentTarget.value,
+              );
             }}
-            value={payerParticipantId}
+            value={payerParticipantId ?? ""}
           >
+            <NativeSelectOption value="">Select who paid</NativeSelectOption>
             {participants.map((participant) => (
               <NativeSelectOption key={participant.id} value={participant.id}>
                 {participant.name}

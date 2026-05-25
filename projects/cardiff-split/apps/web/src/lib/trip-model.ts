@@ -72,6 +72,7 @@ export type TripSnapshot = {
   }[];
   readonly settlementRecommendations: readonly SettlementRecommendation[];
   readonly totalSpentCents: number;
+  readonly totalSettledCents: number;
 };
 
 export function summarizeTrip(input: {
@@ -88,12 +89,18 @@ export function summarizeTrip(input: {
   });
   const settlementRecommendations = simplifySettlementRecommendations(balances);
   const totalSpentCents = input.expenses.reduce((sum, expense) => sum + expense.amountCents, 0);
+  const outstandingBalanceCents = balances.reduce(
+    (sum, balance) => sum + Math.max(balance.balanceCents, 0),
+    0,
+  );
+  const totalSettledCents = Math.max(0, totalSpentCents - outstandingBalanceCents);
 
   return {
     ...input,
     balances,
     settlementRecommendations,
     totalSpentCents,
+    totalSettledCents,
   };
 }
 

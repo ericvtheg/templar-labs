@@ -250,13 +250,23 @@ function TripRoute() {
                 </h1>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
-                Total spent
-              </p>
-              <p className="text-xl font-semibold tabular-nums text-[#12343B]">
-                {formatCurrency(snapshot.totalSpentCents)}
-              </p>
+            <div className="grid shrink-0 grid-cols-1 gap-3 text-right sm:grid-cols-2 sm:gap-5">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
+                  Total spent
+                </p>
+                <p className="text-xl font-semibold tabular-nums text-[#12343B]">
+                  {formatCurrency(snapshot.totalSpentCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
+                  Total settled
+                </p>
+                <p className="text-xl font-semibold tabular-nums text-[#12343B]">
+                  {formatCurrency(snapshot.totalSettledCents)}
+                </p>
+              </div>
             </div>
           </div>
         </header>

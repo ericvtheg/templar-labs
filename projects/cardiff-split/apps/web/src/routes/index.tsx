@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@templar/ui/components/button";
 import { Input } from "@templar/ui/components/input";
@@ -6,6 +6,10 @@ import { Label } from "@templar/ui/components/label";
 import { Textarea } from "@templar/ui/components/textarea";
 import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
 import { type SyntheticEvent, useEffect, useId, useState, useTransition } from "react";
+import {
+  initialPeoplePlaceholderNames,
+  nextPeoplePlaceholderNames,
+} from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
 
 export const Route = createFileRoute("/")({
@@ -29,16 +33,29 @@ function Home() {
   const createTripFn = useServerFn(createTrip);
   const [tripName, setTripName] = useState("");
   const [tripNamePlaceholderIndex, setTripNamePlaceholderIndex] = useState(0);
+  const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
+    initialPeoplePlaceholderNames(),
+  );
   const [participantNames, setParticipantNames] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const tripNamePlaceholder = tripNamePlaceholders[tripNamePlaceholderIndex];
+  const peoplePlaceholder = peoplePlaceholderNames.join("\n");
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setPeoplePlaceholderNames((currentNames) => nextPeoplePlaceholderNames(currentNames));
+    }, 1800);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setTripNamePlaceholderIndex((currentIndex) => {
         return (currentIndex + 1) % tripNamePlaceholders.length;
       });
-    }, 2500);
+    }, 4200);
 
     return () => window.clearInterval(intervalId);
   }, []);
@@ -82,11 +99,17 @@ function Home() {
       <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between gap-4 py-2">
           <div className="flex items-center gap-3">
-            <img
-              alt="Cardiff Split"
-              className="size-11 rounded-xl shadow-sm"
-              src="/cardiff-split-mark.svg"
-            />
+            <Link
+              aria-label="Go to Cardiff Split home"
+              className="rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-[#126C5A]/50"
+              to="/"
+            >
+              <img
+                alt="Cardiff Split"
+                className="size-11 rounded-xl shadow-sm"
+                src="/cardiff-split-mark.svg"
+              />
+            </Link>
             <div>
               <p className="text-lg font-semibold tracking-normal text-[#12343B]">Cardiff Split</p>
               <p className="text-sm text-[#52645E]">
@@ -120,14 +143,26 @@ function Home() {
             <div className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor={tripNameId}>Trip name</Label>
-                <Input
-                  autoComplete="off"
-                  data-testid="create-trip-name"
-                  id={tripNameId}
-                  onChange={(event) => setTripName(event.currentTarget.value)}
-                  placeholder={tripNamePlaceholders[tripNamePlaceholderIndex]}
-                  value={tripName}
-                />
+                <div className="relative">
+                  <Input
+                    autoComplete="off"
+                    className="placeholder:text-transparent"
+                    data-testid="create-trip-name"
+                    id={tripNameId}
+                    onChange={(event) => setTripName(event.currentTarget.value)}
+                    placeholder={tripNamePlaceholder}
+                    value={tripName}
+                  />
+                  {tripName.length === 0 ? (
+                    <span
+                      aria-hidden="true"
+                      className="trip-name-placeholder pointer-events-none absolute inset-y-0 right-2.5 left-2.5 flex items-center overflow-hidden text-base text-ellipsis whitespace-nowrap text-[#52645E] md:text-sm"
+                      key={tripNamePlaceholder}
+                    >
+                      {tripNamePlaceholder}
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -136,7 +171,7 @@ function Home() {
                   data-testid="create-trip-participants"
                   id={participantNamesId}
                   onChange={(event) => setParticipantNames(event.currentTarget.value)}
-                  placeholder={"K'love\nKimi\nGavin\nFiona"}
+                  placeholder={peoplePlaceholder}
                   rows={5}
                   value={participantNames}
                 />

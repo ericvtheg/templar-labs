@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
@@ -209,11 +209,17 @@ function TripRoute() {
         <header className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-3 shadow-sm sm:p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <img
-                alt="Cardiff Split"
-                className="size-12 shrink-0 rounded-xl"
-                src="/cardiff-split-mark.svg"
-              />
+              <Link
+                aria-label="Go to Cardiff Split home"
+                className="shrink-0 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-[#126C5A]/50"
+                to="/"
+              >
+                <img
+                  alt="Cardiff Split"
+                  className="size-12 rounded-xl"
+                  src="/cardiff-split-mark.svg"
+                />
+              </Link>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-[#52645E]">Cardiff Split</p>
                 <h1 className="truncate text-2xl font-semibold tracking-normal text-[#12343B]">
@@ -973,12 +979,13 @@ function ExpenseForm({
                     aria-label={`${participant.name} exact amount`}
                     disabled={!included}
                     inputMode="decimal"
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const nextValue = event.currentTarget.value;
                       setExactValues((current) => ({
                         ...current,
-                        [participant.id]: event.currentTarget.value,
-                      }))
-                    }
+                        [participant.id]: nextValue,
+                      }));
+                    }}
                     placeholder="0.00"
                     value={exactValues[participant.id] ?? ""}
                   />
@@ -988,12 +995,13 @@ function ExpenseForm({
                     aria-label={`${participant.name} percentage`}
                     disabled={!included}
                     inputMode="decimal"
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const nextValue = event.currentTarget.value;
                       setPercentageValues((current) => ({
                         ...current,
-                        [participant.id]: event.currentTarget.value,
-                      }))
-                    }
+                        [participant.id]: nextValue,
+                      }));
+                    }}
                     placeholder="0"
                     value={percentageValues[participant.id] ?? ""}
                   />

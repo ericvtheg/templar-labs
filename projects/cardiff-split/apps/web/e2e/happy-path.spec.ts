@@ -41,7 +41,7 @@ test("add an expense with exact split amounts", async ({ page }) => {
   await page.goto("/");
 
   await page.getByTestId("create-trip-name").fill("Playwright Exact Split Trip");
-  await page.getByTestId("create-trip-participants").fill("Alex\nJordan\nSam");
+  await page.getByTestId("create-trip-participants").fill("Alex\nJordan\nSam\nTaylor");
   await page.getByTestId("create-trip-submit").click();
   await expect(page).toHaveURL(/\/trip\//);
 
@@ -51,16 +51,20 @@ test("add an expense with exact split amounts", async ({ page }) => {
   await page.getByTestId("expense-payer").selectOption({ label: "Alex" });
   await page.getByRole("button", { name: "Exact" }).click();
   await page.getByLabel("Alex exact amount").fill("30.00");
-  await page.getByLabel("Jordan exact amount").fill("40.00");
+  await page.getByLabel("Jordan exact amount").fill("60.00");
   await page.getByLabel("Sam exact amount").fill("20.00");
+  await page.getByTestId("include-Sam").click();
+  await page.getByLabel("Taylor exact amount").fill("0.00");
 
   expect(pageErrors).toEqual([]);
 
   await page.getByTestId("save-expense").click();
 
+  await expect(page.getByText("Split between 2 people")).toBeVisible();
   await expect(page.getByTestId("balance-Alex")).toContainText("+$60.00");
-  await expect(page.getByTestId("balance-Jordan")).toContainText("-$40.00");
-  await expect(page.getByTestId("balance-Sam")).toContainText("-$20.00");
+  await expect(page.getByTestId("balance-Jordan")).toContainText("-$60.00");
+  await expect(page.getByTestId("balance-Sam")).toContainText("$0.00");
+  await expect(page.getByTestId("balance-Taylor")).toContainText("$0.00");
 });
 
 async function addParticipant(page: import("@playwright/test").Page, name: string) {

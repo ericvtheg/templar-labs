@@ -792,6 +792,7 @@ function ExpenseForm({
   }, [amountCents, exactValues, includedParticipantIds, percentageValues, splitMethod]);
 
   const toggleIncluded = (participantId: string) => {
+    setFormError(null);
     setIncludedParticipantIds((current) =>
       current.includes(participantId)
         ? current.filter((id) => id !== participantId)
@@ -818,19 +819,29 @@ function ExpenseForm({
       return;
     }
 
-    if (includedParticipantIds.length === 0) {
-      setFormError("At least one participant must be included.");
-      return;
-    }
-
-    const exactSplits = includedParticipantIds.map((participantId) => ({
-      participantId,
-      amountCents: parseDollarInput(exactValues[participantId] ?? "") ?? Number.NaN,
-    }));
+    const exactSplits = includedParticipantIds
+      .map((participantId) => ({
+        participantId,
+        amountCents: parseDollarInput(exactValues[participantId] ?? ""),
+      }))
+      .filter((split) => split.amountCents !== 0)
+      .map((split) => ({
+        participantId: split.participantId,
+        amountCents: split.amountCents ?? Number.NaN,
+      }));
     const percentageSplits = includedParticipantIds.map((participantId) => ({
       participantId,
       percentageBasisPoints: parsePercentInput(percentageValues[participantId] ?? "") ?? Number.NaN,
     }));
+    const submittedParticipantIds =
+      splitMethod === "exact"
+        ? exactSplits.map((split) => split.participantId)
+        : includedParticipantIds;
+
+    if (submittedParticipantIds.length === 0) {
+      setFormError("At least one participant must be included.");
+      return;
+    }
 
     if (splitMethod === "exact") {
       if (exactSplits.some((split) => !Number.isInteger(split.amountCents))) {
@@ -868,7 +879,7 @@ function ExpenseForm({
       payerParticipantId,
       expenseDate,
       splitMethod,
-      includedParticipantIds,
+      includedParticipantIds: submittedParticipantIds,
       exactSplits: splitMethod === "exact" ? exactSplits : [],
       percentageSplits: splitMethod === "percentage" ? percentageSplits : [],
     });
@@ -897,7 +908,10 @@ function ExpenseForm({
           <Input
             autoComplete="off"
             data-testid="expense-title"
-            onChange={(event) => setTitle(event.currentTarget.value)}
+            onChange={(event) => {
+              setFormError(null);
+              setTitle(event.currentTarget.value);
+            }}
             placeholder="Dinner"
             value={title}
           />
@@ -907,7 +921,10 @@ function ExpenseForm({
           <Input
             data-testid="expense-amount"
             inputMode="decimal"
-            onChange={(event) => setAmount(event.currentTarget.value)}
+            onChange={(event) => {
+              setFormError(null);
+              setAmount(event.currentTarget.value);
+            }}
             placeholder="42.00"
             value={amount}
           />
@@ -917,7 +934,10 @@ function ExpenseForm({
           <NativeSelect
             className="w-full"
             data-testid="expense-payer"
-            onChange={(event) => setPayerParticipantId(event.currentTarget.value)}
+            onChange={(event) => {
+              setFormError(null);
+              setPayerParticipantId(event.currentTarget.value);
+            }}
             value={payerParticipantId}
           >
             {participants.map((participant) => (
@@ -930,7 +950,10 @@ function ExpenseForm({
         <div className="space-y-2">
           <Label>Date</Label>
           <Input
-            onChange={(event) => setExpenseDate(event.currentTarget.value)}
+            onChange={(event) => {
+              setFormError(null);
+              setExpenseDate(event.currentTarget.value);
+            }}
             type="date"
             value={expenseDate}
           />
@@ -943,7 +966,10 @@ function ExpenseForm({
           {(["equal", "exact", "percentage"] as const).map((method) => (
             <Button
               key={method}
-              onClick={() => setSplitMethod(method)}
+              onClick={() => {
+                setFormError(null);
+                setSplitMethod(method);
+              }}
               type="button"
               variant={splitMethod === method ? "default" : "outline"}
             >
@@ -981,6 +1007,7 @@ function ExpenseForm({
                     inputMode="decimal"
                     onChange={(event) => {
                       const nextValue = event.currentTarget.value;
+                      setFormError(null);
                       setExactValues((current) => ({
                         ...current,
                         [participant.id]: nextValue,
@@ -997,6 +1024,7 @@ function ExpenseForm({
                     inputMode="decimal"
                     onChange={(event) => {
                       const nextValue = event.currentTarget.value;
+                      setFormError(null);
                       setPercentageValues((current) => ({
                         ...current,
                         [participant.id]: nextValue,

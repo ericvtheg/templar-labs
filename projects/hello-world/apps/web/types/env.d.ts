@@ -2,8 +2,17 @@
 // @see https://alchemy.run/concepts/bindings/#type-safe-bindings
 
 import type { website } from "../../../alchemy.run.ts";
+import type { templarBindings } from "../../../templar-bindings.ts";
 
-export type CloudflareEnv = typeof website.Env;
+type StandardBindings = {
+  readonly [templarBindings.authBaseUrl]: string;
+  readonly [templarBindings.authSecret]: string;
+  readonly [templarBindings.db]: D1Database;
+  readonly [templarBindings.jobsQueue]: Queue<string>;
+  readonly [templarBindings.r2]: R2Bucket;
+};
+
+export type CloudflareEnv = typeof website.Env & StandardBindings;
 
 declare global {
   type Env = CloudflareEnv;

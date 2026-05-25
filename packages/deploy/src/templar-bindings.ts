@@ -10,7 +10,7 @@ export type StandardTemplarBindings = TemplarBindings & {
   readonly r2: string;
 };
 
-export const defaultTemplarBindings: StandardTemplarBindings = defineTemplarBindings({
+export const defaultTemplarBindings = defineTemplarBindings({
   authBaseUrl: "AUTH_BASE_URL",
   authSecret: "AUTH_SECRET",
   cache: "CACHE",
@@ -18,7 +18,7 @@ export const defaultTemplarBindings: StandardTemplarBindings = defineTemplarBind
   jobsQueue: "JOBS",
   openRouterApiToken: "OPENROUTER_API_TOKEN",
   r2: "R2",
-});
+}) satisfies StandardTemplarBindings;
 
 export type TemplarBindingName<TBindings extends TemplarBindings> = TBindings[keyof TBindings];
 

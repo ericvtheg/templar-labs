@@ -217,7 +217,7 @@ function Home() {
                 <Label htmlFor={participantNamesId}>People</Label>
                 <div className="relative">
                   <Textarea
-                    className="resize-none [field-sizing:fixed] placeholder:text-transparent"
+                    className="people-textarea resize-none [field-sizing:fixed] placeholder:text-transparent"
                     data-testid="create-trip-participants"
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}

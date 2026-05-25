@@ -103,7 +103,7 @@ const deleteSettlementInput = z.object({
 export const loadTrip = createServerFn({ method: "GET" })
   .inputValidator(loadTripInput)
   .handler(async ({ data }) => {
-    return await readTripSnapshot(data.slug);
+    return await readTripSnapshot(data.slug, { allowMissing: true });
   });
 
 export const createTrip = createServerFn({ method: "POST" })
@@ -413,9 +413,25 @@ async function getDatabase() {
   return makeDatabase(bindings[templarBindings.db], { schema });
 }
 
-async function readTripSnapshot(slug: string): Promise<TripSnapshot> {
+async function readTripSnapshot(slug: string): Promise<TripSnapshot>;
+async function readTripSnapshot(
+  slug: string,
+  options: { readonly allowMissing: true },
+): Promise<TripSnapshot | null>;
+async function readTripSnapshot(
+  slug: string,
+  options?: { readonly allowMissing: true },
+): Promise<TripSnapshot | null> {
   const database = await getDatabase();
-  const trip = await findTripBySlug(database.db, slug);
+  const trip =
+    options?.allowMissing === true
+      ? await findTripBySlugOrNull(database.db, slug)
+      : await findTripBySlug(database.db, slug);
+
+  if (trip === null) {
+    return null;
+  }
+
   const [participantRows, expenseRows, splitRows, settlementRows, activityRows] = await Promise.all(
     [
       readParticipants(database.db, trip.id),
@@ -515,13 +531,19 @@ async function readParticipants(database: CardiffDatabaseClient, tripId: string)
 }
 
 async function findTripBySlug(database: CardiffDatabaseClient, slug: string) {
-  const [trip] = await database.select().from(trips).where(eq(trips.slug, slug)).limit(1);
+  const trip = await findTripBySlugOrNull(database, slug);
 
-  if (trip === undefined) {
+  if (trip === null) {
     throw new Error("Trip not found.");
   }
 
   return trip;
+}
+
+async function findTripBySlugOrNull(database: CardiffDatabaseClient, slug: string) {
+  const [trip] = await database.select().from(trips).where(eq(trips.slug, slug)).limit(1);
+
+  return trip ?? null;
 }
 
 async function findExpense(database: CardiffDatabaseClient, tripId: string, expenseId: string) {

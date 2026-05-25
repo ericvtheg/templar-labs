@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+test("shows a not found page for a missing trip link", async ({ page }) => {
+  await page.goto("/trip/missing-private-trip-link");
+
+  await expect(page.getByRole("heading", { name: "Trip not found" })).toBeVisible();
+  await expect(page.getByText("Loading Cardiff Split...")).toBeHidden();
+});
+
 test("create a trip, add an expense, and mark a recommendation paid", async ({ page }) => {
   await page.goto("/");
 

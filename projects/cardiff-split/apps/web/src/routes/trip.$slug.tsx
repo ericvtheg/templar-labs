@@ -83,6 +83,8 @@ type SettlementPayload = {
   readonly amountCents: number;
 };
 
+type LoadState = "loading" | "ready" | "not-found" | "error";
+
 function TripRoute() {
   const { slug } = Route.useParams();
   const loadTripFn = useServerFn(loadTrip);
@@ -97,19 +99,31 @@ function TripRoute() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [editingSettlement, setEditingSettlement] = useState<Settlement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [isPending, startTransition] = useTransition();
 
   const refreshTrip = useCallback(async () => {
     const result = await loadTripFn({ data: { slug } });
+
+    if (result === null) {
+      setLoadState("not-found");
+      return;
+    }
+
     setSnapshot(result);
+    setLoadState("ready");
   }, [loadTripFn, slug]);
 
   useEffect(() => {
+    setSnapshot(null);
+    setError(null);
+    setLoadState("loading");
+
     startTransition(async () => {
       try {
         await refreshTrip();
-      } catch {
-        setError("Could not load this trip.");
+      } catch (cause) {
+        setLoadState(isMissingTripError(cause) ? "not-found" : "error");
       }
     });
   }, [refreshTrip]);
@@ -189,6 +203,14 @@ function TripRoute() {
       "Could not delete that payment.",
     );
   };
+
+  if (loadState === "not-found") {
+    return <TripNotFound />;
+  }
+
+  if (loadState === "error") {
+    return <TripLoadError />;
+  }
 
   if (snapshot === null) {
     return (
@@ -315,6 +337,60 @@ function TripRoute() {
       </div>
     </main>
   );
+}
+
+function TripNotFound() {
+  return (
+    <main className="cardiff-shell grid min-h-screen place-items-center px-4">
+      <section className="w-full max-w-md rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-6 text-center shadow-sm">
+        <img
+          alt="Cardiff Split"
+          className="mx-auto size-14 rounded-xl"
+          src="/cardiff-split-mark.svg"
+        />
+        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-[#12343B]">
+          Trip not found
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[#52645E]">
+          This Cardiff Split link may be incomplete, expired, or no longer available.
+        </p>
+        <Button asChild className="mt-5">
+          <Link to="/">Create a new trip</Link>
+        </Button>
+      </section>
+    </main>
+  );
+}
+
+function TripLoadError() {
+  return (
+    <main className="cardiff-shell grid min-h-screen place-items-center px-4">
+      <section className="w-full max-w-md rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-6 text-center shadow-sm">
+        <img
+          alt="Cardiff Split"
+          className="mx-auto size-14 rounded-xl"
+          src="/cardiff-split-mark.svg"
+        />
+        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-[#12343B]">
+          Could not load this trip
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[#52645E]">
+          Refresh the page and try again. If the problem continues, create a new private trip link.
+        </p>
+        <Button asChild className="mt-5">
+          <Link to="/">Back to Cardiff Split</Link>
+        </Button>
+      </section>
+    </main>
+  );
+}
+
+function isMissingTripError(cause: unknown) {
+  if (cause instanceof Error) {
+    return cause.message.includes("Trip not found") || cause.message.includes("Invalid input");
+  }
+
+  return false;
 }
 
 function ViewNav({

@@ -167,7 +167,7 @@ function Home() {
           </div>
         </header>
 
-        <div className="grid flex-1 items-center gap-7 py-8 lg:grid-cols-[0.95fr_1.05fr] lg:py-14">
+        <div className="grid flex-1 items-center gap-7 py-8 sm:pt-6 sm:pb-16 lg:grid-cols-[0.95fr_1.05fr] lg:pt-10 lg:pb-24">
           <div className="space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D9D1C3] bg-[#FFFDF8]/70 px-3 py-1 text-sm font-medium text-[#12343B]">
               <ShieldCheckIcon aria-hidden="true" className="size-4 text-[#126C5A]" />

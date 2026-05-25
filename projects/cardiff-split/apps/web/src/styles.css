@@ -69,36 +69,26 @@ textarea {
 }
 
 .people-name-placeholder-window {
-  --people-name-placeholder-line-height: 1.5rem;
-  --people-name-placeholder-gap: 0.125rem;
-  --people-name-placeholder-step: calc(
-    var(--people-name-placeholder-line-height) +
-    var(--people-name-placeholder-gap)
-  );
+  --people-name-placeholder-step: 25%;
 
-  height: calc(
-    (var(--people-name-placeholder-line-height) * 4) +
-    (var(--people-name-placeholder-gap) * 3)
-  );
   overflow: hidden;
 }
 
-@media (width >= 48rem) {
-  .people-name-placeholder-window {
-    --people-name-placeholder-line-height: 1.25rem;
-  }
-}
-
 .people-name-placeholder-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--people-name-placeholder-gap);
-  line-height: var(--people-name-placeholder-line-height);
+  display: grid;
+  grid-auto-rows: var(--people-name-placeholder-step);
+  height: 100%;
   transform: translateY(0);
 }
 
 .people-name-placeholder {
-  height: var(--people-name-placeholder-line-height);
+  line-height: 1.5rem;
+}
+
+@media (width >= 48rem) {
+  .people-name-placeholder {
+    line-height: 1.25rem;
+  }
 }
 
 .people-name-placeholder-stack[data-state="primed"] {

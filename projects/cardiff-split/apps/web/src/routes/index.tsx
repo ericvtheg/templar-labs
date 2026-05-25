@@ -228,7 +228,7 @@ function Home() {
                   {participantNames.length === 0 ? (
                     <div
                       aria-hidden="true"
-                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 top-2 text-base text-[#52645E] md:text-sm"
+                      className="people-name-placeholder-window pointer-events-none absolute inset-x-2.5 top-2 bottom-px text-base text-[#52645E] md:text-sm"
                     >
                       <div
                         className="people-name-placeholder-stack"

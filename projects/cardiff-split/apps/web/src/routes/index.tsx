@@ -5,9 +5,10 @@ import { Input } from "@templar/ui/components/input";
 import { Label } from "@templar/ui/components/label";
 import { Textarea } from "@templar/ui/components/textarea";
 import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
-import { type SyntheticEvent, useEffect, useId, useState, useTransition } from "react";
+import { type SyntheticEvent, useCallback, useEffect, useId, useState, useTransition } from "react";
 import {
   initialPeoplePlaceholderNames,
+  MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
   nextPeoplePlaceholderNames,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
@@ -26,6 +27,8 @@ const tripNamePlaceholders = [
   "Dan Handler Sponsored Hawaii Trip",
 ] as const;
 
+const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
+
 function Home() {
   const tripNameId = useId();
   const participantNamesId = useId();
@@ -36,19 +39,70 @@ function Home() {
   const [peoplePlaceholderNames, setPeoplePlaceholderNames] = useState(() =>
     initialPeoplePlaceholderNames(),
   );
+  const [peoplePlaceholderSlideState, setPeoplePlaceholderSlideState] = useState<
+    "idle" | "primed" | "sliding"
+  >("idle");
   const [participantNames, setParticipantNames] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const tripNamePlaceholder = tripNamePlaceholders[tripNamePlaceholderIndex];
-  const peoplePlaceholder = peoplePlaceholderNames.join("\n");
+  const visiblePeoplePlaceholderNames = peoplePlaceholderNames.slice(
+    0,
+    MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
+  );
+  const peoplePlaceholder = visiblePeoplePlaceholderNames.join("\n");
+  const settlePeoplePlaceholderSlide = useCallback(() => {
+    setPeoplePlaceholderNames((currentNames) =>
+      currentNames.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS),
+    );
+    setPeoplePlaceholderSlideState("idle");
+  }, []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      setPeoplePlaceholderNames((currentNames) => nextPeoplePlaceholderNames(currentNames));
+      setPeoplePlaceholderNames((currentNames) => {
+        if (currentNames.length > MAX_VISIBLE_PEOPLE_PLACEHOLDERS) {
+          return currentNames;
+        }
+
+        const nextNames = nextPeoplePlaceholderNames(currentNames);
+        const incomingName = nextNames[0];
+
+        if (incomingName === undefined || incomingName === currentNames[0]) {
+          return currentNames;
+        }
+
+        setPeoplePlaceholderSlideState("primed");
+        return [incomingName, ...currentNames];
+      });
     }, 1800);
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (peoplePlaceholderSlideState !== "primed") {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setPeoplePlaceholderSlideState("sliding");
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [peoplePlaceholderSlideState]);
+
+  useEffect(() => {
+    if (peoplePlaceholderSlideState !== "sliding") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      settlePeoplePlaceholderSlide();
+    }, PEOPLE_PLACEHOLDER_SLIDE_MS + 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [peoplePlaceholderSlideState, settlePeoplePlaceholderSlide]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -180,18 +234,26 @@ function Home() {
                   {participantNames.length === 0 ? (
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-3 top-2.5 grid gap-1 text-base text-[#52645E] md:text-sm"
-                      key={peoplePlaceholder}
+                      className="people-name-placeholder-window pointer-events-none absolute inset-x-3 top-2.5 text-base text-[#52645E] md:text-sm"
                     >
-                      {peoplePlaceholderNames.map((placeholderName, index) => (
-                        <span
-                          className="people-name-placeholder"
-                          key={placeholderName}
-                          style={{ animationDelay: `${index * 55}ms` }}
-                        >
-                          {placeholderName}
-                        </span>
-                      ))}
+                      <div
+                        className="people-name-placeholder-stack"
+                        data-state={peoplePlaceholderSlideState}
+                        onTransitionEnd={(event) => {
+                          if (
+                            event.currentTarget === event.target &&
+                            event.propertyName === "transform"
+                          ) {
+                            settlePeoplePlaceholderSlide();
+                          }
+                        }}
+                      >
+                        {peoplePlaceholderNames.map((placeholderName) => (
+                          <span className="people-name-placeholder" key={placeholderName}>
+                            {placeholderName}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
                 </div>

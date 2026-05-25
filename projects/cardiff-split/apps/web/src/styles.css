@@ -68,8 +68,37 @@ textarea {
   animation: trip-name-placeholder-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.people-name-placeholder {
-  animation: people-name-placeholder-in 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.people-name-placeholder-window {
+  --people-name-placeholder-line-height: 1.5rem;
+  --people-name-placeholder-gap: 0.25rem;
+  --people-name-placeholder-step: calc(
+    var(--people-name-placeholder-line-height) +
+    var(--people-name-placeholder-gap)
+  );
+
+  height: calc(
+    (var(--people-name-placeholder-line-height) * 4) +
+    (var(--people-name-placeholder-gap) * 3)
+  );
+  overflow: hidden;
+}
+
+.people-name-placeholder-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--people-name-placeholder-gap);
+  line-height: var(--people-name-placeholder-line-height);
+  transform: translateY(0);
+}
+
+.people-name-placeholder-stack[data-state="primed"] {
+  transform: translateY(calc(-1 * var(--people-name-placeholder-step)));
+  transition: none;
+}
+
+.people-name-placeholder-stack[data-state="sliding"] {
+  transform: translateY(0);
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes trip-name-placeholder-in {
@@ -84,21 +113,12 @@ textarea {
   }
 }
 
-@keyframes people-name-placeholder-in {
-  from {
-    opacity: 0;
-    transform: translateY(-0.55rem);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .trip-name-placeholder,
-  .people-name-placeholder {
+  .trip-name-placeholder {
     animation: none;
+  }
+
+  .people-name-placeholder-stack[data-state="sliding"] {
+    transition: none;
   }
 }

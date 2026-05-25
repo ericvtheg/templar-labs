@@ -42,9 +42,8 @@ export const exactSplitToleranceCents = 200;
 
 export function exactSplitMismatchMessage(totalCents: number, targetCents: number): string {
   const differenceCents = Math.abs(targetCents - totalCents);
-  const direction = totalCents < targetCents ? "increase" : "decrease";
 
-  return `Exact split amounts must equal the expense total. ${capitalize(direction)} the split sum by ${formatCurrency(differenceCents)}.`;
+  return `Exact split amounts must equal the expense total. The total sum is off by ${formatCurrency(differenceCents)}.`;
 }
 
 export function calculateExpenseSplits(input: CalculateSplitInput): ExpenseSplitAllocation[] {
@@ -182,8 +181,4 @@ function assertNonNegativeCents(value: number, message: string) {
   if (!Number.isInteger(value) || value < 0) {
     throw new SplitValidationError(message);
   }
-}
-
-function capitalize(value: string): string {
-  return `${value[0]?.toUpperCase() ?? ""}${value.slice(1)}`;
 }

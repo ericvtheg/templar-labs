@@ -70,7 +70,7 @@ describe("calculateExpenseSplits", () => {
           { participantId: "bea", amountCents: 500 },
         ],
       }),
-    ).toThrow("Increase the split sum by $3.00.");
+    ).toThrow("The total sum is off by $3.00.");
   });
 
   test("computes percentage splits with cent rounding", () => {

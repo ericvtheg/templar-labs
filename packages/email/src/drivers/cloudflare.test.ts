@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { AppEnvironment } from "@templar/config";
 import { Effect, Either } from "effect";
 import { EmailProviderError } from "../errors.ts";
 import {
@@ -11,6 +12,7 @@ import {
 test("Cloudflare driver maps send input to binding message", async () => {
   const sent: CloudflareEmailMessageBuilder[] = [];
   const email = makeCloudflareEmail(makeBinding(sent), {
+    environment: AppEnvironment.Prod,
     defaultFrom: "noreply@templarlabs.com",
   });
 
@@ -37,7 +39,9 @@ test("Cloudflare driver maps send input to binding message", async () => {
 
 test("Cloudflare driver maps named and string addresses", async () => {
   const sent: CloudflareEmailMessageBuilder[] = [];
-  const email = makeCloudflareEmail(makeBinding(sent));
+  const email = makeCloudflareEmail(makeBinding(sent), {
+    environment: AppEnvironment.Prod,
+  });
 
   await Effect.runPromise(
     email.send({
@@ -58,6 +62,7 @@ test("Cloudflare driver maps named and string addresses", async () => {
 test("Cloudflare driver maps cc, bcc, reply-to, headers, and attachments", async () => {
   const sent: CloudflareEmailMessageBuilder[] = [];
   const email = makeCloudflareEmail(makeBinding(sent), {
+    environment: AppEnvironment.Prod,
     defaultFrom: "noreply@templarlabs.com",
   });
   const content = new ArrayBuffer(8);
@@ -121,6 +126,7 @@ test("Cloudflare driver wraps binding failures in EmailProviderError", async () 
       send: () => Promise.reject(new Error("boom")),
     },
     {
+      environment: AppEnvironment.Prod,
       defaultFrom: "noreply@templarlabs.com",
     },
   );

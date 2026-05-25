@@ -1,19 +1,45 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { AppEnvironment } from "@templar/config";
 import { Effect, Either } from "effect";
 import type { EmailDriver } from "./driver.ts";
 import { EmailProviderError, EmailValidationError } from "./errors.ts";
 import { makeEmailService } from "./service.ts";
-import type { ResolvedSendEmailInput, SendEmailResult } from "./types.ts";
+import type { EmailServiceDefaults, ResolvedSendEmailInput, SendEmailResult } from "./types.ts";
+
+test("send no-ops outside production", async () => {
+  const sent: ResolvedSendEmailInput[] = [];
+  const email = makeEmailService({
+    provider: "test",
+    driver: makeDriver(sent),
+    defaults: {
+      environment: AppEnvironment.Local,
+    },
+  });
+
+  const result = await Effect.runPromise(
+    email.send({
+      to: [],
+      subject: " ",
+      text: " ",
+    }),
+  );
+
+  assert.deepEqual(result, {
+    messageId: "email-disabled-local",
+    status: "skipped",
+  });
+  assert.deepEqual(sent, []);
+});
 
 test("send applies defaultFrom", async () => {
   const sent: ResolvedSendEmailInput[] = [];
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       defaultFrom: "noreply@templarlabs.com",
-    },
+    }),
   });
 
   await Effect.runPromise(email.send(validInput()));
@@ -26,9 +52,9 @@ test("send allows per-send from override", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       defaultFrom: "noreply@templarlabs.com",
-    },
+    }),
   });
 
   await Effect.runPromise(email.send({ ...validInput(), from: "app@templarlabs.com" }));
@@ -41,10 +67,10 @@ test("send applies defaultReplyTo", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       defaultFrom: "noreply@templarlabs.com",
       defaultReplyTo: "support@templarlabs.com",
-    },
+    }),
   });
 
   await Effect.runPromise(email.send(validInput()));
@@ -57,13 +83,13 @@ test("send merges default headers with send headers", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       defaultFrom: "noreply@templarlabs.com",
       defaultHeaders: {
         "X-Default": "default",
         "X-Override": "default",
       },
-    },
+    }),
   });
 
   await Effect.runPromise(
@@ -88,10 +114,10 @@ test("send adds X-Templar-App when app is configured", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       app: "hello-world",
       defaultFrom: "noreply@templarlabs.com",
-    },
+    }),
   });
 
   await Effect.runPromise(email.send(validInput()));
@@ -105,6 +131,7 @@ test("send rejects missing sender after defaults", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
+    defaults: prodDefaults(),
   });
 
   const result = await Effect.runPromise(Effect.either(email.send(validInput())));
@@ -116,7 +143,7 @@ test("send rejects empty recipient list", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(Effect.either(email.send({ ...validInput(), to: [] })));
@@ -128,7 +155,7 @@ test("send rejects empty subject", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(
@@ -142,7 +169,7 @@ test("send rejects missing body", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(
@@ -156,7 +183,7 @@ test("send rejects invalid attachments", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(
@@ -176,9 +203,9 @@ test("send delegates normalized input to driver", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(sent),
-    defaults: {
+    defaults: prodDefaults({
       defaultFrom: { email: "noreply@templarlabs.com", name: "Templar Labs" },
-    },
+    }),
   });
 
   await Effect.runPromise(
@@ -201,7 +228,7 @@ test("send returns driver result unchanged", async () => {
   const email = makeEmailService({
     provider: "test",
     driver: makeDriver(),
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(email.send(validInput()));
@@ -222,7 +249,7 @@ test("send propagates provider failures", async () => {
           }),
         ),
     },
-    defaults: { defaultFrom: "noreply@templarlabs.com" },
+    defaults: prodDefaults({ defaultFrom: "noreply@templarlabs.com" }),
   });
 
   const result = await Effect.runPromise(Effect.either(email.send(validInput())));
@@ -245,6 +272,13 @@ function validInput() {
     to: "user@example.com",
     subject: "Welcome",
     text: "Welcome.",
+  };
+}
+
+function prodDefaults(defaults: Omit<EmailServiceDefaults, "environment"> = {}) {
+  return {
+    environment: AppEnvironment.Prod,
+    ...defaults,
   };
 }
 

@@ -1,3 +1,5 @@
+import type { AppEnvironment } from "@templar/config";
+
 export type EmailAddress =
   | string
   | {
@@ -32,10 +34,12 @@ export type ResolvedSendEmailInput = SendEmailInput & {
 
 export type SendEmailResult = {
   readonly messageId: string;
+  readonly status?: "sent" | "skipped";
 };
 
 export type EmailServiceDefaults = {
   readonly app?: string;
+  readonly environment: AppEnvironment;
   readonly defaultFrom?: EmailAddress;
   readonly defaultReplyTo?: EmailAddress;
   readonly defaultHeaders?: Readonly<Record<string, string>>;

@@ -1,3 +1,4 @@
+import { AppEnvironment } from "@templar/config";
 import { Context, Effect, Layer } from "effect";
 import type { EmailDriver } from "./driver.ts";
 import { type EmailError, EmailValidationError } from "./errors.ts";
@@ -25,21 +26,32 @@ export function makeEmailLayer(service: EmailService): Layer.Layer<Email> {
 export function makeEmailService(input: {
   readonly provider: string;
   readonly driver: EmailDriver;
-  readonly defaults?: EmailServiceDefaults;
+  readonly defaults: EmailServiceDefaults;
 }): EmailService {
-  const service: EmailService = {
-    send: makeSend(input.driver.send, input.defaults),
-  };
+  const service: EmailService =
+    input.defaults.environment === AppEnvironment.Prod
+      ? {
+          send: makeSend(input.driver.send, input.defaults),
+        }
+      : {
+          send: () => Effect.succeed(disabledSendResult(input.defaults.environment)),
+        };
 
-  return withEmailServiceLogging(input.provider, input.defaults?.app, service);
+  return input.defaults.environment === AppEnvironment.Prod
+    ? withEmailServiceLogging(input.provider, input.defaults, service)
+    : service;
 }
 
-function makeSend(
-  send: EmailDriver["send"],
-  defaults: EmailServiceDefaults = {},
-): EmailService["send"] {
+function makeSend(send: EmailDriver["send"], defaults: EmailServiceDefaults): EmailService["send"] {
   return (input: SendEmailInput) =>
     Effect.flatMap(resolveSendInput(input, defaults), (resolved) => send(resolved));
+}
+
+function disabledSendResult(environment: EmailServiceDefaults["environment"]): SendEmailResult {
+  return {
+    messageId: `email-disabled-${environment}`,
+    status: "skipped",
+  };
 }
 
 function resolveSendInput(
@@ -132,7 +144,7 @@ function validationFailure(
 
 function withEmailServiceLogging(
   provider: string,
-  app: string | undefined,
+  defaults: EmailServiceDefaults,
   service: EmailService,
 ): EmailService {
   return {
@@ -141,7 +153,8 @@ function withEmailServiceLogging(
         withEmailLogging({
           provider,
           operation: "send",
-          ...(app === undefined ? {} : { app }),
+          environment: defaults.environment,
+          ...(defaults.app === undefined ? {} : { app: defaults.app }),
         }),
       ),
   };

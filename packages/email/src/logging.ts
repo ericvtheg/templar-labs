@@ -5,6 +5,7 @@ export type EmailLoggingInput = {
   readonly provider: string;
   readonly operation: EmailOperation;
   readonly app?: string;
+  readonly environment: string;
 };
 
 export function withEmailLogging(input: EmailLoggingInput) {
@@ -22,6 +23,7 @@ function emailLogAnnotations(input: EmailLoggingInput): Record<string, unknown> 
     package: "@templar/email",
     provider: input.provider,
     operation: input.operation,
+    environment: input.environment,
     ...(input.app === undefined ? {} : { app: input.app }),
   };
 }

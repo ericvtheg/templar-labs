@@ -15,6 +15,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@templar/config": "workspace:*",
     "@templar/tsconfig": "workspace:*",
     "effect": "^3.21.2"
   },

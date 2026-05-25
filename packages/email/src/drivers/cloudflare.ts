@@ -44,7 +44,7 @@ export type CloudflareSendEmailBinding = {
 
 export function makeCloudflareEmail(
   binding: CloudflareSendEmailBinding,
-  defaults?: EmailServiceDefaults,
+  defaults: EmailServiceDefaults,
 ): EmailService {
   const driver = {
     send: (input: ResolvedSendEmailInput) => sendCloudflareEmail(binding, input),
@@ -53,7 +53,7 @@ export function makeCloudflareEmail(
   return makeEmailService({
     provider: "cloudflare",
     driver,
-    ...(defaults === undefined ? {} : { defaults }),
+    defaults,
   });
 }
 
@@ -61,7 +61,7 @@ export const makeEmail = makeCloudflareEmail;
 
 export function cloudflareEmailLayer(
   binding: CloudflareSendEmailBinding,
-  defaults?: EmailServiceDefaults,
+  defaults: EmailServiceDefaults,
 ) {
   return makeEmailLayer(makeCloudflareEmail(binding, defaults));
 }

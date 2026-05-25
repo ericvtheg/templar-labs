@@ -139,9 +139,9 @@ Avoid:
 - Trip splitting without the drama.
 - Split the trip, not the friendship.
 - Fast, private trip splitting.
-- No accounts. No ads. Just settle up.
+- No accounts. No ads. Just good times.
 - The easy way to split trips with friends.
 
 Recommended launch tagline:
 
-> Fast, private trip splitting with our friends.
+> Fast, easy trip splitting with our friends.

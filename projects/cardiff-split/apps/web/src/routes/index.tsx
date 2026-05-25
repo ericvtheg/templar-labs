@@ -161,9 +161,7 @@ function Home() {
             </Link>
             <div>
               <p className="text-lg font-semibold tracking-normal text-[#12343B]">Cardiff Split</p>
-              <p className="text-sm text-[#52645E]">
-                Fast, private trip splitting with our friends.
-              </p>
+              <p className="text-sm text-[#52645E]">Fast, easy trip splitting with our friends.</p>
             </div>
           </div>
         </header>
@@ -172,7 +170,7 @@ function Home() {
           <div className="space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D9D1C3] bg-[#FFFDF8]/70 px-3 py-1 text-sm font-medium text-[#12343B]">
               <ShieldCheckIcon aria-hidden="true" className="size-4 text-[#126C5A]" />
-              No accounts. No ads.
+              No accounts. No ads. Just good times.
             </div>
             <div className="space-y-3">
               <h1 className="text-4xl font-semibold tracking-normal text-[#12343B] sm:text-5xl">

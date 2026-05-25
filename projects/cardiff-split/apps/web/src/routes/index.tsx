@@ -8,6 +8,7 @@ import { ArrowRightIcon, ShieldCheckIcon } from "lucide-react";
 import { type SyntheticEvent, useCallback, useEffect, useId, useState, useTransition } from "react";
 import {
   initialPeoplePlaceholderNames,
+  MAX_VISIBLE_PEOPLE_PLACEHOLDERS,
   nextPeoplePlaceholderNames,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
@@ -27,7 +28,7 @@ const tripNamePlaceholders = [
 ] as const;
 
 const PEOPLE_PLACEHOLDER_SLIDE_MS = 420;
-const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = 4;
+const PEOPLE_PLACEHOLDER_VISIBLE_ROWS = MAX_VISIBLE_PEOPLE_PLACEHOLDERS;
 
 function Home() {
   const tripNameId = useId();

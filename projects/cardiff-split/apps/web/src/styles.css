@@ -77,8 +77,8 @@ textarea {
   );
 
   height: calc(
-    (var(--people-name-placeholder-line-height) * 4) +
-    (var(--people-name-placeholder-gap) * 3)
+    (var(--people-name-placeholder-line-height) * 6) +
+    (var(--people-name-placeholder-gap) * 5)
   );
   overflow: hidden;
 }

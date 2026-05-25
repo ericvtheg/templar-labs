@@ -7,7 +7,7 @@ import {
 } from "./people-placeholders.ts";
 
 describe("people placeholders", () => {
-  test("starts with at most four names", () => {
+  test("starts with at most six names", () => {
     expect(initialPeoplePlaceholderNames()).toEqual(
       PEOPLE_PLACEHOLDER_NAMES.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS),
     );
@@ -18,9 +18,9 @@ describe("people placeholders", () => {
     const nextNames = nextPeoplePlaceholderNames(currentNames, () => 0);
 
     expect(nextNames).toHaveLength(MAX_VISIBLE_PEOPLE_PLACEHOLDERS);
-    expect(nextNames[0]).toBe("Emilie");
-    expect(nextNames).toEqual(["Emilie", "Alexis", "Andi", "Brent"]);
-    expect(nextNames).not.toContain("Carlo");
+    expect(nextNames[0]).toBe("Eric");
+    expect(nextNames).toEqual(["Eric", "Alexis", "Andi", "Brent", "Carlo", "Emilie"]);
+    expect(nextNames).not.toContain("Emma");
   });
 
   test("does not show the same name twice", () => {

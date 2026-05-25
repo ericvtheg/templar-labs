@@ -29,7 +29,7 @@ export const PEOPLE_PLACEHOLDER_NAMES = [
 
 export type PeoplePlaceholderName = (typeof PEOPLE_PLACEHOLDER_NAMES)[number];
 
-export const MAX_VISIBLE_PEOPLE_PLACEHOLDERS = 4;
+export const MAX_VISIBLE_PEOPLE_PLACEHOLDERS = 6;
 
 export function initialPeoplePlaceholderNames(): PeoplePlaceholderName[] {
   return PEOPLE_PLACEHOLDER_NAMES.slice(0, MAX_VISIBLE_PEOPLE_PLACEHOLDERS);

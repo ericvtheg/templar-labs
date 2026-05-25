@@ -407,7 +407,8 @@ export const deleteSettlement = createServerFn({ method: "POST" })
   });
 
 async function getDatabase() {
-  const { env } = await import("cloudflare:workers");
+  const cloudflareWorkersModule = "cloudflare:workers";
+  const { env } = await import(cloudflareWorkersModule);
   const bindings = env as { readonly [templarBindings.db]: D1Database };
 
   return makeDatabase(bindings[templarBindings.db], { schema });

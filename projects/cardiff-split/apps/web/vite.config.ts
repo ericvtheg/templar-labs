@@ -8,6 +8,7 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
   server: {
+    host: "127.0.0.1",
     port: devPort("cardiff-split-web"),
     strictPort: true,
   },

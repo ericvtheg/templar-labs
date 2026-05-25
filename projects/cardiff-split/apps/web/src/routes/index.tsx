@@ -221,7 +221,7 @@ function Home() {
                     id={participantNamesId}
                     onChange={(event) => setParticipantNames(event.currentTarget.value)}
                     placeholder={peoplePlaceholder}
-                    rows={4}
+                    rows={3}
                     value={participantNames}
                   />
                   {participantNames.length === 0 ? (

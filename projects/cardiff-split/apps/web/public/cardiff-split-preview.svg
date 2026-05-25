@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Cardiff Split social preview</title>
+  <desc id="desc">A branded preview showing Cardiff Split's trip expense form and settlement summary.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#FFFDF8" />
+      <stop offset="0.54" stop-color="#F7F5EF" />
+      <stop offset="1" stop-color="#E8DDC8" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#12343B" />
+      <stop offset="1" stop-color="#126C5A" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="28" stdDeviation="26" flood-color="#12343B" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#background)" />
+  <path d="M0 502C122 450 241 465 356 546C486 637 671 658 833 578C965 514 1033 451 1200 486V630H0Z" fill="#8ECAE6" opacity="0.22" />
+  <path d="M58 112C145 60 256 60 358 112C440 154 515 154 592 103C696 34 804 41 915 121C994 178 1088 186 1200 140V0H0V156C20 145 39 130 58 112Z" fill="#E8DDC8" opacity="0.55" />
+
+  <g transform="translate(86 78)">
+    <rect width="104" height="104" rx="24" fill="#12343B" />
+    <path fill="#126C5A" d="M16 45c0-4.5 3.7-8.1 8.1-8.1h4.1v-13h14.6v13h17.9v-13h14.6v13h4.1c4.5 0 8.1 3.7 8.1 8.1v38.2H16V45Z" />
+    <path fill="#E8DDC8" d="M26.8 47.4c0-1.8 1.5-3.3 3.3-3.3h43.9c1.8 0 3.3 1.5 3.3 3.3v35.8H26.8V47.4Z" />
+    <path fill="#F2B84B" d="M42.3 83.2V66.1c0-5.4 4.4-9.8 9.8-9.8s9.8 4.4 9.8 9.8v17.1H42.3Z" />
+    <path fill="#12343B" d="M50.4 56.4c-4.6.8-8.1 4.8-8.1 9.6v17.1h9.8V56.3c-.6 0-1.1.1-1.6.2Z" opacity=".18" />
+    <path fill="#8ECAE6" d="M36.6 55.5a4.1 4.1 0 1 1-8.1 0 4.1 4.1 0 0 1 8.1 0Zm39 0a4.1 4.1 0 1 1-8.1 0 4.1 4.1 0 0 1 8.1 0Z" />
+    <path fill="#12343B" d="M16 79.9h71.5v3.3H16z" opacity=".18" />
+  </g>
+
+  <text x="220" y="126" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="48" font-weight="700">Cardiff Split</text>
+  <text x="220" y="166" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="500">Fast, private trip splitting with friends.</text>
+
+  <g transform="translate(84 240)">
+    <text fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="60" font-weight="750">
+      <tspan x="0" y="0">Split the trip,</tspan>
+      <tspan x="0" y="72">not the friendship.</tspan>
+    </text>
+    <text fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="500">
+      <tspan x="0" y="126">Create a shared trip link, track expenses,</tspan>
+      <tspan x="0" y="164">and settle up without accounts or ads.</tspan>
+    </text>
+    <g transform="translate(0 214)">
+      <rect width="274" height="58" rx="29" fill="#126C5A" />
+      <text x="30" y="38" fill="#F7F5EF" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Create a trip</text>
+      <path d="M220 29h24m0 0-9-9m9 9-9 9" fill="none" stroke="#F7F5EF" stroke-linecap="round" stroke-linejoin="round" stroke-width="5" />
+    </g>
+  </g>
+
+  <g transform="translate(664 92)" filter="url(#shadow)">
+    <rect width="438" height="468" rx="30" fill="#FFFDF8" stroke="#D9D1C3" stroke-width="2" />
+    <rect x="0" y="0" width="438" height="94" rx="30" fill="url(#panel)" />
+    <path d="M0 64h438v30H0z" fill="url(#panel)" />
+    <text x="34" y="48" fill="#F7F5EF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Costa Rica Trip</text>
+    <text x="34" y="76" fill="#CFE2D9" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="500">6 friends - $2,184.50 tracked</text>
+
+    <g transform="translate(34 124)">
+      <text fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700" x="0" y="0">Add expense</text>
+      <rect x="0" y="18" width="370" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
+      <text x="18" y="54" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Dinner by the beach</text>
+      <rect x="0" y="92" width="176" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
+      <text x="18" y="128" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">$248.60</text>
+      <rect x="194" y="92" width="176" height="58" rx="12" fill="#F7F5EF" stroke="#D9D1C3" />
+      <text x="212" y="128" fill="#52645E" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Everyone</text>
+    </g>
+
+    <g transform="translate(34 304)">
+      <rect width="370" height="118" rx="18" fill="#F7F5EF" stroke="#D9D1C3" />
+      <text x="22" y="38" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700">Settle up</text>
+      <g transform="translate(22 58)">
+        <circle cx="18" cy="18" r="18" fill="#F2B84B" />
+        <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Maya pays Leo</text>
+        <text x="284" y="24" fill="#126C5A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="750">$41.43</text>
+      </g>
+      <g transform="translate(22 90)">
+        <circle cx="18" cy="18" r="18" fill="#8ECAE6" />
+        <text x="50" y="24" fill="#12343B" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="650">Sam pays Gia</text>
+        <text x="284" y="24" fill="#126C5A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="750">$28.10</text>
+      </g>
+    </g>
+  </g>
+</svg>

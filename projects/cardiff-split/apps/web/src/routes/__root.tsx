@@ -1,6 +1,12 @@
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 
+const siteUrl = "https://cardiff-split.ericventor.com";
+const previewImageUrl = `${siteUrl}/cardiff-split-preview.png`;
+const title = "Cardiff Split";
+const description =
+  "Fast, private trip splitting with friends. Create a shared link, track expenses, and settle up without accounts or ads.";
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -12,15 +18,63 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
       {
-        title: "Cardiff Split",
+        title,
       },
       {
         name: "description",
-        content: "Fast, easy trip splitting with our friends.",
+        content: description,
       },
       {
         name: "theme-color",
         content: "#126C5A",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: siteUrl,
+      },
+      {
+        property: "og:title",
+        content: title,
+      },
+      {
+        property: "og:description",
+        content: description,
+      },
+      {
+        property: "og:image",
+        content: previewImageUrl,
+      },
+      {
+        property: "og:image:width",
+        content: "1200",
+      },
+      {
+        property: "og:image:height",
+        content: "630",
+      },
+      {
+        property: "og:image:alt",
+        content: "Cardiff Split trip expense form and settlement preview.",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: title,
+      },
+      {
+        name: "twitter:description",
+        content: description,
+      },
+      {
+        name: "twitter:image",
+        content: previewImageUrl,
       },
     ],
     links: [

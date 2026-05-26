@@ -1,0 +1,26 @@
+{
+  "name": "swedish-fifty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/project-build.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "pnpm --filter swedish-fifty-web test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/auth": "workspace:*",
+    "@templar/db": "workspace:*",
+    "@templar/deploy": "workspace:*",
+    "@templar/payments": "workspace:*"
+  },
+  "devDependencies": {
+    "alchemy": "^0.93.7",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "6.0.3"
+  }
+}

@@ -6,6 +6,7 @@ export const devPorts = {
   "hello-world-web": 5173,
   "launch-room-web": 5175,
   "loan-payment-calculator-web": 5176,
+  "swedish-fifty-web": 5178,
   "ui-showcase-web": 5174,
 } as const;
 

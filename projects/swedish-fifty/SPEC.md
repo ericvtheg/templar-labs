@@ -51,7 +51,8 @@ The app should avoid a rigid syllabus feel. It should have a clear 50-day calend
 - AI-generated daily lesson when the user opens the app.
 - Adaptive lesson generation based on permanent mistake memory.
 - Push-to-talk voice input.
-- ElevenLabs as the first voice API driver.
+- ElevenLabs as the first voice API driver, using the official `@elevenlabs/elevenlabs-js` SDK.
+- Configurable ElevenLabs voice model selection.
 - Text and audio output for Swedish prompts.
 - Roleplay biased toward realistic Swedish speakers.
 - Coach behavior outside roleplay.
@@ -273,7 +274,7 @@ Example memory item:
 
 Voice should start with push-to-talk.
 
-The first voice provider should be ElevenLabs.
+The first voice provider should be ElevenLabs. Implementation should use the official `@elevenlabs/elevenlabs-js` SDK rather than hand-rolled REST calls when practical. The package is documented by ElevenLabs as the official Node SDK, supports text-to-speech conversion and streaming, exposes voice search, and is compatible with Cloudflare Workers.
 
 Voice responsibilities:
 
@@ -281,12 +282,39 @@ Voice responsibilities:
 - transcribe learner speech
 - support slow replay or chunked playback
 - expose enough metadata for intelligibility feedback
+- allow the app to choose a voice model by named tier, similar to `@templar/ai`
+- expose the resolved ElevenLabs model id in logs and stored attempt metadata
 
 Potential future package:
 
 - `@templar/voice`
 
-The package should eventually own provider abstraction, ElevenLabs integration, browser recording helpers, and voice result types. That package is not part of this spec-only scaffold.
+The package should eventually own provider abstraction, ElevenLabs SDK integration, browser recording helpers, voice model routing, and voice result types. That package is not part of this spec-only scaffold.
+
+### Voice Model Routing
+
+Voice model selection should be app-configurable and package-mediated, not scattered across app code.
+
+Initial named routes:
+
+- `quality`: Eleven Multilingual v2 (`eleven_multilingual_v2`)
+  - Best default for Swedish learning because it emphasizes stability, language diversity, and accent accuracy.
+  - Use for new vocabulary, family dialogue, slower listening drills, and high-quality saved audio.
+- `fast`: Eleven Flash v2.5 (`eleven_flash_v2_5`)
+  - Low-latency and lower-cost option.
+  - Use for quick roleplay turns, lightweight previews, and cases where speed matters more than maximum voice quality.
+- `balanced`: Eleven Turbo v2.5 (`eleven_turbo_v2_5`)
+  - Middle ground between quality and latency.
+  - Use when roleplay needs more natural audio than `fast` but should still feel responsive.
+
+Default routing:
+
+- Daily mission dialogue: `quality`
+- Slow replay: `quality`
+- Roleplay response: `balanced`
+- Cheap preview or non-critical UI audio: `fast`
+
+The model route should be overrideable per request for product experiments and cost controls.
 
 ## Auth And Payments
 
@@ -450,4 +478,3 @@ By the end of the 50-day prep window, the learner should be able to:
 - handle public transit basics
 - recover when they do not understand
 - participate in short Swedish exchanges without immediately giving up
-

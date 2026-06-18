@@ -501,16 +501,20 @@ export const deleteParticipant = createServerFn({ method: "POST" })
     const paidExpenseIds = paidExpenses.map((row) => row.id);
 
     // 2. Delete expense_splits for those expenses before deleting the expenses
-    for (const expenseId of paidExpenseIds) {
-      await database.db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId));
-    }
+    await Promise.all(
+      paidExpenseIds.map((expenseId) =>
+        database.db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId)),
+      ),
+    );
 
     // 3. Delete the expenses this person paid for
-    for (const expenseId of paidExpenseIds) {
-      await database.db
-        .delete(expenses)
-        .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, trip.id)));
-    }
+    await Promise.all(
+      paidExpenseIds.map((expenseId) =>
+        database.db
+          .delete(expenses)
+          .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, trip.id))),
+      ),
+    );
 
     // 4. Delete remaining expense_splits where this person was included but not the payer
     await database.db

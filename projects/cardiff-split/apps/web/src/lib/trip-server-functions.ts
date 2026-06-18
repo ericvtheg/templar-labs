@@ -492,15 +492,32 @@ export const deleteParticipant = createServerFn({ method: "POST" })
 
     const now = new Date();
 
-    // 1. Delete expenses where this participant was the payer (cascades to their expense_splits)
-    await database.db.delete(expenses).where(eq(expenses.payerParticipantId, data.participantId));
+    // 1. Get IDs of expenses this person paid for
+    const paidExpenses = await database.db
+      .select({ id: expenses.id })
+      .from(expenses)
+      .where(eq(expenses.payerParticipantId, data.participantId));
 
-    // 2. Delete remaining expense_splits where this participant was included but not the payer
+    const paidExpenseIds = paidExpenses.map((row) => row.id);
+
+    // 2. Delete expense_splits for those expenses before deleting the expenses
+    for (const expenseId of paidExpenseIds) {
+      await database.db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId));
+    }
+
+    // 3. Delete the expenses this person paid for
+    for (const expenseId of paidExpenseIds) {
+      await database.db
+        .delete(expenses)
+        .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, trip.id)));
+    }
+
+    // 4. Delete remaining expense_splits where this person was included but not the payer
     await database.db
       .delete(expenseSplits)
       .where(eq(expenseSplits.participantId, data.participantId));
 
-    // 3. Delete settlements involving this participant
+    // 5. Delete settlements involving this participant
     await database.db
       .delete(settlements)
       .where(eq(settlements.fromParticipantId, data.participantId));
@@ -508,12 +525,12 @@ export const deleteParticipant = createServerFn({ method: "POST" })
       .delete(settlements)
       .where(eq(settlements.toParticipantId, data.participantId));
 
-    // 4. Delete the participant
+    // 6. Delete the participant
     await database.db
       .delete(participants)
       .where(and(eq(participants.id, data.participantId), eq(participants.tripId, trip.id)));
 
-    // 5. Write activity event
+    // 7. Write activity event
     await writeActivity(database.db, {
       tripId: trip.id,
       eventType: "deleted",
@@ -523,7 +540,7 @@ export const deleteParticipant = createServerFn({ method: "POST" })
       createdAt: now,
     });
 
-    return await readTripSnapshot(data.tripSlug, { db: database.db });
+    return await readTripSnapshot(data.tripSlug);
   });
 
 async function getDatabase() {
@@ -541,13 +558,9 @@ async function readTripSnapshot(
 ): Promise<TripSnapshot | null>;
 async function readTripSnapshot(
   slug: string,
-  options: { readonly db: CardiffDatabaseClient },
-): Promise<TripSnapshot>;
-async function readTripSnapshot(
-  slug: string,
-  options?: { readonly allowMissing?: boolean; readonly db?: CardiffDatabaseClient },
+  options?: { readonly allowMissing: true },
 ): Promise<TripSnapshot | null> {
-  const database = options?.db !== undefined ? { db: options.db } : await getDatabase();
+  const database = await getDatabase();
   const trip =
     options?.allowMissing === true
       ? await findTripBySlugOrNull(database.db, slug)

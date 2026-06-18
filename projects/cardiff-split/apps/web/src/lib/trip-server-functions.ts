@@ -103,6 +103,11 @@ const deleteSettlementInput = z.object({
   settlementId: z.string().min(1),
 });
 
+const deleteParticipantInput = z.object({
+  tripSlug: z.string().min(8),
+  participantId: z.string().min(1),
+});
+
 export const loadTrip = createServerFn({ method: "GET" })
   .inputValidator(loadTripInput)
   .handler(async ({ data }) => {
@@ -467,6 +472,54 @@ export const deleteSettlement = createServerFn({ method: "POST" })
       entityType: "settlement",
       entityId: data.settlementId,
       summary: "Deleted a payment record.",
+      createdAt: now,
+    });
+
+    return await readTripSnapshot(data.tripSlug);
+  });
+
+export const deleteParticipant = createServerFn({ method: "POST" })
+  .inputValidator(deleteParticipantInput)
+  .handler(async ({ data }) => {
+    const database = await getDatabase();
+    const trip = await findTripBySlug(database.db, data.tripSlug);
+    const tripParticipants = await readParticipants(database.db, trip.id);
+    const participant = tripParticipants.find((row) => row.id === data.participantId);
+
+    if (participant === undefined) {
+      throw new Error("Participant not found.");
+    }
+
+    const now = new Date();
+
+    // 1. Delete expenses where this participant was the payer (cascades to their expense_splits)
+    await database.db.delete(expenses).where(eq(expenses.payerParticipantId, data.participantId));
+
+    // 2. Delete remaining expense_splits where this participant was included but not the payer
+    await database.db
+      .delete(expenseSplits)
+      .where(eq(expenseSplits.participantId, data.participantId));
+
+    // 3. Delete settlements involving this participant
+    await database.db
+      .delete(settlements)
+      .where(eq(settlements.fromParticipantId, data.participantId));
+    await database.db
+      .delete(settlements)
+      .where(eq(settlements.toParticipantId, data.participantId));
+
+    // 4. Delete the participant
+    await database.db
+      .delete(participants)
+      .where(and(eq(participants.id, data.participantId), eq(participants.tripId, trip.id)));
+
+    // 5. Write activity event
+    await writeActivity(database.db, {
+      tripId: trip.id,
+      eventType: "deleted",
+      entityType: "participant",
+      entityId: data.participantId,
+      summary: `Removed ${participant.name}.`,
       createdAt: now,
     });
 

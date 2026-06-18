@@ -1,5 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@templar/ui/components/alert-dialog";
 import { Badge } from "@templar/ui/components/badge";
 import { Button } from "@templar/ui/components/button";
 import { Input } from "@templar/ui/components/input";
@@ -16,6 +27,7 @@ import {
   Share2Icon,
   Trash2Icon,
   UsersIcon,
+  UserXIcon,
 } from "lucide-react";
 import {
   type ReactNode,
@@ -46,6 +58,7 @@ import {
 import {
   addParticipant,
   deleteExpense,
+  deleteParticipant,
   deleteSettlement,
   loadTrip,
   markRecommendationPaid,
@@ -97,6 +110,7 @@ function TripRoute() {
   const markRecommendationPaidFn = useServerFn(markRecommendationPaid);
   const saveSettlementFn = useServerFn(saveSettlement);
   const deleteSettlementFn = useServerFn(deleteSettlement);
+  const deleteParticipantFn = useServerFn(deleteParticipant);
   const [snapshot, setSnapshot] = useState<TripSnapshot | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>("overview");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -222,6 +236,13 @@ function TripRoute() {
     );
   };
 
+  const handleDeleteParticipant = (participantId: string) => {
+    runTripAction(
+      () => deleteParticipantFn({ data: { tripSlug: slug, participantId } }),
+      "Could not remove that person.",
+    );
+  };
+
   if (loadState === "not-found") {
     return <TripNotFound />;
   }
@@ -323,6 +344,7 @@ function TripRoute() {
           <PeopleView
             isPending={isPending}
             onAddParticipant={handleAddParticipant}
+            onDeleteParticipant={handleDeleteParticipant}
             onUpdateParticipant={handleUpdateParticipant}
             participants={snapshot.participants}
           />
@@ -647,11 +669,13 @@ function PeopleView({
   participants,
   isPending,
   onAddParticipant,
+  onDeleteParticipant,
   onUpdateParticipant,
 }: {
   readonly participants: readonly Participant[];
   readonly isPending: boolean;
   readonly onAddParticipant: (name: string) => void;
+  readonly onDeleteParticipant: (participantId: string) => void;
   readonly onUpdateParticipant: (participant: {
     readonly participantId: string;
     readonly name: string;
@@ -673,6 +697,7 @@ function PeopleView({
             <ParticipantEditor
               isPending={isPending}
               key={participant.id}
+              onDeleteParticipant={onDeleteParticipant}
               onUpdateParticipant={onUpdateParticipant}
               participant={participant}
             />
@@ -739,10 +764,12 @@ function AddParticipantForm({
 function ParticipantEditor({
   participant,
   isPending,
+  onDeleteParticipant,
   onUpdateParticipant,
 }: {
   readonly participant: Participant;
   readonly isPending: boolean;
+  readonly onDeleteParticipant: (participantId: string) => void;
   readonly onUpdateParticipant: (participant: {
     readonly participantId: string;
     readonly name: string;
@@ -805,6 +832,34 @@ function ParticipantEditor({
             </Button>
           </div>
         </div>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button disabled={isPending} size="sm" type="button" variant="destructive">
+              <UserXIcon aria-hidden="true" className="size-4" />
+              Remove
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove {participant.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will delete all expenses they paid for and remove them from all expense splits
+                and settlements. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onDeleteParticipant(participant.id)}
+                variant="destructive"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </form>
   );

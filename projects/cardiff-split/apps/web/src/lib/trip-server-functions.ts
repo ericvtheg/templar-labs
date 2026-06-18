@@ -523,7 +523,7 @@ export const deleteParticipant = createServerFn({ method: "POST" })
       createdAt: now,
     });
 
-    return await readTripSnapshot(data.tripSlug);
+    return await readTripSnapshot(data.tripSlug, { db: database.db });
   });
 
 async function getDatabase() {
@@ -541,9 +541,13 @@ async function readTripSnapshot(
 ): Promise<TripSnapshot | null>;
 async function readTripSnapshot(
   slug: string,
-  options?: { readonly allowMissing: true },
+  options: { readonly db: CardiffDatabaseClient },
+): Promise<TripSnapshot>;
+async function readTripSnapshot(
+  slug: string,
+  options?: { readonly allowMissing?: boolean; readonly db?: CardiffDatabaseClient },
 ): Promise<TripSnapshot | null> {
-  const database = await getDatabase();
+  const database = options?.db !== undefined ? { db: options.db } : await getDatabase();
   const trip =
     options?.allowMissing === true
       ? await findTripBySlugOrNull(database.db, slug)

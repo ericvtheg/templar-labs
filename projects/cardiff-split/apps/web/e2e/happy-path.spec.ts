@@ -111,6 +111,54 @@ test("add an expense with exact split amounts", async ({ page }) => {
   await expect(page.getByTestId("balance-Taylor")).toContainText("$0.00");
 });
 
+test("removes a participant from the trip", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByTestId("create-trip-name").fill("Remove Person Trip");
+  await page.getByTestId("create-trip-participants").fill("Alex\nJordan");
+  await page.getByTestId("create-trip-submit").click();
+  await expect(page).toHaveURL(/\/trip\//);
+
+  await navButton(page, "People").click();
+
+  const removeButton = page.getByRole("button", { name: "Remove Alex" });
+  await expect(removeButton).toBeVisible();
+  await removeButton.click();
+
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("Remove Alex?");
+  await expect(dialog).toContainText("This cannot be undone.");
+
+  await dialog.getByRole("button", { name: "Remove" }).click();
+
+  await expect(page.getByText("Alex")).not.toBeVisible();
+  await expect(page.getByText("Jordan")).toBeVisible();
+});
+
+test("cancels removing a participant", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByTestId("create-trip-name").fill("Cancel Remove Trip");
+  await page.getByTestId("create-trip-participants").fill("Alex\nJordan");
+  await page.getByTestId("create-trip-submit").click();
+  await expect(page).toHaveURL(/\/trip\//);
+
+  await navButton(page, "People").click();
+
+  const removeButton = page.getByRole("button", { name: "Remove Alex" });
+  await removeButton.click();
+
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByText("Alex")).toBeVisible();
+  await expect(page.getByText("Jordan")).toBeVisible();
+});
+
 async function addParticipant(page: import("@playwright/test").Page, name: string) {
   await page.getByTestId("participant-name-input").fill(name);
   await page.getByTestId("add-participant-submit").click();

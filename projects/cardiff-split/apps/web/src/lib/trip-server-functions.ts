@@ -490,51 +490,48 @@ export const deleteParticipant = createServerFn({ method: "POST" })
       throw new Error("Participant not found.");
     }
 
-    const now = new Date();
-
-    // 1. Get IDs of expenses this person paid for
     const paidExpenses = await database.db
       .select({ id: expenses.id })
       .from(expenses)
-      .where(eq(expenses.payerParticipantId, data.participantId));
+      .where(eq(expenses.payerParticipantId, data.participantId))
+      .limit(1);
 
-    const paidExpenseIds = paidExpenses.map((row) => row.id);
+    if (paidExpenses.length > 0) {
+      throw new Error("Cannot remove a person who has paid for an expense.");
+    }
 
-    // 2. Delete expense_splits for those expenses before deleting the expenses
-    await Promise.all(
-      paidExpenseIds.map((expenseId) =>
-        database.db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId)),
-      ),
-    );
+    const includedSplits = await database.db
+      .select({ id: expenseSplits.id })
+      .from(expenseSplits)
+      .where(eq(expenseSplits.participantId, data.participantId))
+      .limit(1);
 
-    // 3. Delete the expenses this person paid for
-    await Promise.all(
-      paidExpenseIds.map((expenseId) =>
-        database.db
-          .delete(expenses)
-          .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, trip.id))),
-      ),
-    );
+    if (includedSplits.length > 0) {
+      throw new Error("Cannot remove a person who is included in an expense.");
+    }
 
-    // 4. Delete remaining expense_splits where this person was included but not the payer
-    await database.db
-      .delete(expenseSplits)
-      .where(eq(expenseSplits.participantId, data.participantId));
+    const settlementsFrom = await database.db
+      .select({ id: settlements.id })
+      .from(settlements)
+      .where(eq(settlements.fromParticipantId, data.participantId))
+      .limit(1);
 
-    // 5. Delete settlements involving this participant
-    await database.db
-      .delete(settlements)
-      .where(eq(settlements.fromParticipantId, data.participantId));
-    await database.db
-      .delete(settlements)
-      .where(eq(settlements.toParticipantId, data.participantId));
+    const settlementsTo = await database.db
+      .select({ id: settlements.id })
+      .from(settlements)
+      .where(eq(settlements.toParticipantId, data.participantId))
+      .limit(1);
 
-    // 6. Delete the participant
+    if (settlementsFrom.length > 0 || settlementsTo.length > 0) {
+      throw new Error("Cannot remove a person who is involved in a payment.");
+    }
+
+    const now = new Date();
+
     await database.db
       .delete(participants)
       .where(and(eq(participants.id, data.participantId), eq(participants.tripId, trip.id)));
 
-    // 7. Write activity event
     await writeActivity(database.db, {
       tripId: trip.id,
       eventType: "deleted",

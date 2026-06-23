@@ -13,6 +13,7 @@ import {
   PEOPLE_PLACEHOLDER_NAMES,
 } from "../lib/people-placeholders.ts";
 import { createTrip } from "../lib/trip-server-functions.ts";
+import { getVisitorId } from "../lib/visitor-id.ts";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -128,6 +129,7 @@ function Home() {
         const result = await createTripFn({
           data: {
             name,
+            actorId: getVisitorId(),
             participantNames: participantNames
               .split(/\n|,/)
               .map((participantName) => participantName.trim())

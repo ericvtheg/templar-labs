@@ -1,5 +1,6 @@
 import { deployApp } from "@templar/deploy";
 import { d1Database, templarApp } from "@templar/deploy/cloudflare";
+import alchemy from "alchemy";
 
 const app = await deployApp("cardiff-split");
 
@@ -16,6 +17,10 @@ export const website = await templarApp("website", {
   domainName: "cardiff-split.ericventor.com",
   url: false,
   db,
+  bindings: {
+    POSTHOG_HOST: alchemy.secret.env("POSTHOG_HOST"),
+    POSTHOG_PROJECT_API_KEY: alchemy.secret.env("POSTHOG_PROJECT_API_KEY"),
+  },
 });
 
 console.log({

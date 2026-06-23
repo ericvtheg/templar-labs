@@ -11,6 +11,7 @@ import {
   trips,
 } from "../../../../db/schema.ts";
 import { templarBindings } from "../../../../templar-bindings.ts";
+import { trackCardiffClientEvent, trackCardiffEvent } from "./analytics.ts";
 import { findMatchingSettlementRecommendation } from "./balances.ts";
 import { formatCurrency } from "./money.ts";
 import { calculateExpenseSplits } from "./split-math.ts";
@@ -36,14 +37,18 @@ const loadTripInput = z.object({
   slug: z.string().min(8),
 });
 
+const actorIdInput = z.string().trim().max(128).default("");
+
 const createTripInput = z.object({
   name: z.string().trim().min(1).max(80),
   participantNames: z.array(z.string().trim().min(1).max(48)).max(30).default([]),
+  actorId: actorIdInput,
 });
 
 const participantInput = z.object({
   tripSlug: z.string().min(8),
   name: z.string().trim().min(1).max(48),
+  actorId: actorIdInput,
 });
 
 const updateParticipantInput = participantInput.extend({
@@ -81,11 +86,13 @@ const expenseInput = z.object({
       }),
     )
     .default([]),
+  actorId: actorIdInput,
 });
 
 const deleteExpenseInput = z.object({
   tripSlug: z.string().min(8),
   expenseId: z.string().min(1),
+  actorId: actorIdInput,
 });
 
 const settlementInput = z.object({
@@ -96,7 +103,16 @@ const settlementInput = z.object({
   amountCents: z.number().int().positive(),
 });
 
-const markRecommendationPaidInput = settlementInput.omit({ settlementId: true });
+const markRecommendationPaidInput = settlementInput.omit({ settlementId: true }).extend({
+  actorId: actorIdInput,
+});
+
+const trackAnalyticsEventInput = z.object({
+  tripId: z.string().min(1).max(64),
+  actorId: actorIdInput,
+  event: z.enum(["settle_up_viewed", "share_link_opened"]),
+  openRecommendations: z.number().int().min(0).optional(),
+});
 
 const deleteSettlementInput = z.object({
   tripSlug: z.string().min(8),
@@ -150,6 +166,15 @@ export const createTrip = createServerFn({ method: "POST" })
       ),
     );
 
+    trackCardiffEvent({
+      event: "trip_created",
+      actorId: data.actorId,
+      properties: {
+        tripId,
+        participantCount: uniqueNames(data.participantNames).length,
+      },
+    });
+
     return { slug };
   });
 
@@ -173,6 +198,14 @@ export const addParticipant = createServerFn({ method: "POST" })
       entityId: trip.id,
       summary: `Added ${data.name}.`,
       createdAt: now,
+    });
+
+    const nextParticipants = await readParticipants(database.db, trip.id);
+
+    trackCardiffEvent({
+      event: "participant_added",
+      actorId: data.actorId,
+      properties: { tripId: trip.id, participantCount: nextParticipants.length },
     });
 
     return await readTripSnapshot(data.tripSlug);
@@ -286,6 +319,16 @@ export const saveExpense = createServerFn({ method: "POST" })
       createdAt: now,
     });
 
+    trackCardiffEvent({
+      event: data.expenseId === undefined ? "expense_added" : "expense_edited",
+      actorId: data.actorId,
+      properties: {
+        tripId: trip.id,
+        splitMethod: data.splitMethod,
+        participantCount: data.includedParticipantIds.length,
+      },
+    });
+
     return await readTripSnapshot(data.tripSlug);
   });
 
@@ -314,6 +357,12 @@ export const deleteExpense = createServerFn({ method: "POST" })
       entityId: data.expenseId,
       summary: `Deleted ${existingExpense.title}.`,
       createdAt: now,
+    });
+
+    trackCardiffEvent({
+      event: "expense_deleted",
+      actorId: data.actorId,
+      properties: { tripId: trip.id },
     });
 
     return await readTripSnapshot(data.tripSlug);
@@ -446,6 +495,12 @@ export const markRecommendationPaid = createServerFn({ method: "POST" })
       createdAt: now,
     });
 
+    trackCardiffEvent({
+      event: "settlement_marked_paid",
+      actorId: data.actorId,
+      properties: { tripId: trip.id },
+    });
+
     return await readTripSnapshot(data.tripSlug);
   });
 
@@ -476,6 +531,19 @@ export const deleteSettlement = createServerFn({ method: "POST" })
     });
 
     return await readTripSnapshot(data.tripSlug);
+  });
+
+export const trackAnalyticsEvent = createServerFn({ method: "POST" })
+  .inputValidator(trackAnalyticsEventInput)
+  .handler(({ data }) => {
+    trackCardiffClientEvent({
+      actorId: data.actorId,
+      event: data.event,
+      tripId: data.tripId,
+      ...(data.openRecommendations === undefined
+        ? {}
+        : { openRecommendations: data.openRecommendations }),
+    });
   });
 
 export const deleteParticipant = createServerFn({ method: "POST" })

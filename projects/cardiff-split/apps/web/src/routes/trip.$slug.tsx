@@ -64,8 +64,10 @@ import {
   markRecommendationPaid,
   saveExpense,
   saveSettlement,
+  trackAnalyticsEvent,
   updateParticipant,
 } from "../lib/trip-server-functions.ts";
+import { getVisitorId } from "../lib/visitor-id.ts";
 
 export const Route = createFileRoute("/trip/$slug")({
   component: TripRoute,
@@ -111,6 +113,7 @@ function TripRoute() {
   const saveSettlementFn = useServerFn(saveSettlement);
   const deleteSettlementFn = useServerFn(deleteSettlement);
   const deleteParticipantFn = useServerFn(deleteParticipant);
+  const trackAnalyticsEventFn = useServerFn(trackAnalyticsEvent);
   const [snapshot, setSnapshot] = useState<TripSnapshot | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>("overview");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -159,7 +162,7 @@ function TripRoute() {
 
   const handleAddParticipant = (name: string) => {
     runTripAction(
-      () => addParticipantFn({ data: { tripSlug: slug, name } }),
+      () => addParticipantFn({ data: { tripSlug: slug, name, actorId: getVisitorId() } }),
       "Could not add that person.",
     );
   };
@@ -183,6 +186,7 @@ function TripRoute() {
         data: {
           tripSlug: slug,
           ...payload,
+          actorId: getVisitorId(),
           includedParticipantIds: [...payload.includedParticipantIds],
           exactSplits: [...payload.exactSplits],
           percentageSplits: [...payload.percentageSplits],
@@ -196,7 +200,7 @@ function TripRoute() {
 
   const handleDeleteExpense = (expenseId: string) => {
     runTripAction(
-      () => deleteExpenseFn({ data: { tripSlug: slug, expenseId } }),
+      () => deleteExpenseFn({ data: { tripSlug: slug, expenseId, actorId: getVisitorId() } }),
       "Could not delete that expense.",
     );
   };
@@ -223,6 +227,7 @@ function TripRoute() {
             fromParticipantId: payload.fromParticipantId,
             toParticipantId: payload.toParticipantId,
             amountCents: payload.amountCents,
+            actorId: getVisitorId(),
           },
         }),
       "Could not mark that payment paid.",
@@ -241,6 +246,35 @@ function TripRoute() {
       () => deleteParticipantFn({ data: { tripSlug: slug, participantId } }),
       "Could not remove that person.",
     );
+  };
+
+  const handleViewChange = (view: ActiveView) => {
+    setActiveView(view);
+
+    if (view === "settle" && snapshot !== null) {
+      void trackAnalyticsEventFn({
+        data: {
+          actorId: getVisitorId(),
+          event: "settle_up_viewed",
+          tripId: snapshot.trip.id,
+          openRecommendations: snapshot.settlementRecommendations.length,
+        },
+      });
+    }
+  };
+
+  const handleShareOpened = () => {
+    if (snapshot === null) {
+      return;
+    }
+
+    void trackAnalyticsEventFn({
+      data: {
+        actorId: getVisitorId(),
+        event: "share_link_opened",
+        tripId: snapshot.trip.id,
+      },
+    });
   };
 
   if (loadState === "not-found") {
@@ -315,7 +349,7 @@ function TripRoute() {
           </div>
         </header>
 
-        <ViewNav activeView={activeView} onChange={setActiveView} />
+        <ViewNav activeView={activeView} onChange={handleViewChange} />
 
         {error === null ? null : (
           <div className="rounded-lg border border-[#E76F51]/30 bg-[#E76F51]/10 px-3 py-2 text-sm text-[#B94F36]">
@@ -380,7 +414,9 @@ function TripRoute() {
 
         {activeView === "activity" ? <ActivityView snapshot={snapshot} /> : null}
 
-        {activeView === "share" ? <ShareView tripName={snapshot.trip.name} /> : null}
+        {activeView === "share" ? (
+          <ShareView onOpened={handleShareOpened} tripName={snapshot.trip.name} />
+        ) : null}
 
         {!hasParticipants && activeView !== "people" ? (
           <div className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
@@ -1490,13 +1526,20 @@ function ActivityView({ snapshot }: { readonly snapshot: TripSnapshot }) {
   );
 }
 
-function ShareView({ tripName }: { readonly tripName: string }) {
+function ShareView({
+  tripName,
+  onOpened,
+}: {
+  readonly tripName: string;
+  readonly onOpened: () => void;
+}) {
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setShareUrl(window.location.href);
-  }, []);
+    onOpened();
+  }, [onOpened]);
 
   const handleCopy = async () => {
     if (shareUrl.length === 0) {

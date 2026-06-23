@@ -36,7 +36,13 @@ const PRESETS: ReadonlyArray<readonly [string, CronFields]> = [
   ["Every Monday 09:00", { dayOfMonth: "*", dayOfWeek: "1", hour: "9", minute: "0", month: "*" }],
 ];
 
-const OPTIONS = ["*", "0", "5", "15", "30", "45", "*/5", "*/15", "*/30", "1", "9", "12"];
+const FIELD_OPTIONS: Readonly<Record<keyof CronFields, readonly string[]>> = {
+  minute: ["*", "0", "15", "30", "45", "*/5", "*/15", "*/30"],
+  hour: ["*", "0", "6", "9", "12", "18", "*/2", "*/6"],
+  dayOfMonth: ["*", "1", "15", "*/5", "*/10"],
+  month: ["*", "1", "3", "6", "9", "12", "*/2", "*/3"],
+  dayOfWeek: ["*", "0", "1", "2", "3", "4", "5", "6"],
+};
 
 function cronFieldRegex(field: string): boolean {
   return /^(\*|\d+(\/\d+)?)(-(\d+))?(,(\*|\d+(\/\d+)?)(-(\d+))?)*$/.test(field);
@@ -184,7 +190,7 @@ function CronTool() {
               onChange={(e) => handleField(field.key, e.target.value)}
               value={fields[field.key]}
             >
-              {OPTIONS.map((opt) => (
+              {FIELD_OPTIONS[field.key].map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>

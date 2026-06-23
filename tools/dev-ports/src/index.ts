@@ -8,6 +8,7 @@ export const devPorts = {
   "loan-payment-calculator-web": 5176,
   "swedish-fifty-web": 5178,
   "ui-showcase-web": 5174,
+  "utils-web": 5179,
 } as const;
 
 export type DevPortName = keyof typeof devPorts;

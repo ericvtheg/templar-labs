@@ -8,28 +8,6 @@ The idea is to create a single place where I've solved most boilerplate/problems
 
 ## Tech Stack
 
-Some are still TBD
-
-- typescript (language)
-- effect (?)
-- tanstack start (fullstack framework)
-- drizzle (ORM)
-- alchemy (IAC)
-- cloudflare (cloud provider)
-- pnpm (package manager)
-- analytics? (definitely not mixpanel)
-- OpenRouter (model provider)
-- Stripe (payments)
-- Domain names (?)
-- Auth (?)
-- Vitest (testing framework)
-- Tailwind (styling)
-- Component library (off the shelf? homegrown?)
-- Logger (?)
-
-
-## Current Tech Choices
-
 These are the current defaults for new packages and projects in this monorepo.
 
 - TypeScript as the primary language
@@ -59,8 +37,11 @@ These are the current defaults for new packages and projects in this monorepo.
 ## Deployment
 
 Deploys run from GitHub Actions on the homelab self-hosted runner. Pushing to
-`main` runs `pnpm check` and then `pnpm run deploy`, which deploys every project
-with a project-level `deploy` script.
+`main` runs `pnpm check`, then `pnpm db:migrate:ci`, then
+`pnpm run deploy`. Manual dispatches deploy every project with a project-level
+`deploy` script; pushes to `main` additionally pass `--changed-since` against
+the previous commit so only projects touched since the last deploy are
+redeployed.
 
 Alchemy state is stored remotely with `CloudflareStateStore` through
 `@templar/deploy`. Local `.alchemy/` state is intentionally ignored and should
@@ -72,8 +53,10 @@ Required GitHub Actions repository secrets:
 - `CLOUDFLARE_ACCOUNT_ID`
 - `ALCHEMY_STATE_TOKEN`
 - `ALCHEMY_PASSWORD`
+- `OPENROUTER_API_TOKEN`
+- `TEMPLAR_AUTH_SECRET`
 
-Keep backup copies of the two Alchemy secrets in a password manager. GitHub
+Keep backup copies of the Alchemy secrets in a password manager. GitHub
 secrets are write-only after creation.
 
 Critiques/reccomendations for the above?

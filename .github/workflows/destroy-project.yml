@@ -8,10 +8,10 @@ on:
         required: true
         type: choice
         options:
-          - launch-room
+          - cardiff-split
           - hello-world
+          - swedish-fifty
           - ui-showcase
-          - loan-payment-calculator
       confirm:
         description: Type destroy to confirm resource deletion
         required: true

@@ -397,21 +397,6 @@ importers:
         specifier: ^3.21.2
         version: 3.21.2
 
-  packages/observability:
-    dependencies:
-      '@templar/config':
-        specifier: workspace:*
-        version: link:../config
-      '@templar/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@templar/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      effect:
-        specifier: ^3.21.2
-        version: 3.21.2
-
   packages/payments:
     dependencies:
       drizzle-orm:
@@ -443,24 +428,6 @@ importers:
       '@types/node':
         specifier: ^24.12.4
         version: 24.12.4
-
-  packages/scheduler:
-    dependencies:
-      '@templar/config':
-        specifier: workspace:*
-        version: link:../config
-      '@templar/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@templar/queue':
-        specifier: workspace:*
-        version: link:../queue
-      '@templar/tsconfig':
-        specifier: workspace:*
-        version: link:../tsconfig
-      effect:
-        specifier: ^3.21.2
-        version: 3.21.2
 
   packages/tsconfig: {}
 
@@ -579,12 +546,6 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.167.35(@tanstack/react-router@1.169.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
-      '@templar/analytics':
-        specifier: workspace:*
-        version: link:../../../../packages/analytics
-      '@templar/config':
-        specifier: workspace:*
-        version: link:../../../../packages/config
       '@templar/db':
         specifier: workspace:*
         version: link:../../../../packages/db
@@ -600,9 +561,6 @@ importers:
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(@cloudflare/workers-types@4.20260514.1)(kysely@0.28.17)
-      effect:
-        specifier: ^3.21.2
-        version: 3.21.2
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.6)

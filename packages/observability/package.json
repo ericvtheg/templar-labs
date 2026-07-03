@@ -1,0 +1,26 @@
+{
+  "name": "@templar/observability",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Error monitoring, metrics, tracing, and observability conventions",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "echo 'No tests configured yet.'",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@templar/config": "workspace:*",
+    "@templar/logger": "workspace:*",
+    "@templar/tsconfig": "workspace:*",
+    "effect": "^3.21.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,5 +1,5 @@
 {
-  "extends": "@templar/tsconfig/library-package.json",
+  "extends": "@templar/tsconfig/library-package",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"

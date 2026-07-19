@@ -20,6 +20,62 @@ export const Route = createRootRoute({
         content: "The draft wedding website for Emma and Eric at Botanica, The Wichita Gardens.",
       },
       {
+        property: "og:title",
+        content: "Emma & Eric — September 25, 2027",
+      },
+      {
+        property: "og:description",
+        content: "A garden celebration at Botanica in Wichita, Kansas.",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:url",
+        content: "https://emma-eric.ericventor.com/",
+      },
+      {
+        property: "og:image",
+        content: "https://emma-eric.ericventor.com/social-card.png",
+      },
+      {
+        property: "og:image:secure_url",
+        content: "https://emma-eric.ericventor.com/social-card.png",
+      },
+      {
+        property: "og:image:type",
+        content: "image/png",
+      },
+      {
+        property: "og:image:width",
+        content: "1200",
+      },
+      {
+        property: "og:image:height",
+        content: "630",
+      },
+      {
+        property: "og:image:alt",
+        content: "Emma and Eric — September 25, 2027 at Botanica in Wichita, Kansas",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:title",
+        content: "Emma & Eric — September 25, 2027",
+      },
+      {
+        name: "twitter:description",
+        content: "A garden celebration at Botanica in Wichita, Kansas.",
+      },
+      {
+        name: "twitter:image",
+        content: "https://emma-eric.ericventor.com/social-card.png",
+      },
+      {
         name: "robots",
         content: "noindex, nofollow, noarchive",
       },

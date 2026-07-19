@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 export const devPorts = {
   "cardiff-split-web": 5177,
+  "emma-eric-wedding-web": 5180,
   "hello-world-web": 5173,
   "launch-room-web": 5175,
   "loan-payment-calculator-web": 5176,

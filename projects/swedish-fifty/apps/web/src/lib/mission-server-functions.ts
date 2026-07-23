@@ -395,32 +395,40 @@ async function ensureProfile(
   const now = new Date();
   const id = crypto.randomUUID();
 
-  await database.db.insert(userProfiles).values({
-    id,
-    userId,
-    createdAt: now,
-    updatedAt: now,
-  });
+  await database.db
+    .insert(userProfiles)
+    .values({
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({ target: userProfiles.userId });
 
   await Promise.all(
     scenarioDefinitions.map((scenario) =>
-      database.db.insert(scenarioReadiness).values({
-        id: crypto.randomUUID(),
-        userId,
-        scenarioKey: scenario.key,
-        score: scenario.defaultScore,
-        confidenceLabel: "Starting",
-        evidenceSummary: "No practice logged yet.",
-        createdAt: now,
-        updatedAt: now,
-      }),
+      database.db
+        .insert(scenarioReadiness)
+        .values({
+          id: crypto.randomUUID(),
+          userId,
+          scenarioKey: scenario.key,
+          score: scenario.defaultScore,
+          confidenceLabel: "Starting",
+          evidenceSummary: "No practice logged yet.",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing({
+          target: [scenarioReadiness.userId, scenarioReadiness.scenarioKey],
+        }),
     ),
   );
 
   const created = await database.db
     .select()
     .from(userProfiles)
-    .where(eq(userProfiles.id, id))
+    .where(eq(userProfiles.userId, userId))
     .limit(1);
   const createdProfile = created[0];
 
@@ -467,27 +475,36 @@ async function createMission(
   const now = new Date();
   const id = crypto.randomUUID();
 
-  await database.db.insert(missions).values({
-    id,
-    userId,
-    missionDate,
-    dayNumber,
-    scenarioKey: generated.mission.scenarioKey,
-    title: generated.mission.title,
-    phase: generated.mission.phase,
-    difficulty: generated.mission.difficulty,
-    context: generated.mission.context,
-    dialogueJson: JSON.stringify(generated.mission.dialogue),
-    promptsJson: JSON.stringify(generated.mission.prompts),
-    roleplaySetup: generated.mission.roleplaySetup,
-    coachNotesJson: JSON.stringify(generated.mission.coachNotes),
-    generatedBy: generated.generatedBy,
-    model: generated.model,
-    createdAt: now,
-    updatedAt: now,
-  });
+  await database.db
+    .insert(missions)
+    .values({
+      id,
+      userId,
+      missionDate,
+      dayNumber,
+      scenarioKey: generated.mission.scenarioKey,
+      title: generated.mission.title,
+      phase: generated.mission.phase,
+      difficulty: generated.mission.difficulty,
+      context: generated.mission.context,
+      dialogueJson: JSON.stringify(generated.mission.dialogue),
+      promptsJson: JSON.stringify(generated.mission.prompts),
+      roleplaySetup: generated.mission.roleplaySetup,
+      coachNotesJson: JSON.stringify(generated.mission.coachNotes),
+      generatedBy: generated.generatedBy,
+      model: generated.model,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({ target: [missions.userId, missions.missionDate] });
 
-  return await requireMission(database, userId, id);
+  const created = await findMissionForDate(database, userId, missionDate);
+
+  if (created === null) {
+    throw new Error("Could not create mission.");
+  }
+
+  return created;
 }
 
 async function generateMission(

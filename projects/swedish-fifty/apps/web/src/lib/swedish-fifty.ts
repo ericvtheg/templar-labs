@@ -179,6 +179,19 @@ export function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+export function missionIsComplete(
+  promptIds: readonly string[],
+  attemptedPromptIds: readonly string[],
+): boolean {
+  if (promptIds.length === 0) {
+    return false;
+  }
+
+  const attempted = new Set(attemptedPromptIds);
+
+  return promptIds.every((promptId) => attempted.has(promptId));
+}
+
 export function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + days);

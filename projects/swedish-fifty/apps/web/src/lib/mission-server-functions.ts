@@ -23,6 +23,7 @@ import {
   type Mission,
   type MissionEvaluation,
   missionDayForDate,
+  missionIsComplete,
   missionSchema,
   type RoleplayReply,
   roleplayReplySchema,
@@ -166,14 +167,16 @@ export const loadDashboard = createServerFn({ method: "GET" }).handler(async (ct
   const existingMission = await findMissionForDate(database, user.id, todayIso);
   const freeMissionUsed = profile.freeMissionUsedAt !== null;
   const freeMissionAvailable = !premium && !freeMissionUsed;
-  const canGenerateToday = existingMission !== null || premium || freeMissionAvailable;
+  const availableFreeMission =
+    existingMission === null && freeMissionAvailable
+      ? await findLatestMission(database, user.id)
+      : null;
+  const canGenerateToday =
+    existingMission !== null || premium || (freeMissionAvailable && availableFreeMission === null);
   const mission =
     existingMission ??
+    availableFreeMission ??
     (canGenerateToday ? await createMission(database, user.id, dayNumber, todayIso) : null);
-
-  if (mission !== null && profile.freeMissionUsedAt === null && !premium) {
-    await markFreeMissionUsed(database, profile);
-  }
 
   const [missionRows, attemptRows, turnRows, memoryRows, readinessRows] = await Promise.all([
     readUserMissions(database, user.id),
@@ -194,7 +197,7 @@ export const loadDashboard = createServerFn({ method: "GET" }).handler(async (ct
       signedIn: true,
       premium,
       freeMissionAvailable,
-      freeMissionUsed: freeMissionUsed || (mission !== null && !premium),
+      freeMissionUsed,
       canGenerateToday,
       gateReason: premium ? "premium" : freeMissionAvailable ? "free-mission" : "free-used",
     },
@@ -262,8 +265,19 @@ export const evaluateAnswer = createServerFn({ method: "POST" })
       });
     }
 
-    const [attemptRows, memoryRows, readinessRows] = await Promise.all([
-      readMissionAttempts(database, user.id, mission.id),
+    const attemptRows = await readMissionAttempts(database, user.id, mission.id);
+    const freeMissionCompleted =
+      !premium &&
+      missionIsComplete(
+        missionPayload.prompts.map((missionPrompt) => missionPrompt.id),
+        attemptRows.map((attempt) => attempt.promptId),
+      );
+
+    if (freeMissionCompleted) {
+      await markFreeMissionUsed(database, user.id);
+    }
+
+    const [memoryRows, readinessRows] = await Promise.all([
       readActiveMemories(database, user.id),
       readReadiness(database, user.id),
     ]);
@@ -271,6 +285,7 @@ export const evaluateAnswer = createServerFn({ method: "POST" })
     return {
       evaluation,
       memoryUpdated: premium,
+      freeMissionCompleted,
       attempts: attemptRows.map(attemptView),
       memories: memoryRows.map(memoryItemView),
       readiness: readinessRows.map(readinessView),
@@ -439,7 +454,7 @@ async function ensureProfile(
   return createdProfile;
 }
 
-async function markFreeMissionUsed(database: SwedishFiftyDatabase, profile: UserProfileRow) {
+async function markFreeMissionUsed(database: SwedishFiftyDatabase, userId: string) {
   const now = new Date();
 
   await database.db
@@ -448,7 +463,7 @@ async function markFreeMissionUsed(database: SwedishFiftyDatabase, profile: User
       freeMissionUsedAt: now,
       updatedAt: now,
     })
-    .where(eq(userProfiles.id, profile.id));
+    .where(eq(userProfiles.userId, userId));
 }
 
 async function findMissionForDate(
@@ -460,6 +475,20 @@ async function findMissionForDate(
     .select()
     .from(missions)
     .where(and(eq(missions.userId, userId), eq(missions.missionDate, missionDate)))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
+async function findLatestMission(
+  database: SwedishFiftyDatabase,
+  userId: string,
+): Promise<MissionRow | null> {
+  const rows = await database.db
+    .select()
+    .from(missions)
+    .where(eq(missions.userId, userId))
+    .orderBy(desc(missions.missionDate))
     .limit(1);
 
   return rows[0] ?? null;

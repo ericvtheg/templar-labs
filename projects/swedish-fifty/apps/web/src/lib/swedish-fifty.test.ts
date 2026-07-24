@@ -4,6 +4,7 @@ import {
   dateFromIso,
   fallbackMission,
   missionDayForDate,
+  missionIsComplete,
   phaseForDay,
   prepWindowDays,
   scenarioForDay,
@@ -43,5 +44,11 @@ describe("Swedish Fifty learning arc", () => {
     expect(mission.scenarioKey).toBe(scenarioForDay(21));
     expect(mission.prompts.length).toBeGreaterThanOrEqual(3);
     expect(mission.dialogue.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("only completes a mission after every prompt has an attempt", () => {
+    expect(missionIsComplete(["one", "two", "three"], [])).toBe(false);
+    expect(missionIsComplete(["one", "two", "three"], ["one", "two", "one"])).toBe(false);
+    expect(missionIsComplete(["one", "two", "three"], ["three", "one", "two"])).toBe(true);
   });
 });

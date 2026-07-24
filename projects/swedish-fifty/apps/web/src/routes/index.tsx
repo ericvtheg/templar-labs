@@ -494,6 +494,14 @@ function Dashboard(props: {
             ? current
             : {
                 ...current,
+                access: result.freeMissionCompleted
+                  ? {
+                      ...current.access,
+                      freeMissionAvailable: false,
+                      freeMissionUsed: true,
+                      gateReason: "free-used",
+                    }
+                  : current.access,
                 attempts: result.attempts,
                 memories: result.memories,
                 readiness: result.readiness,

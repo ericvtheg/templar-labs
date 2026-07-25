@@ -1300,8 +1300,9 @@ a {
   }
 
   .sun-shape {
-    top: 16%;
-    left: 52%;
+    top: auto;
+    bottom: calc(min(112vw, 500px) - 52px);
+    left: calc(50% - 125px);
     width: 180px;
   }
 

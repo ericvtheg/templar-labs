@@ -9,8 +9,8 @@ import { defaultTemplarBindings, type StandardTemplarBindings } from "../../temp
 import { type TanStackStartAppOptions, tanstackStartApp } from "./tanstack-start-app.ts";
 
 export type TemplarAppQueueInput = {
-  readonly binding: Queue;
-  readonly consumer?: boolean | QueueConsumerSettings;
+  readonly binding: Queue<string>;
+  readonly settings?: QueueConsumerSettings;
 };
 
 type EventSource = NonNullable<TanStackStartProps<Bindings>["eventSources"]>[number];
@@ -23,15 +23,14 @@ export type TemplarAppOptions<B extends StandardTemplarBindings = typeof default
     readonly db?: Bindings[string];
     readonly domainName?: string;
     readonly eventSources?: EventSource[];
-    readonly queue?: Queue | TemplarAppQueueInput;
+    readonly queue?: Queue<string> | TemplarAppQueueInput;
     readonly templarBindings?: B;
   };
 
-const defaultQueueSettings = {
-  batchSize: 10,
+const DEFAULT_QUEUE_SETTINGS = {
+  batchSize: 1,
   maxConcurrency: 2,
-  maxRetries: 3,
-  retryDelay: 30,
+  maxRetries: 0,
 } as const satisfies QueueConsumerSettings;
 
 export async function templarApp<
@@ -88,30 +87,26 @@ function normalizeQueueInput(
   }
 
   if (typeof queue === "object" && queue !== null && "binding" in queue) {
-    return {
-      binding: queue.binding,
-      consumer: queue.consumer ?? true,
-    };
+    return queue;
   }
 
   return {
     binding: queue,
-    consumer: true,
   };
 }
 
 function queueConsumerEventSource(
   queueInput: TemplarAppQueueInput | undefined,
 ): EventSource | undefined {
-  if (queueInput === undefined || queueInput.consumer === false) {
+  if (queueInput === undefined) {
     return undefined;
   }
 
   return {
     queue: queueInput.binding,
-    settings:
-      queueInput.consumer === true
-        ? defaultQueueSettings
-        : (queueInput.consumer ?? defaultQueueSettings),
+    settings: {
+      ...DEFAULT_QUEUE_SETTINGS,
+      ...queueInput.settings,
+    },
   };
 }

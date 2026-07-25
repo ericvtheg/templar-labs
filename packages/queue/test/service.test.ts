@@ -2,78 +2,148 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either } from "effect";
 import type { QueueDriver } from "../src/driver.ts";
-import { cloudflareQueueMessage, makeQueue } from "../src/drivers/cloudflare.ts";
-import { QueueSerializationError, QueueStorageError } from "../src/errors.ts";
-import { makeQueueService } from "../src/service.ts";
-import type { QueueDriverSendInput, QueueSendResult, QueueStoredMessage } from "../src/types.ts";
+import { type QueueError, QueueProviderError, QueueSerializationError } from "../src/errors.ts";
+import { makeQueueLayerFor, makeQueueService, makeQueueTag } from "../src/service.ts";
+import type { QueueDelivery, QueueDriverSendInput, QueueMessage } from "../src/types.ts";
 
-test("send serializes a message body and metadata into an envelope", async () => {
+type TestMessage = {
+  readonly id: number;
+  readonly status?: string;
+};
+
+const TEST_TIMESTAMP = new Date("2026-05-19T00:00:00.000Z");
+const TEST_QUEUE = makeQueueTag<TestMessage>("@test/Queue");
+
+test("send serializes a message envelope", async () => {
   const sent: QueueDriverSendInput[] = [];
-  const queue = makeQueueService({
+  const queue = makeQueueService<TestMessage>({
     provider: "test",
     driver: makeDriver(sent),
   });
 
-  const result = await Effect.runPromise(
+  await Effect.runPromise(
     queue.send({
-      body: { userId: "user_1" },
+      body: { id: 1 },
       delaySeconds: 30,
       metadata: { kind: "welcome" },
     }),
   );
 
-  assert.deepEqual(result, makeSendResult());
   assert.equal(sent.length, 1);
   assert.equal(sent[0]?.delaySeconds, 30);
   assert.deepEqual(JSON.parse(sent[0]?.body ?? ""), {
-    body: { userId: "user_1" },
+    body: { id: 1 },
     metadata: { kind: "welcome" },
   });
 });
 
-test("sendBatch serializes all messages", async () => {
+test("sendBatch serializes every message", async () => {
   const sent: QueueDriverSendInput[] = [];
-  const queue = makeQueueService({
+  const queue = makeQueueService<TestMessage>({
     provider: "test",
     driver: makeDriver(sent),
   });
 
-  const result = await Effect.runPromise(
+  await Effect.runPromise(
     queue.sendBatch([{ body: { id: 1 } }, { body: { id: 2 }, metadata: { source: "test" } }]),
   );
 
-  assert.deepEqual(result, makeSendResult());
   assert.deepEqual(
     sent.map((message) => JSON.parse(message.body)),
     [{ body: { id: 1 } }, { body: { id: 2 }, metadata: { source: "test" } }],
   );
 });
 
-test("deserialize parses a stored envelope", async () => {
-  const queue = makeQueueService({
+test("service delegates provider options and empty batches without validating them", async () => {
+  const sent: QueueDriverSendInput[] = [];
+  const batches: ReadonlyArray<QueueDriverSendInput>[] = [];
+  const queue = makeQueueService<TestMessage>({
+    provider: "test",
+    driver: {
+      send: (input) =>
+        Effect.sync(() => {
+          sent.push(input);
+        }),
+      sendBatch: (inputs) =>
+        Effect.sync(() => {
+          batches.push(inputs);
+        }),
+    },
+  });
+
+  await Effect.runPromise(queue.send({ body: { id: 1 }, delaySeconds: -1 }));
+  await Effect.runPromise(queue.sendBatch([]));
+
+  assert.equal(sent[0]?.delaySeconds, -1);
+  assert.deepEqual(batches, [[]]);
+});
+
+test("custom queue tags preserve typed Effect usage", async () => {
+  const sent: QueueDriverSendInput[] = [];
+  const queue = makeQueueService<TestMessage>({
+    provider: "test",
+    driver: makeDriver(sent),
+  });
+
+  await Effect.runPromise(
+    TEST_QUEUE.send({ body: { id: 1, status: "ready" } }).pipe(
+      Effect.provide(makeQueueLayerFor(TEST_QUEUE, queue)),
+    ),
+  );
+
+  assert.deepEqual(JSON.parse(sent[0]?.body ?? ""), {
+    body: { id: 1, status: "ready" },
+  });
+});
+
+test("consume deserializes an envelope before invoking the handler", async () => {
+  const queue = makeQueueService<TestMessage>({
     provider: "test",
     driver: makeDriver(),
   });
-  const stored = makeStoredMessage({
+  const delivery = makeDelivery({
     body: JSON.stringify({
-      body: { status: "ready" },
+      body: { id: 1, status: "ready" },
       metadata: { kind: "status" },
     }),
   });
+  let consumed: QueueMessage<TestMessage> | undefined;
 
-  const message = await Effect.runPromise(queue.deserialize<{ status: string }>(stored));
+  await Effect.runPromise(
+    queue.consume([delivery], (message) =>
+      Effect.sync(() => {
+        consumed = message;
+      }),
+    ),
+  );
 
-  assert.deepEqual(message, {
+  assert.deepEqual(consumed, {
     id: "message-1",
-    body: { status: "ready" },
-    attempts: 2,
-    timestamp: stored.timestamp,
+    body: { id: 1, status: "ready" },
+    timestamp: delivery.timestamp,
     metadata: { kind: "status" },
   });
 });
 
+test("consume rejects values that are not message envelopes", async () => {
+  const queue = makeQueueService<TestMessage>({
+    provider: "test",
+    driver: makeDriver(),
+  });
+  const result = await Effect.runPromise(
+    Effect.either(
+      queue.consume(
+        [makeDelivery({ body: JSON.stringify({ value: { id: 1 } }) })],
+        () => Effect.void,
+      ),
+    ),
+  );
+
+  assertSerializationError(result);
+});
+
 test("send rejects non-JSON message bodies", async () => {
-  const queue = makeQueueService({
+  const queue = makeQueueService<unknown>({
     provider: "test",
     driver: makeDriver(),
   });
@@ -82,38 +152,51 @@ test("send rejects non-JSON message bodies", async () => {
 
   const result = await Effect.runPromise(Effect.either(queue.send({ body: circular })));
 
-  if (Either.isRight(result)) {
-    assert.fail("Expected queue.send to fail.");
-  }
-
-  assert.equal(result.left instanceof QueueSerializationError, true);
+  assertSerializationError(result);
 });
 
-test("deserialize rejects malformed stored JSON", async () => {
-  const queue = makeQueueService({
+test("consume rejects malformed delivery JSON", async () => {
+  const queue = makeQueueService<TestMessage>({
     provider: "test",
     driver: makeDriver(),
   });
-
   const result = await Effect.runPromise(
-    Effect.either(queue.deserialize(makeStoredMessage({ body: "{" }))),
+    Effect.either(queue.consume([makeDelivery({ body: "{" })], () => Effect.void)),
+  );
+
+  assertSerializationError(result);
+});
+
+test("consume propagates handler failures", async () => {
+  const queue = makeQueueService<TestMessage>({
+    provider: "test",
+    driver: makeDriver(),
+  });
+  const failure = new Error("processing failed");
+  const result = await Effect.runPromise(
+    Effect.either(queue.consume([makeDelivery()], () => Effect.fail(failure))),
   );
 
   if (Either.isRight(result)) {
-    assert.fail("Expected queue.deserialize to fail.");
+    assert.fail("Expected the consumer handler to fail.");
   }
 
-  assert.equal(result.left instanceof QueueSerializationError, true);
+  assert.equal(result.left, failure);
 });
 
-test("driver failures are wrapped as storage errors", async () => {
-  const queue = makeQueueService({
+test("driver failures remain provider errors", async () => {
+  const queue = makeQueueService<TestMessage>({
     provider: "test",
     driver: {
       ...makeDriver(),
       send: () =>
         Effect.fail(
-          new QueueStorageError({ operation: "send", messageId: undefined, cause: "boom" }),
+          new QueueProviderError({
+            provider: "test",
+            operation: "send",
+            messageId: undefined,
+            cause: "boom",
+          }),
         ),
     },
   });
@@ -124,97 +207,7 @@ test("driver failures are wrapped as storage errors", async () => {
     assert.fail("Expected queue.send to fail.");
   }
 
-  assert.equal(result.left instanceof QueueStorageError, true);
-});
-
-test("ack and retry delegate to the stored message actions", async () => {
-  const queue = makeQueueService({
-    provider: "test",
-    driver: makeDriver(),
-  });
-  let acked = false;
-  let retryDelay: number | undefined;
-  const message = makeStoredMessage({
-    ack: Effect.sync(() => {
-      acked = true;
-    }),
-    retry: (options) =>
-      Effect.sync(() => {
-        retryDelay = options?.delaySeconds;
-      }),
-  });
-
-  await Effect.runPromise(queue.ack(message));
-  await Effect.runPromise(queue.retry(message, { delaySeconds: 5 }));
-
-  assert.equal(acked, true);
-  assert.equal(retryDelay, 5);
-});
-
-test("Cloudflare queue driver sends serialized messages", async () => {
-  const sent: Array<{ body: string; delaySeconds: number | undefined }> = [];
-  const queue = makeQueue({
-    send: (body, options) => {
-      sent.push({ body, delaySeconds: options?.delaySeconds });
-      return Promise.resolve({
-        metadata: {
-          metrics: {
-            backlogBytes: 12,
-            backlogCount: 1,
-            oldestMessageTimestamp: new Date("2026-05-19T00:00:00.000Z"),
-          },
-        },
-      });
-    },
-    sendBatch: () =>
-      Promise.resolve({
-        metadata: {
-          metrics: {
-            backlogBytes: 0,
-            backlogCount: 0,
-          },
-        },
-      }),
-  });
-
-  const result = await Effect.runPromise(queue.send({ body: { task: "sync" }, delaySeconds: 10 }));
-
-  assert.deepEqual(result, {
-    metrics: {
-      backlogBytes: 12,
-      backlogCount: 1,
-      oldestMessageTimestamp: new Date("2026-05-19T00:00:00.000Z"),
-    },
-  });
-  assert.deepEqual(sent, [
-    {
-      body: JSON.stringify({ body: { task: "sync" } }),
-      delaySeconds: 10,
-    },
-  ]);
-});
-
-test("Cloudflare queue message adapter preserves ack and retry", async () => {
-  let acked = false;
-  let retryDelay: number | undefined;
-  const message = cloudflareQueueMessage({
-    id: "cf-message-1",
-    body: JSON.stringify({ body: { task: "sync" } }),
-    attempts: 1,
-    timestamp: new Date("2026-05-19T00:00:00.000Z"),
-    ack: () => {
-      acked = true;
-    },
-    retry: (options) => {
-      retryDelay = options?.delaySeconds;
-    },
-  });
-
-  await Effect.runPromise(message.ack);
-  await Effect.runPromise(message.retry({ delaySeconds: 15 }));
-
-  assert.equal(acked, true);
-  assert.equal(retryDelay, 15);
+  assert.equal(result.left instanceof QueueProviderError, true);
 });
 
 function makeDriver(sent: QueueDriverSendInput[] = []): QueueDriver {
@@ -222,39 +215,29 @@ function makeDriver(sent: QueueDriverSendInput[] = []): QueueDriver {
     send: (input) =>
       Effect.sync(() => {
         sent.push(input);
-
-        return makeSendResult();
       }),
     sendBatch: (inputs) =>
       Effect.sync(() => {
         sent.push(...inputs);
-
-        return makeSendResult();
       }),
-    ack: (message) => message.ack,
-    retry: (message, options) => message.retry(options),
   };
 }
 
-function makeSendResult(): QueueSendResult {
-  return {
-    metrics: {
-      backlogBytes: 0,
-      backlogCount: 0,
-      oldestMessageTimestamp: undefined,
-    },
-  };
-}
-
-function makeStoredMessage(overrides: Partial<QueueStoredMessage> = {}): QueueStoredMessage {
+function makeDelivery(overrides: Partial<QueueDelivery> = {}): QueueDelivery {
   return {
     id: "message-1",
-    body: JSON.stringify({ body: { ok: true } }),
-    attempts: 2,
-    timestamp: new Date("2026-05-19T00:00:00.000Z"),
-    metadata: undefined,
-    ack: Effect.void,
-    retry: () => Effect.void,
+    body: JSON.stringify({ body: { id: 1 } }),
+    timestamp: TEST_TIMESTAMP,
     ...overrides,
   };
+}
+
+function assertSerializationError(result: Either.Either<unknown, QueueError>): void {
+  if (Either.isRight(result)) {
+    throw new Error("Expected queue serialization to fail.");
+  }
+
+  if (!(result.left instanceof QueueSerializationError)) {
+    throw new Error("Expected QueueSerializationError.");
+  }
 }

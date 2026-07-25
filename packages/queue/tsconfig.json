@@ -2,6 +2,6 @@
   "extends": "@templar/tsconfig/library-package",
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node", "@cloudflare/workers-types"]
   }
 }

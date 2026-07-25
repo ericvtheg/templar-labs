@@ -1,11 +1,12 @@
 import { Data } from "effect";
 
-export type QueueStorageOperation = "send" | "sendBatch" | "ack" | "retry";
+export type QueueProviderOperation = "send" | "sendBatch";
 export type QueueSerializationOperation = "serialize" | "deserialize";
-export type QueueOperation = QueueStorageOperation | QueueSerializationOperation;
+export type QueueOperation = QueueProviderOperation | QueueSerializationOperation | "consume";
 
-export class QueueStorageError extends Data.TaggedError("QueueStorageError")<{
-  readonly operation: QueueStorageOperation;
+export class QueueProviderError extends Data.TaggedError("QueueProviderError")<{
+  readonly provider: string;
+  readonly operation: QueueProviderOperation;
   readonly messageId: string | undefined;
   readonly cause: unknown;
 }> {}
@@ -16,4 +17,4 @@ export class QueueSerializationError extends Data.TaggedError("QueueSerializatio
   readonly cause: unknown;
 }> {}
 
-export type QueueError = QueueStorageError | QueueSerializationError;
+export type QueueError = QueueProviderError | QueueSerializationError;

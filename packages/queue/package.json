@@ -19,6 +19,7 @@
     "effect": "^3.21.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260514.1",
     "@types/node": "^24.12.4"
   },
   "keywords": [],

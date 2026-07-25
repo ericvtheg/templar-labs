@@ -1,16 +1,15 @@
-import { Effect } from "effect";
-import { type QueueDriver, tryQueueStorage, tryQueueStoragePromise } from "../driver.ts";
-import { makeQueueLayer, makeQueueService, type QueueService } from "../service.ts";
-import type {
-  QueueDriverSendInput,
-  QueueRetryOptions,
-  QueueSendBatchResult,
-  QueueSendMetrics,
-  QueueSendResult,
-  QueueStoredMessage,
-} from "../types.ts";
+import { type Context, Effect, type Layer } from "effect";
+import { type QueueDriver, tryQueueProviderPromise } from "../driver.ts";
+import {
+  makeQueueLayer,
+  makeQueueLayerFor,
+  makeQueueService,
+  type QueueService,
+} from "../service.ts";
+import type { QueueDriverSendInput } from "../types.ts";
 
 export type CloudflareQueueSendOptions = {
+  readonly contentType: "text";
   readonly delaySeconds?: number;
 };
 
@@ -44,37 +43,26 @@ export type CloudflareQueueLike = {
     options?: CloudflareQueueSendOptions,
   ) => Promise<CloudflareQueueSendResponse>;
   readonly sendBatch: (
-    messages: ReadonlyArray<CloudflareQueueBatchMessage>,
+    messages: Iterable<CloudflareQueueBatchMessage>,
   ) => Promise<CloudflareQueueSendBatchResponse>;
 };
 
-export type CloudflareQueueMessageRetryOptions = {
-  readonly delaySeconds?: number;
-};
-
-export type CloudflareQueueMessageLike = {
-  readonly id: string;
-  readonly body: string;
-  readonly attempts: number;
-  readonly timestamp?: Date;
-  readonly ack: () => void;
-  readonly retry: (options?: CloudflareQueueMessageRetryOptions) => void;
-};
-
-export function makeCloudflareQueue(queue: CloudflareQueueLike): QueueService {
+export function makeCloudflareQueue<Body = unknown>(
+  queue: CloudflareQueueLike,
+): QueueService<Body> {
   const driver = {
     send: (input: QueueDriverSendInput) =>
-      tryQueueStoragePromise({
+      tryQueueProviderPromise({
+        provider: "cloudflare",
         operation: "send",
         try: () => queue.send(input.body, cloudflareSendOptions(input)),
-      }).pipe(Effect.map(normalizeSendResult)),
+      }).pipe(Effect.asVoid),
     sendBatch: (inputs: ReadonlyArray<QueueDriverSendInput>) =>
-      tryQueueStoragePromise({
+      tryQueueProviderPromise({
+        provider: "cloudflare",
         operation: "sendBatch",
         try: () => queue.sendBatch(inputs.map(cloudflareBatchMessage)),
-      }).pipe(Effect.map(normalizeSendBatchResult)),
-    ack: (message: QueueStoredMessage) => message.ack,
-    retry: (message: QueueStoredMessage, options?: QueueRetryOptions) => message.retry(options),
+      }).pipe(Effect.asVoid),
   } satisfies QueueDriver;
 
   return makeQueueService({
@@ -85,46 +73,25 @@ export function makeCloudflareQueue(queue: CloudflareQueueLike): QueueService {
 
 export const makeQueue = makeCloudflareQueue;
 
-export function cloudflareQueueLayer(queue: CloudflareQueueLike) {
-  return makeQueueLayer(makeCloudflareQueue(queue));
+export function cloudflareQueueLayer<Body = unknown>(queue: CloudflareQueueLike) {
+  return makeQueueLayer(makeCloudflareQueue<Body>(queue));
 }
 
 export const queueLayer = cloudflareQueueLayer;
 
-export function cloudflareQueueMessage(message: CloudflareQueueMessageLike): QueueStoredMessage {
-  return {
-    id: message.id,
-    body: message.body,
-    attempts: message.attempts,
-    timestamp: message.timestamp,
-    metadata: undefined,
-    ack: tryQueueStorage({
-      operation: "ack",
-      messageId: message.id,
-      try: () => {
-        message.ack();
-      },
-    }),
-    retry: (options?: QueueRetryOptions) =>
-      tryQueueStorage({
-        operation: "retry",
-        messageId: message.id,
-        try: () => {
-          message.retry(cloudflareRetryOptions(options));
-        },
-      }),
-  };
+export function cloudflareQueueLayerFor<Id, Body>(
+  tag: Context.Tag<Id, QueueService<Body>>,
+  queue: CloudflareQueueLike,
+): Layer.Layer<Id> {
+  return makeQueueLayerFor(tag, makeCloudflareQueue<Body>(queue));
 }
 
-function cloudflareSendOptions(
-  input: QueueDriverSendInput,
-): CloudflareQueueSendOptions | undefined {
-  if (input.delaySeconds === undefined) {
-    return undefined;
-  }
+export const queueLayerFor = cloudflareQueueLayerFor;
 
+function cloudflareSendOptions(input: QueueDriverSendInput): CloudflareQueueSendOptions {
   return {
-    delaySeconds: input.delaySeconds,
+    contentType: "text",
+    ...(input.delaySeconds === undefined ? {} : { delaySeconds: input.delaySeconds }),
   };
 }
 
@@ -133,39 +100,5 @@ function cloudflareBatchMessage(input: QueueDriverSendInput): CloudflareQueueBat
     body: input.body,
     contentType: "text",
     ...(input.delaySeconds === undefined ? {} : { delaySeconds: input.delaySeconds }),
-  };
-}
-
-function normalizeSendResult(response: CloudflareQueueSendResponse): QueueSendResult {
-  return {
-    metrics: normalizeSendMetrics(response.metadata.metrics),
-  };
-}
-
-function normalizeSendBatchResult(
-  response: CloudflareQueueSendBatchResponse,
-): QueueSendBatchResult {
-  return {
-    metrics: normalizeSendMetrics(response.metadata.metrics),
-  };
-}
-
-function normalizeSendMetrics(metrics: CloudflareQueueSendMetrics): QueueSendMetrics {
-  return {
-    backlogCount: metrics.backlogCount,
-    backlogBytes: metrics.backlogBytes,
-    oldestMessageTimestamp: metrics.oldestMessageTimestamp,
-  };
-}
-
-function cloudflareRetryOptions(
-  options: QueueRetryOptions | undefined,
-): CloudflareQueueMessageRetryOptions | undefined {
-  if (options?.delaySeconds === undefined) {
-    return undefined;
-  }
-
-  return {
-    delaySeconds: options.delaySeconds,
   };
 }

@@ -160,6 +160,7 @@ import Testing
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
+        .deletingLastPathComponent()
         .appendingPathComponent("contracts/v1-valid-request.json")
     let payload = try TemplarJSON.decoder().decode(
         SampleIngestionRequestV1.self,
@@ -179,7 +180,7 @@ import Testing
     let invalidPayloads = [
         requestJSON(device: #""platform":"android","appVersion":"1""#),
         requestJSON(device: #""platform":"ios","appVersion":"1","unexpected":true"#),
-        requestJSON(device: #""platform":"ios","appVersion":""#),
+        requestJSON(device: #""platform":"ios","appVersion":"""#),
         requestJSON(device: #""platform":"ios","appVersion":"\#(longIdentifier)""#),
         requestJSON(sample: #""type":"height","value":82350,"unit":"g""#),
         requestJSON(sample: #""type":"bodyMass","value":0,"unit":"g""#),

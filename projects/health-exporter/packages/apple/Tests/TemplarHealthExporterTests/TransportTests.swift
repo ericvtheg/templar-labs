@@ -85,8 +85,8 @@ import Testing
         unchanged: 0,
         deleted: 1
     )
-    let url = #require(URL(string: "https://health.example/api/v1/sample-ingestion"))
-    let httpResponse = #require(
+    let url = try #require(URL(string: "https://health.example/api/v1/sample-ingestion"))
+    let httpResponse = try #require(
         HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)
     )
     let client = try HealthExporterAPIClient(

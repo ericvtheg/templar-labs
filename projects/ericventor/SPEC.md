@@ -81,16 +81,25 @@ Avoid:
 - Clearly AI-generated text
 - Startup manifesto copy
 - Overly formal resume language
-- Fake terminal or hacker aesthetics
+- Costume-terminal styling, fake command prompts, or illegible hacker effects
 - "Available for hire" funnel language unless actively true
 
 ## Visual Direction
 
 Working blend:
 
-- Editorial Engineer
-- Personal Ops Console
-- Product Lab Notebook
+- Hacker-minded engineer
+- Personal ops control plane
+- Product lab index
+
+Typography and interface character:
+
+- Monospaced, technical typography should carry the primary identity
+- Prefer compact system labels, indexed sections, grids, and visible structure
+- Use sharp, utilitarian geometry rather than soft SaaS cards
+- The site should feel hackable and built by an engineer without becoming a
+  literal fake terminal
+- Avoid classic editorial serif display type
 
 Default mode:
 

@@ -136,9 +136,8 @@
           linear-gradient(90deg, var(--grid) 1px, transparent 1px), var(--page);
         background-size: auto, 42px 42px, 42px 42px, auto;
         color: var(--text);
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
+        font-family: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Menlo,
+          Monaco, Consolas, "Liberation Mono", monospace;
         font-size: 16px;
         line-height: 1.5;
         transition:
@@ -224,7 +223,7 @@
         min-height: 42px;
         padding: 7px 11px 7px 8px;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 4px;
         background: var(--panel);
         color: var(--muted);
         cursor: pointer;
@@ -252,7 +251,7 @@
         overflow: hidden;
         grid-template-columns: 1fr 1fr;
         border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-        border-radius: 7px;
+        border-radius: 2px;
       }
 
       .theme-option__swatches i {
@@ -283,7 +282,7 @@
         align-items: center;
         gap: 12px;
         font-weight: 800;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.04em;
       }
 
       .identity__mark {
@@ -292,11 +291,11 @@
         height: 34px;
         place-items: center;
         border: 1px solid var(--accent);
-        border-radius: 9px;
+        border-radius: 3px;
         background: var(--accent-soft);
         color: var(--accent-strong);
-        font-size: 12px;
-        letter-spacing: 0;
+        font-size: 11px;
+        letter-spacing: -0.08em;
       }
 
       .site-nav__links {
@@ -314,7 +313,7 @@
       .resume-link {
         padding: 8px 12px;
         border: 1px solid var(--border);
-        border-radius: 9px;
+        border-radius: 3px;
         background: var(--panel);
         color: var(--text);
       }
@@ -334,8 +333,7 @@
         gap: 10px;
         margin: 0 0 20px;
         color: var(--accent-strong);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.1em;
@@ -357,13 +355,14 @@
       }
 
       h1 {
-        max-width: 780px;
+        max-width: 830px;
         margin-bottom: 24px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(52px, 7vw, 90px);
-        font-weight: 500;
-        letter-spacing: -0.055em;
-        line-height: 0.96;
+        font-family: inherit;
+        font-size: clamp(46px, 6vw, 78px);
+        font-weight: 900;
+        letter-spacing: -0.075em;
+        line-height: 0.98;
+        text-transform: uppercase;
       }
 
       .hero__lede {
@@ -388,7 +387,7 @@
         gap: 10px;
         padding: 0 17px;
         border: 1px solid var(--border);
-        border-radius: 10px;
+        border-radius: 3px;
         background: var(--panel);
         color: var(--text);
         font-size: 14px;
@@ -413,7 +412,7 @@
         position: relative;
         padding: 26px;
         border: 1px solid var(--border);
-        border-radius: 18px;
+        border-radius: 4px;
         background: linear-gradient(145deg, var(--panel-strong), var(--panel));
         box-shadow: 0 24px 70px var(--shadow);
       }
@@ -431,8 +430,7 @@
       .aside-label {
         margin-bottom: 20px;
         color: var(--quiet);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 11px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -440,9 +438,10 @@
 
       .working-on {
         margin-bottom: 26px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 27px;
-        letter-spacing: -0.025em;
+        font-family: inherit;
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: -0.045em;
         line-height: 1.25;
       }
 
@@ -494,11 +493,22 @@
 
       .section-heading h2 {
         margin-bottom: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(34px, 4vw, 50px);
-        font-weight: 500;
-        letter-spacing: -0.04em;
+        font-family: inherit;
+        font-size: clamp(25px, 3vw, 36px);
+        font-weight: 900;
+        letter-spacing: -0.065em;
         line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .section-heading h2::before {
+        margin-right: 12px;
+        color: var(--accent-strong);
+        content: attr(data-index) " //";
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        vertical-align: middle;
       }
 
       .section-heading p {
@@ -511,7 +521,7 @@
       .pulse {
         overflow: hidden;
         border: 1px solid var(--border);
-        border-radius: 18px;
+        border-radius: 4px;
         background: var(--panel);
         box-shadow: 0 26px 70px color-mix(in srgb, var(--shadow) 60%, transparent);
       }
@@ -524,8 +534,7 @@
         padding: 18px 20px;
         border-bottom: 1px solid var(--border);
         color: var(--muted);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 11px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -558,8 +567,7 @@
 
       .metric__value {
         margin-bottom: 5px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: clamp(23px, 3vw, 34px);
         font-weight: 700;
         letter-spacing: -0.05em;
@@ -609,7 +617,7 @@
         overflow: hidden;
         grid-template-columns: repeat(4, 1fr);
         border: 1px solid var(--border);
-        border-radius: 14px;
+        border-radius: 4px;
         background: var(--panel);
       }
 
@@ -653,7 +661,7 @@
         overflow: hidden;
         padding: 26px;
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: 4px;
         background: var(--panel);
         transition:
           border-color 160ms ease,
@@ -683,8 +691,7 @@
         justify-content: space-between;
         margin-bottom: 56px;
         color: var(--quiet);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 11px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -698,10 +705,11 @@
         position: relative;
         z-index: 1;
         margin-bottom: 10px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 32px;
-        font-weight: 500;
-        letter-spacing: -0.035em;
+        font-family: inherit;
+        font-size: 27px;
+        font-weight: 900;
+        letter-spacing: -0.06em;
+        text-transform: uppercase;
       }
 
       .project-card p {
@@ -722,7 +730,7 @@
       .article-list,
       .newsletter {
         border: 1px solid var(--border);
-        border-radius: 16px;
+        border-radius: 4px;
         background: var(--panel);
       }
 
@@ -742,8 +750,7 @@
       .article-row time,
       .article-row span {
         color: var(--quiet);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 11px;
       }
 
@@ -758,10 +765,11 @@
 
       .newsletter h3 {
         margin-bottom: 10px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 27px;
-        font-weight: 500;
-        letter-spacing: -0.03em;
+        font-family: inherit;
+        font-size: 23px;
+        font-weight: 900;
+        letter-spacing: -0.055em;
+        text-transform: uppercase;
       }
 
       .newsletter p {
@@ -780,7 +788,7 @@
         min-width: 0;
         padding: 12px;
         border: 1px solid var(--border);
-        border-radius: 9px;
+        border-radius: 3px;
         outline: 0;
         background: var(--page);
         color: var(--text);
@@ -792,7 +800,7 @@
 
       .signup button {
         border: 1px solid var(--accent);
-        border-radius: 9px;
+        border-radius: 3px;
         background: var(--accent);
         color: var(--accent-ink);
         font-weight: 800;
@@ -806,7 +814,7 @@
         margin-top: 24px;
         padding: 18px;
         border: 1px solid var(--border);
-        border-radius: 14px;
+        border-radius: 4px;
         background: var(--page-soft);
       }
 
@@ -817,8 +825,7 @@
         align-items: center;
         gap: 10px;
         color: var(--muted);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          monospace;
+        font-family: inherit;
         font-size: 11px;
       }
 
@@ -827,7 +834,7 @@
         height: 28px;
         flex: 0 0 auto;
         border: 1px solid var(--border);
-        border-radius: 7px;
+        border-radius: 2px;
         background: var(--chip-color);
       }
 
@@ -994,8 +1001,8 @@
     <aside class="theme-lab" aria-label="Color theme controls">
       <div class="theme-lab__inner">
         <div class="theme-lab__title">
-          <strong>Color theme lab</strong>
-          <span>Apply each palette to the same interface.</span>
+          <strong>SYS://COLOR_LAB</strong>
+          <span>palette runtime / select environment</span>
         </div>
         <div class="theme-options" role="group" aria-label="Choose a theme">
           <button class="theme-option" type="button" data-set-theme="graphite" aria-pressed="true">
@@ -1040,47 +1047,47 @@
     <div class="page">
       <header class="site-nav">
         <a class="identity" href="#top" aria-label="Eric Ventor home">
-          <span class="identity__mark">EV</span>
-          <span>Eric Ventor</span>
+          <span class="identity__mark">EV_</span>
+          <span>ericventor.com</span>
         </a>
         <nav class="site-nav__links" aria-label="Primary navigation">
-          <a href="#projects">Projects</a>
-          <a href="#writing">Writing</a>
-          <a href="#about">About</a>
-          <a class="resume-link" href="#resume">Resume ↗</a>
+          <a href="#projects">./projects</a>
+          <a href="#writing">./writing</a>
+          <a href="#about">./about</a>
+          <a class="resume-link" href="#resume">resume.pdf ↗</a>
         </nav>
       </header>
 
       <main id="top">
         <section class="hero" aria-labelledby="hero-title">
           <div>
-            <p class="eyebrow">Software engineer / builder</p>
+            <p class="eyebrow">~/ericventor :: engineer / builder</p>
             <h1 id="hero-title">Useful software, built with intent.</h1>
             <p class="hero__lede">
               Placeholder introduction for backend systems, AI-native products,
               and the useful things being built along the way.
             </p>
             <div class="actions">
-              <a class="button button--primary" href="#projects">View projects <span>→</span></a>
-              <a class="button" href="#writing">Read writing <span>→</span></a>
+              <a class="button button--primary" href="#projects">./view-projects <span>→</span></a>
+              <a class="button" href="#writing">./read-writing <span>→</span></a>
             </div>
           </div>
 
           <aside class="hero__aside" aria-label="Current work">
-            <p class="aside-label">Currently building</p>
+            <p class="aside-label">PROCESS::ACTIVE_BUILD</p>
             <p class="working-on">A short placeholder for the current project or idea.</p>
             <div class="aside-meta">
               <div class="aside-meta__row">
-                <span>Status</span>
-                <span class="status">Shipping</span>
+                <span>status</span>
+                <span class="status">shipping</span>
               </div>
               <div class="aside-meta__row">
-                <span>Focus</span>
-                <strong>AI + backend</strong>
+                <span>focus</span>
+                <strong>ai_backend</strong>
               </div>
               <div class="aside-meta__row">
-                <span>Updated</span>
-                <strong>Today</strong>
+                <span>updated_at</span>
+                <strong>today</strong>
               </div>
             </div>
           </aside>
@@ -1088,13 +1095,13 @@
 
         <section class="section" aria-labelledby="pulse-title">
           <div class="section-heading">
-            <h2 id="pulse-title">Live pulse</h2>
+            <h2 id="pulse-title" data-index="01">Live pulse</h2>
             <p>A quiet snapshot of current work and public-safe system activity.</p>
           </div>
           <div class="pulse">
             <div class="pulse__header">
-              <span>Snapshot / July 2026</span>
-              <span class="pulse__live">● Data current</span>
+              <span>PUBLIC_TELEMETRY / 2026-07</span>
+              <span class="pulse__live">● STATUS::CURRENT</span>
             </div>
             <div class="pulse__grid">
               <article class="metric">
@@ -1119,17 +1126,17 @@
               </article>
             </div>
             <div class="pulse__services">
-              <span class="service">Homelab online</span>
-              <span class="service">L4D2 online</span>
-              <span class="service service--paused">Minecraft paused</span>
-              <span>Updated 4 minutes ago</span>
+              <span class="service">homelab::online</span>
+              <span class="service">l4d2::online</span>
+              <span class="service service--paused">minecraft::paused</span>
+              <span>updated_at::4m</span>
             </div>
           </div>
         </section>
 
         <section class="section" id="about" aria-labelledby="experience-title">
           <div class="section-heading">
-            <h2 id="experience-title">Experience</h2>
+            <h2 id="experience-title" data-index="02">Experience log</h2>
             <p>Just enough context to show scale, ownership, and the kinds of systems involved.</p>
           </div>
           <div class="career-strip">
@@ -1158,27 +1165,27 @@
 
         <section class="section" id="projects" aria-labelledby="projects-title">
           <div class="section-heading">
-            <h2 id="projects-title">Selected projects</h2>
+            <h2 id="projects-title" data-index="03">Project index</h2>
             <p>A growing portfolio of products, systems, practical AI, and small experiments.</p>
           </div>
           <div class="projects">
             <a class="project-card" href="#makid">
-              <div class="project-card__meta"><span>Product / active</span><span class="project-card__number">01</span></div>
+              <div class="project-card__meta"><span>TYPE::PRODUCT / ACTIVE</span><span class="project-card__number">PRJ_01</span></div>
               <h3>MAKID</h3>
               <p>One independently built product in the wider portfolio.</p>
             </a>
             <a class="project-card" href="#templar">
-              <div class="project-card__meta"><span>System</span><span class="project-card__number">02</span></div>
+              <div class="project-card__meta"><span>TYPE::SYSTEM</span><span class="project-card__number">PRJ_02</span></div>
               <h3>Templar Labs</h3>
               <p>Reusable architecture for taking useful ideas to production quickly.</p>
             </a>
             <a class="project-card" href="#tubs">
-              <div class="project-card__meta"><span>AI assistant</span><span class="project-card__number">03</span></div>
+              <div class="project-card__meta"><span>TYPE::AI_ASSISTANT</span><span class="project-card__number">PRJ_03</span></div>
               <h3>Tubs</h3>
               <p>A practical homelab assistant for everyday planning and operations.</p>
             </a>
             <a class="project-card" href="#cardiff">
-              <div class="project-card__meta"><span>Experiment</span><span class="project-card__number">04</span></div>
+              <div class="project-card__meta"><span>TYPE::EXPERIMENT</span><span class="project-card__number">PRJ_04</span></div>
               <h3>Cardiff Split</h3>
               <p>A small, useful tool built and deployed while the idea was still warm.</p>
             </a>
@@ -1187,29 +1194,29 @@
 
         <section class="section" id="writing" aria-labelledby="writing-title">
           <div class="section-heading">
-            <h2 id="writing-title">Writing</h2>
+            <h2 id="writing-title" data-index="04">Field notes</h2>
             <p>Notes about software, products, infrastructure, agents, and lessons from shipping.</p>
           </div>
           <div class="writing-grid">
             <div class="article-list">
               <a class="article-row" href="#article-1">
-                <time datetime="2026-06-28">Jun 28</time>
+                <time datetime="2026-06-28">2026.06.28</time>
                 <strong>Placeholder title for a useful technical article</strong>
                 <span>6 min</span>
               </a>
               <a class="article-row" href="#article-2">
-                <time datetime="2026-05-14">May 14</time>
+                <time datetime="2026-05-14">2026.05.14</time>
                 <strong>What changed after shipping the first version</strong>
                 <span>4 min</span>
               </a>
               <a class="article-row" href="#article-3">
-                <time datetime="2026-04-02">Apr 02</time>
+                <time datetime="2026-04-02">2026.04.02</time>
                 <strong>Notes from building with small, focused agents</strong>
                 <span>8 min</span>
               </a>
             </div>
             <aside class="newsletter">
-              <p class="eyebrow">Occasional updates</p>
+              <p class="eyebrow">SUBSCRIBE::OPTIONAL</p>
               <h3>New things worth sharing.</h3>
               <p>Posts and project updates, sent when something useful ships.</p>
               <form class="signup">
@@ -1231,7 +1238,7 @@
       </main>
 
       <footer class="footer">
-        <span>Eric Ventor — engineer and builder.</span>
+        <span>© ERIC_VENTOR / ENGINEER_BUILDER</span>
         <div class="footer__links">
           <a href="#github">GitHub</a>
           <a href="#linkedin">LinkedIn</a>

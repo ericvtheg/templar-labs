@@ -44,32 +44,39 @@ async function resolveMigrationsDir(
 
 async function composeMigrationsDir(id: string, migrationsDirs: readonly string[]) {
   const targetDir = path.join(".templar", "d1-migrations", id);
-  const manifest: Array<{ readonly from: string; readonly to: string }> = [];
   const seen = new Map<string, string>();
 
   await rm(targetDir, { force: true, recursive: true });
   await mkdir(targetDir, { recursive: true });
 
-  for (const migrationsDir of migrationsDirs) {
-    const sqlFiles = await listSqlFiles(migrationsDir);
+  const migrationFiles = (
+    await Promise.all(
+      migrationsDirs.map(async (migrationsDir) => {
+        const sqlFiles = await listSqlFiles(migrationsDir);
+        return sqlFiles.map((relativeFile) => ({ migrationsDir, relativeFile }));
+      }),
+    )
+  ).flat();
+  const manifest = migrationFiles.map(({ migrationsDir, relativeFile }) => {
+    const existing = seen.get(relativeFile);
 
-    for (const relativeFile of sqlFiles) {
-      const existing = seen.get(relativeFile);
-
-      if (existing !== undefined) {
-        throw new Error(
-          `Duplicate D1 migration filename "${relativeFile}" from ${migrationsDir}; already provided by ${existing}.`,
-        );
-      }
-
-      seen.set(relativeFile, migrationsDir);
-
-      const targetFile = path.join(targetDir, relativeFile);
-      await mkdir(path.dirname(targetFile), { recursive: true });
-      await copyFile(path.join(migrationsDir, relativeFile), targetFile);
-      manifest.push({ from: path.join(migrationsDir, relativeFile), to: relativeFile });
+    if (existing !== undefined) {
+      throw new Error(
+        `Duplicate D1 migration filename "${relativeFile}" from ${migrationsDir}; already provided by ${existing}.`,
+      );
     }
-  }
+
+    seen.set(relativeFile, migrationsDir);
+    return { from: path.join(migrationsDir, relativeFile), to: relativeFile };
+  });
+
+  await Promise.all(
+    manifest.map(async ({ from, to }) => {
+      const targetFile = path.join(targetDir, to);
+      await mkdir(path.dirname(targetFile), { recursive: true });
+      await copyFile(from, targetFile);
+    }),
+  );
 
   await writeFile(
     path.join(targetDir, "manifest.json"),

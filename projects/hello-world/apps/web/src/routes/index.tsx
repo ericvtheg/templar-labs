@@ -382,20 +382,29 @@ function Home() {
         const result = await publishQueueEventFn();
         setQueueEventRows(result.events);
 
-        for (let attempt = 0; attempt < 10; attempt += 1) {
+        const pollForProcessedEvent = async (
+          messageId: string,
+          attemptsRemaining: number,
+        ): Promise<void> => {
+          if (attemptsRemaining === 0) {
+            return;
+          }
+
           await wait(1000);
 
           const nextResult = await listQueueEventsFn();
           setQueueEventRows(nextResult.events);
 
-          const publishedEvent = nextResult.events.find(
-            (event) => event.messageId === result.messageId,
-          );
+          const publishedEvent = nextResult.events.find((event) => event.messageId === messageId);
 
           if (publishedEvent?.status === "processed") {
             return;
           }
-        }
+
+          return pollForProcessedEvent(messageId, attemptsRemaining - 1);
+        };
+
+        await pollForProcessedEvent(result.messageId, 10);
       } catch {
         setQueueError("The queue message could not complete.");
       }

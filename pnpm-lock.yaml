@@ -446,21 +446,16 @@ importers:
 
   packages/scheduler:
     dependencies:
-      '@templar/config':
-        specifier: workspace:*
-        version: link:../config
-      '@templar/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@templar/queue':
-        specifier: workspace:*
-        version: link:../queue
       '@templar/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
       effect:
         specifier: ^3.21.2
         version: 3.21.2
+    devDependencies:
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
 
   packages/tsconfig: {}
 

@@ -1,31 +1,96 @@
 # @templar/scheduler
 
-Scheduled and recurring task conventions for the monorepo.
+Recurring cron task conventions for Templar Labs projects.
 
-## Scope
+The package keeps cron declarations, provider event handling, Effect execution,
+and logging consistent across apps. Cloudflare Cron Triggers are the default
+provider.
 
-- **Cron jobs** — register recurring tasks with cron expressions (Cloudflare Cron
-  Triggers as the default provider).
-- **One-shot scheduled tasks** — enqueue work at a specific future time (e.g.,
-  "send reminder email in 24 hours").
-- **Idempotency** — prevent duplicate execution of scheduled work after
-  redeploys, retries, or time drift.
-- **Observability** — log and track scheduled task execution, failures, and
-  latency (will pair with `@templar/observability` once it's wired).
+Queue delays and one-shot deferred work belong to `@templar/queue`. Durable
+multi-step orchestration belongs to a future workflow package.
 
-## Design Notes
+## Define Schedules Once
 
-Cloudflare Workers support Cron Triggers via `ScheduledEvent`, but the
-abstraction in `@templar/deploy` does not yet expose them. The `@templar/queue`
-package handles async job processing but has no scheduling or delay primitives.
+Keep the manifest in a pure module that both deployment and runtime code can
+import:
 
-Likely future approach:
-- Cron expressions configured in the Alchemy infrastructure layer (extend
-  `@templar/deploy` to support `ScheduledEvent` bindings).
-- An Effect-friendly `Scheduler` service that registers handlers and provides
-  `Layer` composition.
-- Scheduled one-shot tasks via the queue with a delay parameter (Cloudflare
-  Queues support `sendDelay`).
+```ts
+import { defineSchedules } from "@templar/scheduler";
 
-Until the first project needs cron (e.g., nightly cleanup, digest emails, status
-checks), this package stays minimal.
+export const schedules = defineSchedules({
+  nightlyCleanup: "0 2 * * *",
+  weeklyDigest: "0 7 * * MON",
+});
+```
+
+Schedule names must be unique, and each cron expression may belong to one
+schedule. Compose several operations inside one handler when they should run at
+the same cadence.
+
+## Deploy Cron Triggers
+
+Alchemy's Worker and TanStack Start resources accept `crons`. Derive that list
+from the shared manifest so deployment and runtime cannot drift:
+
+```ts
+import { schedulerCrons } from "@templar/scheduler";
+import { schedules } from "./apps/web/src/schedules.ts";
+
+export const website = await templarApp("website", {
+  project: "example",
+  cwd: "apps/web",
+  crons: schedulerCrons(schedules),
+});
+```
+
+Cloudflare cron expressions contain five fields and run in UTC.
+
+## Handle Scheduled Events
+
+Register one Effect handler for every schedule:
+
+```ts
+import { makeScheduler } from "@templar/scheduler";
+import { Effect } from "effect";
+import { schedules } from "./schedules.ts";
+
+const scheduler = makeScheduler(schedules, {
+  nightlyCleanup: ({ executionId, scheduledAt }) =>
+    Effect.logInfo("cleaning expired records", { executionId, scheduledAt }),
+  weeklyDigest: ({ executionId, scheduledAt }) =>
+    Effect.logInfo("sending weekly digest", { executionId, scheduledAt }),
+});
+
+export default {
+  scheduled(controller: ScheduledController) {
+    return Effect.runPromise(scheduler.handle(controller));
+  },
+};
+```
+
+Handlers can close over services created from Worker bindings, or provide their
+own Effect layers before registration.
+
+## Execution Identity
+
+Each handler receives:
+
+- `name`: the manifest key.
+- `cron`: the exact expression that fired.
+- `scheduledAt`: Cloudflare's scheduled timestamp, not the actual start time.
+- `executionId`: a deterministic `<name>:<scheduledTime>` identifier.
+
+Use `executionId` as a database key or downstream idempotency key when duplicate
+effects would be unsafe. The scheduler provides stable identity but does not
+claim exactly-once execution.
+
+## Drivers
+
+`SchedulerDriver<Input>` is the provider boundary. A driver validates provider
+cron conventions and converts the provider's event into a normalized scheduler
+trigger. The shared service owns registry validation, dispatch, errors, logging,
+tags, and layers.
+
+The root `makeScheduler` and `schedulerLayer` constructors use Cloudflare. A
+future provider can implement `SchedulerDriver` without changing schedule or
+handler definitions.

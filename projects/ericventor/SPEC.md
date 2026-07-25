@@ -182,7 +182,7 @@ Items:
 - GitHub recent activity across repos
 - AI build activity: tokens used this month across Codex TUI, OpenRouter, and
   personal agents like OpenClaw/Hermes
-- MAKID metrics: ARR and total users
+- Personal product portfolio metrics: aggregate ARR and combined MAU
 - Latest writing
 - Homelab status
 - L4D2 server status
@@ -228,14 +228,14 @@ Signup copy should be broad, not only blog-specific. Direction:
 
 ### MAKID
 
-MAKID is the flagship product proof.
+MAKID is one commercial product proof within Eric's broader portfolio. It
+should not dominate the homepage or define the overall portfolio story.
 
 Emphasize:
 
-- Business traction
+- Business traction as one part of the wider portfolio
 - Product story
-- Exact ARR
-- Exact total users
+- Product-level metrics where they add useful context
 - Built from zero to one
 - Music producer workflow/product angle
 
@@ -357,20 +357,25 @@ Implementation direction:
 - Homepage should show aggregate monthly token usage as a Live Pulse detail
 - Do not expose raw prompts, private repo names, logs, or secrets
 
-### MAKID Product Metrics
+### Personal Product Portfolio Metrics
 
 Public metrics:
 
-- Exact ARR
-- Exact total users
+- Aggregate ARR across Eric's revenue-producing projects
+- Combined monthly active users across Eric's active products
 
 Implementation direction:
 
-- Stripe should be accessed server-side only
-- ARR should be derived from subscription data, not exposed directly from the
-  browser
-- Total users can come from Mixpanel or the app database, depending on the
-  cleaner source of truth
+- Treat the portfolio, rather than any single product, as the homepage metric
+  source
+- Normalize project-level metric snapshots into one public portfolio summary
+- Revenue providers such as Stripe should be accessed server-side only
+- ARR should be derived from project subscription data, not exposed directly
+  from the browser
+- MAU can come from each project's analytics provider or application database,
+  depending on its source of truth
+- Define whether combined MAU is deduplicated across products or is the sum of
+  project-level MAU; label it clearly if users may overlap
 - Publish only sanitized aggregates
 - Include last updated/stale state
 
@@ -497,7 +502,7 @@ Likely shared packages:
 ### Phase 3: Core Integrations
 
 - GitHub activity snapshot
-- MAKID ARR and total users
+- Aggregate portfolio ARR and combined MAU
 - AI token usage aggregate shape
 - Homelab/game status snapshot
 - Stale/failure handling
@@ -525,7 +530,7 @@ Likely shared packages:
 - Exact homepage copy
 - Exact visual palette values
 - Whether light mode ships in v1 or later
-- Source of MAKID total users: Mixpanel vs app database
+- Definition and project-level sources for combined portfolio MAU
 - Source format for Codex/OpenRouter/personal-agent token usage
 - Whether GitHub private aggregate activity is included
 - Whether old blog URLs get redirects
@@ -538,6 +543,8 @@ Likely shared packages:
 - Homepage communicates what Eric does within 30 seconds
 - Site makes Eric feel capable, hirable, passionate, and personal
 - Live Pulse makes the site feel current without leaking private infrastructure
+- Homepage business metrics represent Eric's overall product portfolio rather
+  than centering a single project
 - MAKID, Templar Labs, Tubs, and Cardiff Split are equally represented as
   featured projects
 - Blog content is migrated as-is with modern presentation

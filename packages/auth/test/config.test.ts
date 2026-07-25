@@ -101,3 +101,24 @@ test("passes app-specific database hooks to Better Auth", () => {
 
   assert.equal(options.databaseHooks, databaseHooks);
 });
+
+test("keeps framework cookie plugins last", () => {
+  const frameworkPlugin = { id: "framework" };
+  const appPlugin = { id: "app" };
+  const config = normalizeTemplarAuthConfig({
+    project: "Hello World",
+    app: "Web",
+    baseURL: "https://example.com/",
+    secret: "secret",
+    db,
+    plugins: [appPlugin],
+  });
+  const options = createBetterAuthOptions(config, {} as BetterAuthOptions["database"], [
+    frameworkPlugin,
+  ]);
+
+  assert.deepEqual(
+    options.plugins?.map((plugin) => plugin.id),
+    ["app", "framework"],
+  );
+});

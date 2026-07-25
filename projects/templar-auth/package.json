@@ -1,0 +1,25 @@
+{
+  "name": "templar-auth",
+  "displayName": "Templar Auth",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/project-build.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "pnpm --filter templar-auth-web test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/auth": "workspace:*",
+    "@templar/deploy": "workspace:*",
+    "@templar/dev-ports": "workspace:*"
+  },
+  "devDependencies": {
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3"
+  }
+}

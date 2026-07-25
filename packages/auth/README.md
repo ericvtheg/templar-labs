@@ -1,8 +1,11 @@
 # Auth
 
-`@templar/auth` owns the repository authentication convention. Apps should use
-this package to create Better Auth instances, auth clients, shared schema, and
-the Effect auth service instead of rebuilding those pieces locally.
+`@templar/auth` owns canonical Better Auth server conventions and the database-free first-party
+application session flow.
+
+The central service uses `createTemplarAuthServer`. An app without local D1 user data uses
+`createTemplarAuthApp`; an app that needs a local user row should use `createTemplarUserApp` from
+`@templar/users` instead.
 
 ## Package Boundary
 
@@ -10,7 +13,7 @@ The package should assemble repeated auth behavior:
 
 - Better Auth defaults such as app name, cookie prefix, account linking,
   password hashing, and TanStack Start cookies.
-- shared Drizzle auth schema.
+- shared canonical Drizzle auth and JWT-key schema.
 - shared auth table migrations.
 - session lookup and typed auth failures.
 - derived service methods such as `requireUser` and `requireTenant`.
@@ -22,6 +25,11 @@ Consuming apps should provide runtime bindings and product facts:
 - OAuth credentials.
 - optional app-specific auth schema additions.
 - optional tenant resolver when the app has real multi-tenant rules.
+
+Application SSO uses a 60-second, single-use authorization code, state, and PKCE. The central
+service accepts the standard callback path on first-party `ericventor.com` origins and signs the
+canonical user ID for the shared `templar-first-party` audience. It does not store an app registry
+or durable user-to-app associations.
 
 The default tenant convention is the authenticated user id. This keeps
 single-user apps from implementing tenant plumbing and gives multi-tenant apps a

@@ -1,10 +1,14 @@
-import { withAuthMigrations } from "@templar/auth/deploy";
 import { deployApp } from "@templar/deploy";
 import { d1Database, queue, r2Bucket, templarApp } from "@templar/deploy/cloudflare";
+import { devPort } from "@templar/dev-ports";
 import { schedulerCrons } from "@templar/scheduler";
+import { withUsersMigrations } from "@templar/users/deploy";
 import { schedules } from "./apps/web/src/schedules.ts";
 
 const app = await deployApp("hello-world");
+const authIssuer = app.local
+  ? `http://localhost:${devPort("templar-auth-web")}`
+  : "https://auth.ericventor.com";
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",
@@ -12,7 +16,7 @@ const r2 = await r2Bucket("r2", {
 
 const db = await d1Database(
   "db",
-  withAuthMigrations({
+  withUsersMigrations({
     project: "hello-world",
     adopt: true,
     migrationsDirs: ["db/migrations"],
@@ -33,6 +37,9 @@ export const website = await templarApp("website", {
   db,
   blob: r2,
   queue: jobs,
+  bindings: {
+    AUTH_ISSUER: authIssuer,
+  },
 });
 
 console.log({

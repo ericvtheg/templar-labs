@@ -1,0 +1,36 @@
+{
+  "name": "templar-auth-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "pnpm --dir ../.. deploy",
+    "destroy": "pnpm --dir ../.. destroy",
+    "dev": "pnpm --dir ../.. dev",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "serve": "vite preview",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/auth": "workspace:*",
+    "@templar/dev-ports": "workspace:*",
+    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-start": "^1.132.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.11.6",
+    "@cloudflare/workers-types": "^4.20250805.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "alchemy": "0.93.7",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.9",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}

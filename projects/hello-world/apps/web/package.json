@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@templar/assets": "workspace:*",
-    "@templar/auth": "workspace:*",
     "@templar/blob": "workspace:*",
     "@templar/db": "workspace:*",
     "@templar/dev-ports": "workspace:*",
@@ -23,6 +22,7 @@
     "@templar/queue": "workspace:*",
     "@templar/scheduler": "workspace:*",
     "@templar/ui": "workspace:*",
+    "@templar/users": "workspace:*",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.2.2",
     "@tanstack/react-router": "^1.132.0",

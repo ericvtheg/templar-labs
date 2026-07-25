@@ -13,10 +13,17 @@ export type TemplarAuth<TSchema extends AuthDatabaseSchema = AuthDatabaseSchema>
   ReturnType<typeof createTemplarAuthOptions<TSchema>>
 >;
 
-export function createTemplarAuth<TSchema extends AuthDatabaseSchema>(
+export function createTemplarAuthServer<TSchema extends AuthDatabaseSchema>(
   config: TemplarAuthConfig<TSchema>,
 ) {
   return betterAuth(createTemplarAuthOptions(config));
+}
+
+// Compatibility alias for existing database-backed applications.
+export function createTemplarAuth<TSchema extends AuthDatabaseSchema>(
+  config: TemplarAuthConfig<TSchema>,
+) {
+  return createTemplarAuthServer(config);
 }
 
 export function createTemplarAuthOptions<TSchema extends AuthDatabaseSchema>(

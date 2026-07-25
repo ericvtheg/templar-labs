@@ -6,7 +6,7 @@ export class AuthConfigError extends Data.TaggedError("AuthConfigError")<{
 }> {}
 
 export class AuthUnauthorizedError extends Data.TaggedError("AuthUnauthorizedError")<{
-  readonly reason: "missing-session";
+  readonly reason: "missing-session" | "admin-required";
 }> {}
 
 export class AuthTenantRequiredError extends Data.TaggedError("AuthTenantRequiredError")<{

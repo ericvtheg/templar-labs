@@ -8,6 +8,7 @@ export const devPorts = {
   "launch-room-web": 5175,
   "loan-payment-calculator-web": 5176,
   "swedish-fifty-web": 5178,
+  "templar-auth-web": 5181,
   "ui-showcase-web": 5174,
   "utils-web": 5179,
 } as const;

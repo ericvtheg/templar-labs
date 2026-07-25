@@ -1,23 +1,17 @@
-import { createTemplarAuth } from "@templar/auth/tanstack-start";
-import * as schema from "../../../../db/schema.ts";
+import { createTemplarUserApp } from "@templar/users";
 
-export async function getAuth() {
+export async function getAuth(request: Request) {
   const { env } = await import("cloudflare:workers");
-  const bindings = env as {
-    readonly AUTH_BASE_URL: string;
+  const bindings = env as unknown as {
+    readonly AUTH_ISSUER: string;
     readonly AUTH_SECRET: string;
     readonly DB: D1Database;
   };
 
-  return createTemplarAuth({
-    project: "hello-world",
-    app: "web",
-    baseURL: bindings.AUTH_BASE_URL,
+  return createTemplarUserApp({
+    baseURL: new URL(request.url).origin,
+    issuer: bindings.AUTH_ISSUER,
     secret: bindings.AUTH_SECRET,
     db: bindings.DB,
-    schema,
-    emailAndPassword: {
-      enabled: true,
-    },
   });
 }

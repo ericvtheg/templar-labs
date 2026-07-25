@@ -13,8 +13,10 @@
   },
   "exports": {
     ".": "./src/index.ts",
+    "./app": "./src/app.ts",
     "./client": "./src/client.ts",
     "./deploy": "./src/deploy.ts",
+    "./plugins": "./src/plugins.ts",
     "./schema": "./src/schema.ts",
     "./tanstack-start": "./src/tanstack-start.ts"
   },

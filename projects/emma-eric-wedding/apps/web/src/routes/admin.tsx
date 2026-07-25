@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useId, useState } from "react";
-import { type AdminAccess, adminEmail } from "../lib/admin-auth.ts";
+import { useId } from "react";
+import type { AdminAccess } from "../lib/admin-auth.ts";
 import { getAdminAccess } from "../lib/auth.server.ts";
-import { authClient } from "../lib/auth-client.ts";
 
 type AdminSearch = {
   readonly error?: string;
@@ -48,61 +47,33 @@ function AdminSignIn({
   readonly oauthError: boolean;
 }) {
   const titleId = useId();
-  const [clientError, setClientError] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const hasError = access === "forbidden" || oauthError || clientError;
-
-  async function signIn() {
-    setClientError(false);
-    setIsPending(true);
-
-    try {
-      const result = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/admin",
-        errorCallbackURL: "/admin",
-        loginHint: adminEmail,
-      });
-
-      if (result.error !== null) {
-        setClientError(true);
-        setIsPending(false);
-      }
-    } catch {
-      setClientError(true);
-      setIsPending(false);
-    }
-  }
-
-  async function signOut() {
-    setIsPending(true);
-    await authClient.signOut();
-    window.location.assign("/admin");
-  }
+  const hasError = access === "forbidden" || oauthError;
 
   return (
     <main className="admin-auth-shell">
       <section aria-labelledby={titleId} className="admin-auth-card">
         <p className="eyebrow">Private administration</p>
         <h1 id={titleId}>Emma & Eric</h1>
-        <p className="admin-auth-copy">Sign in with the authorized Google account to continue.</p>
+        <p className="admin-auth-copy">Continue through Templar Auth.</p>
         {hasError ? (
           <p className="admin-auth-error" role="alert">
             This Google account does not have access.
           </p>
         ) : null}
-        <button
-          className="button button-primary admin-auth-button"
-          disabled={isPending}
-          onClick={access === "forbidden" ? signOut : signIn}
-          type="button"
-        >
-          {isPending
-            ? "Working…"
-            : access === "forbidden"
-              ? "Use another account"
-              : "Continue with Google"}
-        </button>
+        {access === "forbidden" ? (
+          <form action="/api/auth/sign-out?returnTo=/admin" method="post">
+            <button className="button button-primary admin-auth-button" type="submit">
+              Sign out
+            </button>
+          </form>
+        ) : (
+          <a
+            className="button button-primary admin-auth-button"
+            href="/api/auth/sign-in?returnTo=/admin"
+          >
+            Continue securely
+          </a>
+        )}
       </section>
     </main>
   );

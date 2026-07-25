@@ -13,10 +13,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@templar/auth": "workspace:*",
     "@templar/db": "workspace:*",
     "@templar/deploy": "workspace:*",
-    "@templar/scheduler": "workspace:*"
+    "@templar/dev-ports": "workspace:*",
+    "@templar/scheduler": "workspace:*",
+    "@templar/users": "workspace:*"
   },
   "devDependencies": {
     "alchemy": "^0.93.7",

@@ -1,0 +1,30 @@
+{
+  "name": "@templar/users",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Local application users backed by canonical Templar identity",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./deploy": "./src/deploy.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "dependencies": {
+    "@templar/auth": "workspace:*",
+    "@templar/db": "workspace:*",
+    "@templar/tsconfig": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "effect": "^3.21.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20260511.1",
+    "@types/node": "^24.12.4"
+  }
+}

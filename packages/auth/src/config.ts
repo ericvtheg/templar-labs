@@ -30,6 +30,7 @@ export type TemplarAuthConfig<TSchema extends AuthDatabaseSchema = AuthDatabaseS
   readonly oauth?: AuthOAuthConfig;
   readonly emailAndPassword?: BetterAuthOptions["emailAndPassword"];
   readonly databaseHooks?: BetterAuthOptions["databaseHooks"];
+  readonly plugins?: BetterAuthOptions["plugins"];
   readonly trustedOrigins?: readonly string[];
   readonly drizzle?: Omit<DrizzleConfig<TSchema>, "schema">;
 };
@@ -104,7 +105,7 @@ export function createBetterAuthOptions<TSchema extends AuthDatabaseSchema>(
         generateId: "uuid",
       },
     },
-    plugins,
+    plugins: [...(config.plugins ?? []), ...plugins],
   };
 }
 

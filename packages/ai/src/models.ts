@@ -13,61 +13,30 @@ export type AIModelRoute = {
  * where a user is waiting on a dependable answer.
  */
 export const freeModel: AIModelRoute = {
-  primary: "deepseek/deepseek-v4-flash:free",
-  fallbacks: ["nvidia/nemotron-3-super-120b-a12b:free", "openrouter/free"],
+  primary: "openrouter/free",
 };
 
 /**
- * Lowest-cost production models that are still surprisingly capable.
+ * General-purpose production model with a strong cost bias.
  *
- * Use this for high-volume, low-risk production work: ticket classification,
- * simple extraction, labels, titles, short summaries, lightweight chat,
- * background enrichment, and other tasks where occasional misses are tolerable.
- * This is the package's default tier because most routine app intelligence
- * should start cheap and escalate only when needed.
- */
-export const cheapModel: AIModelRoute = {
-  primary: "deepseek/deepseek-v4-flash",
-  fallbacks: ["stepfun/step-3.5-flash", "tencent/hy3-preview"],
-};
-
-/**
- * General-purpose user-facing model tier with a stronger quality bias.
- *
- * Use this for visible summaries, drafting, moderate reasoning over app data,
- * multi-step instructions, structured output that the app depends on, and
- * workflows that should be reliable without paying frontier prices.
+ * Use this for routine app intelligence, user-facing generation, structured
+ * output, lightweight reasoning, coding, and other production work that does
+ * not justify automatic routing or frontier pricing. This is the package's
+ * default tier.
  */
 export const balancedModel: AIModelRoute = {
-  primary: "deepseek/deepseek-v4-pro",
-  fallbacks: ["moonshotai/kimi-k2.6", "qwen/qwen3.6-max-preview"],
+  primary: "deepseek/deepseek-v4-flash",
 };
 
 /**
- * Models selected for programming tasks.
+ * OpenRouter-managed, task-aware model selection.
  *
- * Use this for code generation, refactors, debugging, stack trace analysis,
- * migration drafting, PR summaries, small component generation, and diff
- * review. Coding gets a separate tier because programming model rankings and
- * tradeoffs often differ from general chat or summarization.
+ * Use this when the best model depends on the request and variable cost is
+ * acceptable. The OpenRouter driver explicitly configures Auto Beta with a
+ * cost-quality tradeoff of 9 so routing remains strongly cost-biased.
  */
-export const codingModel: AIModelRoute = {
-  primary: "moonshotai/kimi-k2.6",
-  fallbacks: ["deepseek/deepseek-v4-pro", "qwen/qwen3.6-max-preview"],
-};
-
-/**
- * Models selected for constraint-heavy reasoning.
- *
- * Use this for planning, resolving conflicting requirements, operational
- * analysis, complex data interpretation, choosing implementation approaches,
- * and logic-heavy user requests. This is separate from coding because not all
- * reasoning tasks are programming tasks, and the best coding model is not
- * always the best planner or analyst.
- */
-export const reasoningModel: AIModelRoute = {
-  primary: "deepseek/deepseek-v4-pro",
-  fallbacks: ["qwen/qwen3.6-max-preview", "moonshotai/kimi-k2-thinking"],
+export const autoModel: AIModelRoute = {
+  primary: "openrouter/auto-beta",
 };
 
 /**
@@ -79,32 +48,15 @@ export const reasoningModel: AIModelRoute = {
  * This tier should be opt-in because it can get expensive quickly.
  */
 export const frontierModel: AIModelRoute = {
-  primary: "openai/gpt-5.5",
-  fallbacks: ["anthropic/claude-opus-4.7", "~google/gemini-pro-latest"],
-};
-
-/**
- * Models selected for long-running autonomous or semi-autonomous workflows.
- *
- * Use this for multi-file codebase changes, debugging across logs/tests/source,
- * end-to-end project planning, research tasks with multiple tool calls,
- * multi-stage cleanup, and workflows that need persistence over many turns.
- * This is separate from frontier because the best one-shot answer model is not
- * always the best agent model.
- */
-export const agenticModel: AIModelRoute = {
-  primary: "anthropic/claude-opus-4.7",
-  fallbacks: ["openai/gpt-5.5", "moonshotai/kimi-k2.6"],
+  primary: "openai/gpt-5.6-sol",
+  fallbacks: ["anthropic/claude-opus-5", "~google/gemini-pro-latest"],
 };
 
 export const templarModelTiers = {
   free: freeModel,
-  cheap: cheapModel,
   balanced: balancedModel,
-  coding: codingModel,
-  reasoning: reasoningModel,
+  auto: autoModel,
   frontier: frontierModel,
-  agentic: agenticModel,
 } as const satisfies Record<string, AIModelRoute>;
 
 export type TemplarModelTier = keyof typeof templarModelTiers;

@@ -126,7 +126,7 @@ function validateGenerateTextInput(
 }
 
 function resolveModelRoute(selector: GenerateTextInput["model"]): AIModelRoute {
-  return templarModelTiers[selector ?? "cheap"];
+  return templarModelTiers[selector ?? "balanced"];
 }
 
 function structuredOutputFromSchema<S extends z.ZodType>(

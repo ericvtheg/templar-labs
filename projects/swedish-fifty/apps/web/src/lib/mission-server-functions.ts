@@ -566,7 +566,7 @@ async function generateMission(
     });
     const result = await Effect.runPromise(
       ai.generateObject({
-        model: "cheap",
+        model: "balanced",
         temperature: 0.5,
         maxTokens: 1800,
         schema: missionSchema,
@@ -637,7 +637,7 @@ async function generateEvaluation(input: {
     });
     const result = await Effect.runPromise(
       ai.generateObject({
-        model: "cheap",
+        model: "balanced",
         temperature: 0.2,
         maxTokens: 900,
         schema: evaluationSchema,
@@ -708,7 +708,7 @@ async function generateRoleplayReply(input: {
     });
     const result = await Effect.runPromise(
       ai.generateObject({
-        model: "cheap",
+        model: "balanced",
         temperature: 0.5,
         maxTokens: 700,
         schema: roleplayReplySchema,

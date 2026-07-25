@@ -53,8 +53,8 @@ Prefer APIs that encode Templar defaults:
   defaults inside the package. Tests can inspect internals through package-local
   helpers, but app code should not assemble them.
 
-For example, an AI consumer should select a curated tier such as `coding` or
-`balanced`, not provider model IDs or fallback chains. The AI package owns those
+For example, an AI consumer should select a curated tier such as `balanced` or
+`auto`, not provider model IDs or fallback chains. The AI package owns those
 model choices because they are shared Templar Labs decisions. Likewise, a blob
 consumer should use the blob service contract, not directly depend on R2 object
 shapes unless it is wiring the provider layer.

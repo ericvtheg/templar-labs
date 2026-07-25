@@ -7,6 +7,8 @@ import type { AIUsage, GenerateTextResult, ResolvedGenerateTextInput } from "../
 export type OpenRouterFetch = typeof fetch;
 
 const openRouterBaseUrl = "https://openrouter.ai/api/v1";
+const openRouterAutoBetaModel = "openrouter/auto-beta";
+const openRouterAutoRouterCostQualityTradeoff = 9;
 
 export type OpenRouterAIOptions = {
   readonly apiKey: string;
@@ -141,6 +143,16 @@ function openRouterChatCompletionBody(input: ResolvedGenerateTextInput): Record<
   return {
     model: input.model,
     ...(input.fallbackModels === undefined ? {} : { models: input.fallbackModels }),
+    ...(input.model === openRouterAutoBetaModel
+      ? {
+          plugins: [
+            {
+              id: "auto-router",
+              cost_quality_tradeoff: openRouterAutoRouterCostQualityTradeoff,
+            },
+          ],
+        }
+      : {}),
     messages: input.messages,
     ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
     ...(input.maxTokens === undefined ? {} : { max_tokens: input.maxTokens }),

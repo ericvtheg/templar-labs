@@ -7,7 +7,7 @@ import { AIParseError, AISchemaError, AIValidationError } from "./errors.ts";
 import { makeAIService } from "./service.ts";
 import type { GenerateTextResult, ResolvedGenerateTextInput } from "./types.ts";
 
-test("default model is the cheap templar tier", async () => {
+test("default model is the balanced templar tier", async () => {
   let received: ResolvedGenerateTextInput | undefined;
   const ai = makeAIService({
     driver: makeDriver("openrouter", (input) => {
@@ -22,7 +22,26 @@ test("default model is the cheap templar tier", async () => {
   );
 
   assert.equal(received?.model, "deepseek/deepseek-v4-flash");
-  assert.deepEqual(received?.fallbackModels, ["stepfun/step-3.5-flash", "tencent/hy3-preview"]);
+  assert.equal(received?.fallbackModels, undefined);
+});
+
+test("free tier delegates model selection to OpenRouter", async () => {
+  let received: ResolvedGenerateTextInput | undefined;
+  const ai = makeAIService({
+    driver: makeDriver("openrouter", (input) => {
+      received = input;
+    }),
+  });
+
+  await Effect.runPromise(
+    ai.generateText({
+      model: "free",
+      messages: [{ role: "user", content: "Try this for free." }],
+    }),
+  );
+
+  assert.equal(received?.model, "openrouter/free");
+  assert.equal(received?.fallbackModels, undefined);
 });
 
 test("callers select model tiers, not provider model IDs", async () => {
@@ -35,16 +54,13 @@ test("callers select model tiers, not provider model IDs", async () => {
 
   await Effect.runPromise(
     ai.generateText({
-      model: "reasoning",
-      messages: [{ role: "user", content: "Think carefully." }],
+      model: "auto",
+      messages: [{ role: "user", content: "Choose a model for this task." }],
     }),
   );
 
-  assert.equal(received?.model, "deepseek/deepseek-v4-pro");
-  assert.deepEqual(received?.fallbackModels, [
-    "qwen/qwen3.6-max-preview",
-    "moonshotai/kimi-k2-thinking",
-  ]);
+  assert.equal(received?.model, "openrouter/auto-beta");
+  assert.equal(received?.fallbackModels, undefined);
 });
 
 test("generateText validates messages", async () => {

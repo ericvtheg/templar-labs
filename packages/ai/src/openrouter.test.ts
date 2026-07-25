@@ -45,8 +45,8 @@ test("openrouter service serializes chat completions requests", async () => {
   assert.equal(headers.get("http-referer"), "https://example.com");
   assert.equal(headers.get("x-title"), "test-app");
   assert.deepEqual(JSON.parse(String(requestInit?.body)), {
-    model: "openai/gpt-5.5",
-    models: ["anthropic/claude-opus-4.7", "~google/gemini-pro-latest"],
+    model: "openai/gpt-5.6-sol",
+    models: ["anthropic/claude-opus-5", "~google/gemini-pro-latest"],
     messages: [{ role: "user", content: "Say hello." }],
     temperature: 0.2,
     max_tokens: 128,
@@ -56,6 +56,36 @@ test("openrouter service serializes chat completions requests", async () => {
     inputTokens: 3,
     outputTokens: 4,
     totalTokens: 7,
+  });
+});
+
+test("openrouter service configures Auto Beta for cost-biased routing", async () => {
+  let requestInit: RequestInit | undefined;
+  const ai = makeOpenRouterAI({
+    apiKey: "test-token",
+    fetch: (_url, init) => {
+      requestInit = init;
+
+      return Promise.resolve(
+        Response.json({
+          model: "deepseek/deepseek-v4-flash",
+          choices: [{ message: { content: "Hello" } }],
+        }),
+      );
+    },
+  });
+
+  await Effect.runPromise(
+    ai.generateText({
+      model: "auto",
+      messages: [{ role: "user", content: "Choose a model for this task." }],
+    }),
+  );
+
+  assert.deepEqual(JSON.parse(String(requestInit?.body)), {
+    model: "openrouter/auto-beta",
+    plugins: [{ id: "auto-router", cost_quality_tradeoff: 9 }],
+    messages: [{ role: "user", content: "Choose a model for this task." }],
   });
 });
 
@@ -138,8 +168,8 @@ test("openrouter service serializes structured output response format", async ()
   );
 
   assert.deepEqual(JSON.parse(String(requestInit?.body)), {
-    model: "openai/gpt-5.5",
-    models: ["anthropic/claude-opus-4.7", "~google/gemini-pro-latest"],
+    model: "openai/gpt-5.6-sol",
+    models: ["anthropic/claude-opus-5", "~google/gemini-pro-latest"],
     messages: [{ role: "user", content: "Say hello." }],
     temperature: 0.2,
     max_tokens: 128,

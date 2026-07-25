@@ -1,0 +1,26 @@
+name: Health Exporter Apple
+
+on:
+  pull_request:
+    paths:
+      - "projects/health-exporter/packages/apple/**"
+      - "projects/health-exporter/contracts/v1-valid-request.json"
+      - "projects/health-exporter/apps/web/src/contracts/v1.ts"
+      - ".github/workflows/health-exporter-apple.yml"
+  push:
+    branches: [main]
+    paths:
+      - "projects/health-exporter/packages/apple/**"
+      - "projects/health-exporter/contracts/v1-valid-request.json"
+      - "projects/health-exporter/apps/web/src/contracts/v1.ts"
+      - ".github/workflows/health-exporter-apple.yml"
+
+jobs:
+  swift:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: projects/health-exporter/packages/apple
+    steps:
+      - uses: actions/checkout@v6
+      - run: swift test

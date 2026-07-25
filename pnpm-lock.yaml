@@ -760,6 +760,9 @@ importers:
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../packages/deploy
+      '@templar/scheduler':
+        specifier: workspace:*
+        version: link:../../packages/scheduler
     devDependencies:
       alchemy:
         specifier: ^0.93.7
@@ -815,6 +818,9 @@ importers:
       '@templar/queue':
         specifier: workspace:*
         version: link:../../../../packages/queue
+      '@templar/scheduler':
+        specifier: workspace:*
+        version: link:../../../../packages/scheduler
       '@templar/ui':
         specifier: workspace:*
         version: link:../../../../packages/ui

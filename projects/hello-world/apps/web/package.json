@@ -10,7 +10,7 @@
     "dev": "pnpm --dir ../.. dev",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
     "serve": "vite preview",
-    "test": "echo 'No tests configured yet.'",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "@templar/dev-ports": "workspace:*",
     "@templar/deploy": "workspace:*",
     "@templar/queue": "workspace:*",
+    "@templar/scheduler": "workspace:*",
     "@templar/ui": "workspace:*",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.2.2",

@@ -1,6 +1,8 @@
 import { withAuthMigrations } from "@templar/auth/deploy";
 import { deployApp } from "@templar/deploy";
 import { d1Database, queue, r2Bucket, templarApp } from "@templar/deploy/cloudflare";
+import { schedulerCrons } from "@templar/scheduler";
+import { schedules } from "./apps/web/src/schedules.ts";
 
 const app = await deployApp("hello-world");
 
@@ -27,6 +29,7 @@ export const website = await templarApp("website", {
   cwd: "apps/web",
   domainName: "hello-world.ericventor.com",
   url: false,
+  crons: schedulerCrons(schedules),
   db,
   blob: r2,
   queue: jobs,

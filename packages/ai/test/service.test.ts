@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either } from "effect";
 import { z } from "zod";
-import type { AIDriver } from "./driver.ts";
-import { AIParseError, AISchemaError, AIValidationError } from "./errors.ts";
-import { makeAIService } from "./service.ts";
-import type { GenerateTextResult, ResolvedGenerateTextInput } from "./types.ts";
+import type { AIDriver } from "../src/driver.ts";
+import { AIParseError, AISchemaError, AIValidationError } from "../src/errors.ts";
+import { makeAIService } from "../src/service.ts";
+import type { GenerateTextResult, ResolvedGenerateTextInput } from "../src/types.ts";
 
 test("default model is the balanced templar tier", async () => {
   let received: ResolvedGenerateTextInput | undefined;

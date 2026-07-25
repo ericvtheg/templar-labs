@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { checkMonorepo } from "./index.ts";
+import { checkMonorepo } from "../src/index.ts";
 
 const validScripts = {
   build: "echo build",
@@ -190,6 +190,46 @@ test("does not require deploy scripts for project packages", async () => {
     path.join(rootDir, "projects/example/packages/domain/package.json"),
     JSON.stringify({ name: "example-domain", private: true, scripts: validScripts }),
   );
+
+  assert.deepEqual(await checkMonorepo(rootDir), []);
+});
+
+test("requires tests to live in the owning workspace test directory", async () => {
+  const rootDir = await createTempMonorepo();
+  await mkdir(path.join(rootDir, "packages/example/src"), { recursive: true });
+  await mkdir(path.join(rootDir, "packages/example/e2e"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
+  );
+  await writeFile(path.join(rootDir, "packages/example/src/example.test.ts"), "");
+  await writeFile(path.join(rootDir, "packages/example/e2e/example.spec.ts"), "");
+
+  assert.deepEqual(await checkMonorepo(rootDir), [
+    "packages/example/e2e/example.spec.ts must be under packages/example/test/",
+    "packages/example/src/example.test.ts must be under packages/example/test/",
+  ]);
+});
+
+test("allows unit and end-to-end tests under the owning workspace test directory", async () => {
+  const rootDir = await createTempMonorepo();
+  await mkdir(path.join(rootDir, "packages/example/test/e2e"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
+  );
+  await writeFile(path.join(rootDir, "packages/example/test/example.test.ts"), "");
+  await writeFile(path.join(rootDir, "packages/example/test/e2e/example.spec.ts"), "");
 
   assert.deepEqual(await checkMonorepo(rootDir), []);
 });

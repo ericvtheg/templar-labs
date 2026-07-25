@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hashTemplarPassword, verifyTemplarPassword } from "./password.ts";
+import { hashTemplarPassword, verifyTemplarPassword } from "../src/password.ts";
 
 test("hashes and verifies templar auth passwords", async () => {
   const hash = await hashTemplarPassword("correct horse battery staple");

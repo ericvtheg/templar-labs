@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AppEnvironment } from "@templar/config";
 import { Effect, Either } from "effect";
-import type { AnalyticsDriver } from "./driver.ts";
-import { AnalyticsProviderError } from "./errors.ts";
-import { makeAnalyticsLayerFor, makeAnalyticsService, makeAnalyticsTag } from "./service.ts";
+import type { AnalyticsDriver } from "../src/driver.ts";
+import { AnalyticsProviderError } from "../src/errors.ts";
+import { makeAnalyticsLayerFor, makeAnalyticsService, makeAnalyticsTag } from "../src/service.ts";
 import type {
   AnalyticsServiceDefaults,
   ResolvedIdentifyUserInput,
   ResolvedTrackEventInput,
-} from "./types.ts";
+} from "../src/types.ts";
 
 type TestEvents = {
   readonly "signup.completed": undefined;

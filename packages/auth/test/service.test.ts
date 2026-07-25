@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Exit } from "effect";
-import { type AuthSession, makeAuthService } from "./service.ts";
+import { type AuthSession, makeAuthService } from "../src/service.ts";
 
 test("requireUser fails when no session exists", async () => {
   const service = makeAuthService({

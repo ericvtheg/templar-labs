@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AppEnvironment } from "@templar/config";
 import { Effect } from "effect";
-import { makePostHogAnalyticsProvider } from "./posthog.ts";
+import { makePostHogAnalyticsProvider } from "../src/drivers/posthog.ts";
 
 type TestEvents = {
   readonly "project.created": {

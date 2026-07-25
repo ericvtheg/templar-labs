@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either } from "effect";
-import type { QueueDriver } from "./driver.ts";
-import { cloudflareQueueMessage, makeQueue } from "./drivers/cloudflare.ts";
-import { QueueSerializationError, QueueStorageError } from "./errors.ts";
-import { makeQueueService } from "./service.ts";
-import type { QueueDriverSendInput, QueueSendResult, QueueStoredMessage } from "./types.ts";
+import type { QueueDriver } from "../src/driver.ts";
+import { cloudflareQueueMessage, makeQueue } from "../src/drivers/cloudflare.ts";
+import { QueueSerializationError, QueueStorageError } from "../src/errors.ts";
+import { makeQueueService } from "../src/service.ts";
+import type { QueueDriverSendInput, QueueSendResult, QueueStoredMessage } from "../src/types.ts";
 
 test("send serializes a message body and metadata into an envelope", async () => {
   const sent: QueueDriverSendInput[] = [];

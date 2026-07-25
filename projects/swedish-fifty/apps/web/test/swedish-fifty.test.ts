@@ -8,7 +8,7 @@ import {
   phaseForDay,
   prepWindowDays,
   scenarioForDay,
-} from "./swedish-fifty.ts";
+} from "../src/lib/swedish-fifty.ts";
 
 describe("Swedish Fifty learning arc", () => {
   test("maps prep dates into the bounded 50-day window", () => {

@@ -8,8 +8,8 @@ import {
   templarAuthSessionExpiresInSeconds,
   templarAuthSessionFreshAgeSeconds,
   templarAuthSessionUpdateAgeSeconds,
-} from "./config.ts";
-import { AuthConfigError } from "./errors.ts";
+} from "../src/config.ts";
+import { AuthConfigError } from "../src/errors.ts";
 
 const db = {} as D1Database;
 

@@ -5,7 +5,7 @@ import {
   nextPeoplePlaceholderNames,
   PEOPLE_PLACEHOLDER_CYCLE_LENGTH,
   PEOPLE_PLACEHOLDER_NAMES,
-} from "./people-placeholders.ts";
+} from "../src/lib/people-placeholders.ts";
 
 describe("people placeholders", () => {
   test("starts with a shuffled cycle of every placeholder name", () => {

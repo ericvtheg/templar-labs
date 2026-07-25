@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AppEnvironment } from "@templar/config";
 import { Effect, Either } from "effect";
-import type { EmailDriver } from "./driver.ts";
-import { EmailProviderError, EmailValidationError } from "./errors.ts";
-import { makeEmailService } from "./service.ts";
-import type { EmailServiceDefaults, ResolvedSendEmailInput, SendEmailResult } from "./types.ts";
+import type { EmailDriver } from "../src/driver.ts";
+import { EmailProviderError, EmailValidationError } from "../src/errors.ts";
+import { makeEmailService } from "../src/service.ts";
+import type {
+  EmailServiceDefaults,
+  ResolvedSendEmailInput,
+  SendEmailResult,
+} from "../src/types.ts";
 
 test("send no-ops outside production", async () => {
   const sent: ResolvedSendEmailInput[] = [];

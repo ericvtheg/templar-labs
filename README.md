@@ -41,6 +41,13 @@ These are the current defaults for new packages and projects in this monorepo.
 - OpenTelemetry later for traces and metrics once the first real apps need it
 - Turbo for monorepo task orchestration unless the repo grows into workflows that justify Nx
 
+## Testing
+
+Keep tests in a singular `test/` directory at the root of the workspace that
+owns them. Do not colocate `*.test.*` or `*.spec.*` files with production source
+files. End-to-end suites belong under `test/e2e/`. The monorepo convention check
+enforces this layout.
+
 ## Deployment
 
 Deploys run from GitHub Actions on the homelab self-hosted runner. Pushing to

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Effect } from "effect";
-import { Database, makeDatabaseLayer, makeDatabaseService, withDatabase } from "./service.ts";
+import { Database, makeDatabaseLayer, makeDatabaseService, withDatabase } from "../src/service.ts";
 
 test("Database layer provides the configured Drizzle client", async () => {
   const db = { marker: "db" };

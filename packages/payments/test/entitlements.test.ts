@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { evaluateEntitlementAccess } from "./entitlements.ts";
-import type { PaymentEntitlementRecord } from "./schema.ts";
+import { evaluateEntitlementAccess } from "../src/entitlements.ts";
+import type { PaymentEntitlementRecord } from "../src/schema.ts";
 
 test("feature gates fail closed with a reason", () => {
   const result = evaluateEntitlementAccess([], new Date("2026-01-01T00:00:00.000Z"));

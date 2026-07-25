@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AppEnvironment } from "@templar/config";
 import { Effect, Either } from "effect";
-import { EmailProviderError } from "../errors.ts";
 import {
   type CloudflareEmailMessageBuilder,
   type CloudflareSendEmailBinding,
   makeCloudflareEmail,
-} from "./cloudflare.ts";
+} from "../src/drivers/cloudflare.ts";
+import { EmailProviderError } from "../src/errors.ts";
 
 test("Cloudflare driver maps send input to binding message", async () => {
   const sent: CloudflareEmailMessageBuilder[] = [];

@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either } from "effect";
 import { z } from "zod";
-import { makeOpenRouterAI } from "./drivers/openrouter.ts";
-import { AIRateLimitError } from "./errors.ts";
-import type { GenerateTextInput } from "./types.ts";
+import { makeOpenRouterAI } from "../src/drivers/openrouter.ts";
+import { AIRateLimitError } from "../src/errors.ts";
+import type { GenerateTextInput } from "../src/types.ts";
 
 test("openrouter service serializes chat completions requests", async () => {
   let requestUrl = "";

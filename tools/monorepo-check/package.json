@@ -10,7 +10,7 @@
     "check": "pnpm typecheck && pnpm test",
     "check:monorepo": "node src/index.ts",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "node --test src/index.test.ts",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

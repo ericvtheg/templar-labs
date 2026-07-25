@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either, Option } from "effect";
-import type { CacheDriver } from "./driver.ts";
-import { CacheSerializationError, CacheTtlError } from "./errors.ts";
-import { makeCacheService } from "./service.ts";
-import type { CacheDriverSetInput, CacheStoredEntry } from "./types.ts";
+import type { CacheDriver } from "../src/driver.ts";
+import { CacheSerializationError, CacheTtlError } from "../src/errors.ts";
+import { makeCacheService } from "../src/service.ts";
+import type { CacheDriverSetInput, CacheStoredEntry } from "../src/types.ts";
 
 test("get returns none for a cache miss", async () => {
   const cache = makeCacheService({

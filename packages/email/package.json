@@ -8,7 +8,7 @@
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "node --test src/*.test.ts src/drivers/*.test.ts",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "exports": {

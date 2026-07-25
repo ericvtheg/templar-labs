@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkDevPorts, devPort, devPorts } from "./index.ts";
+import { checkDevPorts, devPort, devPorts } from "../src/index.ts";
 
 test("devPort returns a registered port", () => {
   assert.equal(devPort("hello-world-web"), 5173);

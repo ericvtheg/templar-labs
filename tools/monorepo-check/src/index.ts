@@ -4,6 +4,7 @@ import { checkPackageJsonScripts } from "./checks/package-json-scripts.ts";
 import { checkPackageNames } from "./checks/package-names.ts";
 import { checkPackagePrivacy } from "./checks/package-privacy.ts";
 import { checkProjectAppDeployScripts } from "./checks/project-app-deploy-scripts.ts";
+import { checkTestLocations } from "./checks/test-locations.ts";
 import { createMonorepoContext, type MonorepoContext } from "./monorepo.ts";
 
 type MonorepoCheck = (context: MonorepoContext) => string[] | Promise<string[]>;
@@ -13,6 +14,7 @@ const monorepoChecks: MonorepoCheck[] = [
   checkPackageNames,
   checkPackagePrivacy,
   checkProjectAppDeployScripts,
+  checkTestLocations,
 ];
 
 export async function checkMonorepo(rootDir = process.cwd()): Promise<string[]> {

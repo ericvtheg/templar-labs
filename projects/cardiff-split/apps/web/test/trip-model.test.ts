@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { type ActivityEvent, type Expense, type Participant, summarizeTrip } from "./trip-model.ts";
+import {
+  type ActivityEvent,
+  type Expense,
+  type Participant,
+  summarizeTrip,
+} from "../src/lib/trip-model.ts";
 
 const now = "2026-05-25T00:00:00.000Z";
 const trip = {

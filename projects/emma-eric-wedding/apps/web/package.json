@@ -10,7 +10,7 @@
     "dev": "pnpm --dir ../.. dev",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
     "serve": "vite preview",
-    "test": "node --test src/*.test.ts",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

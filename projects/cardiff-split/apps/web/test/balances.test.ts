@@ -3,8 +3,8 @@ import {
   computeParticipantBalances,
   findMatchingSettlementRecommendation,
   simplifySettlementRecommendations,
-} from "./balances.ts";
-import { calculateExpenseSplits, SplitValidationError } from "./split-math.ts";
+} from "../src/lib/balances.ts";
+import { calculateExpenseSplits, SplitValidationError } from "../src/lib/split-math.ts";
 
 const participants = [{ id: "alice" }, { id: "bea" }, { id: "cam" }];
 

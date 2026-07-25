@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { adminAccessForUser, adminEmail, isAdminEmail } from "./lib/admin-auth.ts";
+import { adminAccessForUser, adminEmail, isAdminEmail } from "../src/lib/admin-auth.ts";
 
 test("allows only the configured admin Gmail account", () => {
   assert.equal(isAdminEmail(adminEmail), true);

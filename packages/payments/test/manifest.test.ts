@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PaymentsConfigError } from "./errors.ts";
-import { normalizePaymentsManifest, priceFingerprint, stripePriceLookupKey } from "./manifest.ts";
+import { PaymentsConfigError } from "../src/errors.ts";
+import {
+  normalizePaymentsManifest,
+  priceFingerprint,
+  stripePriceLookupKey,
+} from "../src/manifest.ts";
 
 test("normalizes manifest defaults and price lookup keys", () => {
   const manifest = normalizePaymentsManifest({

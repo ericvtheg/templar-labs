@@ -466,7 +466,7 @@ function Home() {
             {currentUser === null ? (
               <form action="/api/auth/sign-in" method="get">
                 <input name="returnTo" type="hidden" value="/" />
-                <Button type="submit">Sign in</Button>
+                <Button type="submit">Continue with Google</Button>
               </form>
             ) : (
               <form action="/api/auth/sign-out?returnTo=/" method="post">

@@ -30,6 +30,10 @@ Authorization codes live in Better Auth's `verification` table for at most 60 se
 deleted atomically during PKCE exchange. This is transient protocol state, not a durable record of
 which products a user has visited.
 
+Applications own their sign-in UI and provider buttons. If the user has no central session, the
+first-party authorize endpoint starts Google OAuth immediately; the central service does not show
+an intermediate sign-in page.
+
 Global administrators are normalized email addresses in `apps/web/src/lib/access.ts`. Changing the
 set intentionally requires a deploy. The central service evaluates the canonical Better Auth
 email and signs only the resulting `admin` boolean into application handoffs.

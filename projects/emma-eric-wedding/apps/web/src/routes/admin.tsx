@@ -71,7 +71,7 @@ function AdminSignIn({
             className="button button-primary admin-auth-button"
             href="/api/auth/sign-in?returnTo=/admin"
           >
-            Continue securely
+            Continue with Google
           </a>
         )}
       </section>

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   component: AuthHome,
@@ -9,11 +9,8 @@ function AuthHome() {
     <main className="auth-shell">
       <section className="auth-card">
         <p className="eyebrow">Templar Labs</p>
-        <h1>One secure sign-in.</h1>
-        <p>This service provides identity to authorized Templar websites.</p>
-        <Link className="button" to="/sign-in">
-          Sign in
-        </Link>
+        <h1>Authentication service.</h1>
+        <p>Sign-in controls are presented by the Templar application you are using.</p>
       </section>
     </main>
   );

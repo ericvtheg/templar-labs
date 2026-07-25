@@ -8,6 +8,18 @@ const handoffLifetimeMilliseconds = 60_000;
 
 type FirstPartyAuthApi = {
   readonly getSession: (input: { readonly headers: Headers }) => Promise<TemplarAuthSession | null>;
+  readonly signInSocial: (input: {
+    readonly body: {
+      readonly provider: "google";
+      readonly callbackURL: string;
+      readonly errorCallbackURL: string;
+    };
+    readonly headers: Headers;
+    readonly returnHeaders: true;
+  }) => Promise<{
+    readonly headers: Headers;
+    readonly response: { readonly url?: string };
+  }>;
 };
 
 type FirstPartyAuthServer = {
@@ -101,10 +113,7 @@ async function authorize(
 
   const session = await config.auth.api.getSession({ headers: request.headers });
   if (session === null) {
-    const continuation = `${url.pathname}${url.search}`;
-    const signIn = new URL("/sign-in", baseURL);
-    signIn.searchParams.set("callbackURL", continuation);
-    return Response.redirect(signIn.href, 302);
+    return beginGoogleSignIn(request, config, url, callback, state);
   }
 
   const code = randomBase64Url(32);
@@ -132,6 +141,49 @@ async function authorize(
   callback.searchParams.set("code", code);
   callback.searchParams.set("state", state);
   return Response.redirect(callback.href, 302);
+}
+
+async function beginGoogleSignIn(
+  request: Request,
+  config: TemplarFirstPartyServerConfig,
+  authorizeURL: URL,
+  callback: URL,
+  state: string,
+): Promise<Response> {
+  const errorCallbackURL = new URL(callback);
+  errorCallbackURL.searchParams.set("error", "oauth");
+  errorCallbackURL.searchParams.set("state", state);
+
+  const signIn = await config.auth.api.signInSocial({
+    body: {
+      provider: "google",
+      callbackURL: `${authorizeURL.pathname}${authorizeURL.search}`,
+      errorCallbackURL: errorCallbackURL.href,
+    },
+    headers: request.headers,
+    returnHeaders: true,
+  });
+
+  if (typeof signIn.response.url !== "string") {
+    return Response.json({ error: "provider_unavailable" }, { status: 502 });
+  }
+
+  const headers = new Headers(signIn.headers);
+  const headersWithSetCookie = signIn.headers as Headers & {
+    readonly getSetCookie?: () => Array<string>;
+  };
+  const stateCookies = new Set(
+    headersWithSetCookie.getSetCookie?.() ??
+      [signIn.headers.get("set-cookie")].filter((cookie): cookie is string => cookie !== null),
+  );
+  headers.delete("set-cookie");
+  for (const cookie of stateCookies) {
+    headers.append("set-cookie", cookie);
+  }
+  headers.set("location", signIn.response.url);
+  headers.delete("content-length");
+  headers.delete("content-type");
+  return new Response(null, { status: 302, headers });
 }
 
 async function exchange(

@@ -48,13 +48,62 @@ test("local auth accepts loopback callbacks only while running locally", () => {
   );
 });
 
+test("an unauthenticated authorization starts Google without a central sign-in page", async () => {
+  let socialInput:
+    | {
+        readonly callbackURL: string;
+        readonly errorCallbackURL: string;
+        readonly provider: string;
+      }
+    | undefined;
+  const handler = createTemplarFirstPartyHandler({
+    auth: {
+      api: {
+        getSession: async () => null,
+        signInSocial: ({ body }) => {
+          socialInput = body;
+          return Promise.resolve({
+            headers: new Headers({ "set-cookie": "better-auth.state=test; HttpOnly" }),
+            response: { url: "https://accounts.google.com/o/oauth2/v2/auth?state=provider-state" },
+          });
+        },
+      },
+      handler: async () => new Response("fallback"),
+    },
+    db: fakeD1(new Map()),
+    baseURL: "https://auth.ericventor.com",
+    adminEmails: new Set(),
+    signToken: async () => "unused",
+  });
+  const authorizeURL = new URL("https://auth.ericventor.com/api/auth/first-party/authorize");
+  authorizeURL.searchParams.set("callback", "https://app.ericventor.com/api/auth/callback");
+  authorizeURL.searchParams.set("state", "s".repeat(43));
+  authorizeURL.searchParams.set("code_challenge", "c".repeat(43));
+
+  const response = await handler(new Request(authorizeURL));
+
+  assert.equal(response.status, 302);
+  assert.match(requiredHeader(response.headers, "location"), /^https:\/\/accounts\.google\.com\//);
+  assert.match(requiredHeader(response.headers, "set-cookie"), /better-auth\.state=test/);
+  assert.equal(socialInput?.provider, "google");
+  assert.equal(socialInput?.callbackURL, `${authorizeURL.pathname}${authorizeURL.search}`);
+  assert.equal(
+    socialInput?.errorCallbackURL,
+    `https://app.ericventor.com/api/auth/callback?error=oauth&state=${"s".repeat(43)}`,
+  );
+});
+
 test("authorization codes are PKCE-bound, single-use, and sign the global admin claim", async () => {
   const records = new Map<string, { readonly value: string; readonly expiresAt: number }>();
   const db = fakeD1(records);
   let signedPayload: { readonly admin?: unknown; readonly sub?: unknown } | undefined;
   const handler = createTemplarFirstPartyHandler({
     auth: {
-      api: { getSession: async () => testSession("canonical-user-id") },
+      api: {
+        getSession: async () => testSession("canonical-user-id"),
+        signInSocial: () =>
+          Promise.reject(new Error("An authenticated request must not restart provider sign-in.")),
+      },
       handler: async () => new Response("fallback"),
     },
     db,

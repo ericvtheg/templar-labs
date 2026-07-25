@@ -1,11 +1,9 @@
 /**
- * Canonical Better Auth user IDs with global Templar administrator access.
+ * Email addresses with global Templar administrator access.
  * Changing this set intentionally requires a deploy.
  */
-export const platformAdminUserIds = new Set<string>([
-  // Add canonical user IDs here after the corresponding account exists.
-]);
+export const platformAdminEmails = new Set<string>(["ericandemma2027@gmail.com"]);
 
-export function isPlatformAdminId(userId: string): boolean {
-  return platformAdminUserIds.has(userId);
+export function isPlatformAdminEmail(email: string): boolean {
+  return platformAdminEmails.has(email.trim().toLowerCase());
 }

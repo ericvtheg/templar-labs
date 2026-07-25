@@ -1,7 +1,7 @@
 import { createTemplarFirstPartyHandler, templarFirstPartyAudience } from "@templar/auth";
 import { jwt } from "@templar/auth/plugins";
 import { createTemplarAuthServer } from "@templar/auth/tanstack-start";
-import { platformAdminUserIds } from "./access.ts";
+import { platformAdminEmails } from "./access.ts";
 
 type AuthEnv = {
   readonly AUTH_BASE_URL: string;
@@ -51,7 +51,7 @@ export async function getAuth() {
       auth,
       db: bindings.DB,
       baseURL: bindings.AUTH_BASE_URL,
-      adminUserIds: platformAdminUserIds,
+      adminEmails: platformAdminEmails,
       signToken: async (payload) => (await jwtApi.signJWT({ body: { payload } })).token,
     }),
   };

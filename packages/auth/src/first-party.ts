@@ -32,7 +32,7 @@ export type TemplarFirstPartyServerConfig = {
   readonly auth: FirstPartyAuthServer;
   readonly db: D1Database;
   readonly baseURL: string;
-  readonly adminUserIds: ReadonlySet<string>;
+  readonly adminEmails: ReadonlySet<string>;
   readonly signToken: (payload: Record<string, unknown>) => Promise<string>;
   readonly now?: () => number;
 };
@@ -183,7 +183,7 @@ async function exchange(
     email: user.email,
     email_verified: user.emailVerified === 1,
     picture: user.image,
-    admin: config.adminUserIds.has(user.id),
+    admin: includesEmail(config.adminEmails, user.email),
     aud: templarFirstPartyAudience,
     iss: baseURL.origin,
     iat: Math.floor(now() / 1_000),
@@ -268,4 +268,9 @@ function base64Url(value: Uint8Array): string {
 
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
+function includesEmail(emails: ReadonlySet<string>, email: string): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+  return [...emails].some((candidate) => candidate.trim().toLowerCase() === normalizedEmail);
 }

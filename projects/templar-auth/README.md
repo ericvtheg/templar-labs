@@ -30,6 +30,6 @@ Authorization codes live in Better Auth's `verification` table for at most 60 se
 deleted atomically during PKCE exchange. This is transient protocol state, not a durable record of
 which products a user has visited.
 
-Global administrators are canonical user IDs in
-`apps/web/src/lib/access.ts`. Changing the set intentionally requires a deploy. If the central
-database is empty, sign in once, read the new canonical ID, add it to that set, and deploy again.
+Global administrators are normalized email addresses in `apps/web/src/lib/access.ts`. Changing the
+set intentionally requires a deploy. The central service evaluates the canonical Better Auth
+email and signs only the resulting `admin` boolean into application handoffs.

@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isPlatformAdminId, platformAdminUserIds } from "../src/lib/access.ts";
+import { isPlatformAdminEmail } from "../src/lib/access.ts";
 
-test("global admin access is determined only by canonical user ID", () => {
-  const adminId = "test-admin-id";
-  platformAdminUserIds.add(adminId);
-
-  try {
-    assert.equal(isPlatformAdminId(adminId), true);
-    assert.equal(isPlatformAdminId("another-user-id"), false);
-  } finally {
-    platformAdminUserIds.delete(adminId);
-  }
+test("global admin access is determined by normalized email", () => {
+  assert.equal(isPlatformAdminEmail("ericandemma2027@gmail.com"), true);
+  assert.equal(isPlatformAdminEmail(" ERICANDEMMA2027@GMAIL.COM "), true);
+  assert.equal(isPlatformAdminEmail("ericandemma2027+other@gmail.com"), false);
+  assert.equal(isPlatformAdminEmail("someone@gmail.com"), false);
 });

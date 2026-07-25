@@ -59,7 +59,7 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
     },
     db,
     baseURL: "https://auth.ericventor.com",
-    adminUserIds: new Set(["canonical-user-id"]),
+    adminEmails: new Set(["TEST@EXAMPLE.COM"]),
     signToken: (payload) => {
       const { admin, sub } = payload;
       signedPayload = { admin, sub };

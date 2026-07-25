@@ -6,6 +6,13 @@ This is managed by a single developer and is meant for side projects.
 
 The idea is to create a single place where I've solved most boilerplate/problems that can be reused.
 
+## Local Development
+
+Run `pnpm dev` to choose a project from the interactive launcher. Use `j`/`k`
+or the arrow keys to move, then press Enter to start it. Partial project names
+also work directly, such as `pnpm dev wedding`. Use `pnpm dev --all` to start
+every project.
+
 ## Tech Stack
 
 These are the current defaults for new packages and projects in this monorepo.

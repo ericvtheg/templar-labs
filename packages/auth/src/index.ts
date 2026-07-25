@@ -1,3 +1,4 @@
+export * from "./allow-list.ts";
 export * from "./config.ts";
 export * from "./errors.ts";
 export * from "./first-party.ts";

@@ -1,21 +1,28 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { firstPartyAllowedRootDomains } from "../src/allow-list.ts";
 import { createTemplarFirstPartyHandler, isAllowedFirstPartyCallback } from "../src/first-party.ts";
 import type { AuthSession } from "../src/service.ts";
 
 test("production auth accepts only standard callbacks on first-party domains", () => {
   const auth = new URL("https://auth.ericventor.com");
 
+  for (const domain of firstPartyAllowedRootDomains) {
+    assert.equal(
+      isAllowedFirstPartyCallback(new URL(`https://${domain}/api/auth/callback`), auth),
+      true,
+    );
+    assert.equal(
+      isAllowedFirstPartyCallback(new URL(`https://app.${domain}/api/auth/callback`), auth),
+      true,
+    );
+    assert.equal(
+      isAllowedFirstPartyCallback(new URL(`https://not-${domain}/api/auth/callback`), auth),
+      false,
+    );
+  }
   assert.equal(
-    isAllowedFirstPartyCallback(new URL("https://emmaand.ericventor.com/api/auth/callback"), auth),
-    true,
-  );
-  assert.equal(
-    isAllowedFirstPartyCallback(new URL("https://ericventor.com/api/auth/callback"), auth),
-    true,
-  );
-  assert.equal(
-    isAllowedFirstPartyCallback(new URL("https://example.com/api/auth/callback"), auth),
+    isAllowedFirstPartyCallback(new URL("https://untrusted.invalid/api/auth/callback"), auth),
     false,
   );
   assert.equal(

@@ -1,3 +1,4 @@
+import { firstPartyAllowedRootDomains } from "./allow-list.ts";
 import type { TemplarAuthSession } from "./service.ts";
 
 export const templarFirstPartyAudience = "templar-first-party";
@@ -270,7 +271,9 @@ export function isAllowedFirstPartyCallback(callback: URL, authBaseURL: URL): bo
 
   return (
     callback.protocol === "https:" &&
-    (callback.hostname === "ericventor.com" || callback.hostname.endsWith(".ericventor.com"))
+    firstPartyAllowedRootDomains.some(
+      (domain) => callback.hostname === domain || callback.hostname.endsWith(`.${domain}`),
+    )
   );
 }
 

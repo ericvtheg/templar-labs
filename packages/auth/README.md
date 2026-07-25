@@ -27,9 +27,10 @@ Consuming apps should provide runtime bindings and product facts:
 - optional tenant resolver when the app has real multi-tenant rules.
 
 Application SSO uses a 60-second, single-use authorization code, state, and PKCE. The central
-service accepts the standard callback path on first-party `ericventor.com` origins and signs the
-canonical user ID for the shared `templar-first-party` audience. It does not store an app registry
-or durable user-to-app associations.
+service accepts the standard callback path on HTTPS origins whose root domain is listed in
+`src/allow-list.ts`, including their subdomains, and signs the canonical user ID for the shared
+`templar-first-party` audience. Add trusted root domains to `firstPartyAllowedRootDomains`; it does
+not store an app registry or durable user-to-app associations.
 
 The default tenant convention is the authenticated user id. This keeps
 single-user apps from implementing tenant plumbing and gives multi-tenant apps a

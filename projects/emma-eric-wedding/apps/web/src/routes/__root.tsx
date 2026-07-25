@@ -33,15 +33,15 @@ export const Route = createRootRoute({
       },
       {
         property: "og:url",
-        content: "https://emma-eric.ericventor.com/",
+        content: "https://emmaand.ericventor.com/",
       },
       {
         property: "og:image",
-        content: "https://emma-eric.ericventor.com/social-card.png",
+        content: "https://emmaand.ericventor.com/social-card.png",
       },
       {
         property: "og:image:secure_url",
-        content: "https://emma-eric.ericventor.com/social-card.png",
+        content: "https://emmaand.ericventor.com/social-card.png",
       },
       {
         property: "og:image:type",
@@ -73,7 +73,7 @@ export const Route = createRootRoute({
       },
       {
         name: "twitter:image",
-        content: "https://emma-eric.ericventor.com/social-card.png",
+        content: "https://emmaand.ericventor.com/social-card.png",
       },
       {
         name: "robots",

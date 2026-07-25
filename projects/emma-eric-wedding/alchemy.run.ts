@@ -2,7 +2,7 @@ import { deployApp } from "@templar/deploy";
 import { tanstackStartApp } from "@templar/deploy/cloudflare";
 
 const project = "emma-eric-wedding";
-const domainName = "emma-eric.ericventor.com";
+const domainName = "emmaand.ericventor.com";
 
 const app = await deployApp(project);
 

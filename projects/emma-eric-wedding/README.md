@@ -10,6 +10,6 @@ persistence, authentication, or invented personal content.
 pnpm --filter emma-eric-wedding dev
 ```
 
-The production target is `emma-eric.ericventor.com`. The draft is marked
+The production target is `emmaand.ericventor.com`. The draft is marked
 `noindex` and disallowed by `robots.txt` while privacy and guest access are still
 being designed.

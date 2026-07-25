@@ -1,4 +1,7 @@
-import { createTemplarFirstPartyHandler, templarFirstPartyAudience } from "@templar/auth";
+import {
+  createTemplarFirstPartyHandler,
+  templarFirstPartyAudience,
+} from "@templar/auth/first-party";
 import { jwt } from "@templar/auth/plugins";
 import { createTemplarAuthServer } from "@templar/auth/tanstack-start";
 import { platformAdminEmails } from "./access.ts";

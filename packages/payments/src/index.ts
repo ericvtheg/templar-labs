@@ -1,7 +1,22 @@
-export * from "./entitlements.ts";
-export * from "./errors.ts";
-export * from "./manifest.ts";
-export * from "./schema.ts";
+export type { EntitlementGateReason, EntitlementGateResult } from "./entitlements.ts";
+export type { PaymentsError } from "./errors.ts";
+export {
+  PaymentsAccessError,
+  PaymentsConfigError,
+  PaymentsSetupError,
+  PaymentsStorageError,
+  PaymentsStripeError,
+  PaymentsWebhookVerificationError,
+} from "./errors.ts";
+export type {
+  PaymentsInterval,
+  PaymentsLifetimePurchaseManifest,
+  PaymentsManifest,
+  PaymentsOfferingType,
+  PaymentsPrice,
+  PaymentsSubscriptionPlanManifest,
+} from "./manifest.ts";
+export type { PaymentEntitlementRecord } from "./schema.ts";
 export {
   type BillingPortalSessionResult,
   type BillingSummary,
@@ -10,19 +25,9 @@ export {
   createTemplarPayments,
   type EntitlementQueryInput,
   type ListEntitlementsInput,
-  makePaymentsLayer,
-  makePaymentsService,
   Payments,
-  type PaymentsClock,
-  type PaymentsDatabase,
-  type PaymentsDatabaseSchema,
   type PaymentsService,
-  type PaymentsServiceInput,
   type PaymentsUser,
-  type ProvisionedOffering,
-  type ProvisionPaymentsInput,
-  type ProvisionPaymentsResult,
-  paymentsLayer,
   type StartCheckoutInput,
   type TemplarPaymentsConfig,
   type VerifyAndHandleWebhookInput,

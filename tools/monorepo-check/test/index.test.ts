@@ -41,6 +41,28 @@ test("passes when root and monorepo packages include required scripts", async ()
   assert.deepEqual(await checkMonorepo(rootDir), []);
 });
 
+test("rejects wildcard exports from package root entry points", async () => {
+  const rootDir = await createTempMonorepo();
+  await mkdir(path.join(rootDir, "packages/example/src"), { recursive: true });
+
+  await writeFile(
+    path.join(rootDir, "package.json"),
+    JSON.stringify({ name: "root", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/package.json"),
+    JSON.stringify({ name: "@templar/example", private: true, scripts: validScripts }),
+  );
+  await writeFile(
+    path.join(rootDir, "packages/example/src/index.ts"),
+    'export * from "./internal.ts";\n',
+  );
+
+  assert.deepEqual(await checkMonorepo(rootDir), [
+    "packages/example/src/index.ts must use an explicit root export allowlist instead of export *",
+  ]);
+});
+
 test("reports missing scripts", async () => {
   const rootDir = await createTempMonorepo();
 

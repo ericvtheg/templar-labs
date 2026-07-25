@@ -1,3 +1,4 @@
+import type { Auth as BetterAuth } from "better-auth";
 import { firstPartyAllowedRootDomains } from "./allow-list.ts";
 import type { TemplarAuthSession } from "./service.ts";
 
@@ -16,6 +17,7 @@ type FirstPartyAuthApi = {
       readonly errorCallbackURL: string;
     };
     readonly headers: Headers;
+    readonly asResponse: false;
     readonly returnHeaders: true;
   }) => Promise<{
     readonly headers: Headers;
@@ -23,10 +25,12 @@ type FirstPartyAuthApi = {
   }>;
 };
 
-type FirstPartyAuthServer = {
+type FirstPartyAuthServerLike = {
   readonly api: FirstPartyAuthApi;
   readonly handler: (request: Request) => Promise<Response>;
 };
+
+type FirstPartyAuthServer = Pick<BetterAuth, "api" | "handler"> | FirstPartyAuthServerLike;
 
 type AuthorizationRecord = {
   readonly userId: string;
@@ -112,7 +116,7 @@ async function authorize(
     return Response.json({ error: "invalid_callback" }, { status: 400 });
   }
 
-  const session = await config.auth.api.getSession({ headers: request.headers });
+  const session = await firstPartyAuthApi(config.auth).getSession({ headers: request.headers });
   if (session === null) {
     return beginGoogleSignIn(request, config, url, callback, state);
   }
@@ -155,13 +159,14 @@ async function beginGoogleSignIn(
   errorCallbackURL.searchParams.set("error", "oauth");
   errorCallbackURL.searchParams.set("state", state);
 
-  const signIn = await config.auth.api.signInSocial({
+  const signIn = await firstPartyAuthApi(config.auth).signInSocial({
     body: {
       provider: "google",
       callbackURL: `${authorizeURL.pathname}${authorizeURL.search}`,
       errorCallbackURL: errorCallbackURL.href,
     },
     headers: request.headers,
+    asResponse: false,
     returnHeaders: true,
   });
 
@@ -185,6 +190,10 @@ async function beginGoogleSignIn(
   headers.delete("content-length");
   headers.delete("content-type");
   return new Response(null, { status: 302, headers });
+}
+
+function firstPartyAuthApi(auth: FirstPartyAuthServer): FirstPartyAuthApi {
+  return auth.api as unknown as FirstPartyAuthApi;
 }
 
 async function exchange(

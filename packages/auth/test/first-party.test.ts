@@ -67,7 +67,15 @@ test("an unauthenticated authorization starts Google without a central sign-in p
     auth: {
       api: {
         getSession: async () => null,
-        signInSocial: ({ body }) => {
+        signInSocial: ({
+          body,
+        }: {
+          readonly body: {
+            readonly callbackURL: string;
+            readonly errorCallbackURL: string;
+            readonly provider: string;
+          };
+        }) => {
           socialInput = body;
           return Promise.resolve({
             headers: new Headers({ "set-cookie": "better-auth.state=test; HttpOnly" }),

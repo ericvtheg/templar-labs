@@ -1,3 +1,1 @@
-export * from "./app.ts";
-export * from "./naming.ts";
-export * from "./templar-bindings.ts";
+export { type DeployAppOptions, deployApp } from "./app.ts";

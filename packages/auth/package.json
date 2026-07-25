@@ -16,6 +16,7 @@
     "./app": "./src/app.ts",
     "./client": "./src/client.ts",
     "./deploy": "./src/deploy.ts",
+    "./first-party": "./src/first-party.ts",
     "./plugins": "./src/plugins.ts",
     "./schema": "./src/schema.ts",
     "./tanstack-start": "./src/tanstack-start.ts"

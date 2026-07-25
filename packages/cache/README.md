@@ -60,15 +60,10 @@ Public exports:
 
 ```ts
 // @templar/cache
-export {
-  Cache,
-  type CacheService,
-  makeCache,
-  makeCacheLayer,
-  makeCacheService,
-} from "./service.ts";
-export * from "./types.ts";
-export * from "./errors.ts";
+export { cacheLayer, makeCache } from "./drivers/kv.ts";
+export { Cache, type CacheService } from "./service.ts";
+export type { CacheEntry, CacheGetOrSetInput, CacheSetInput } from "./types.ts";
+export { CacheSerializationError, CacheStorageError, CacheTtlError } from "./errors.ts";
 ```
 
 The shape should mirror `@templar/blob`: providers implement only the primitive

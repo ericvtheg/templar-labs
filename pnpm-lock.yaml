@@ -673,6 +673,9 @@ importers:
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../packages/deploy
+      '@templar/dev-ports':
+        specifier: workspace:*
+        version: link:../../tools/dev-ports
     devDependencies:
       alchemy:
         specifier: ^0.93.7

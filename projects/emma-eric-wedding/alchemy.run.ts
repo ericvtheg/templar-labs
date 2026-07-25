@@ -1,12 +1,16 @@
 import { withAuthMigrations } from "@templar/auth/deploy";
 import { deployApp } from "@templar/deploy";
 import { d1Database, tanstackStartApp } from "@templar/deploy/cloudflare";
+import { devPort } from "@templar/dev-ports";
 import alchemy from "alchemy";
 
 const project = "emma-eric-wedding";
 const domainName = "emmaand.ericventor.com";
 
 const app = await deployApp(project);
+const authBaseUrl = app.local
+  ? `http://localhost:${devPort("emma-eric-wedding-web")}`
+  : `https://${domainName}`;
 
 const db = await d1Database(
   "db",
@@ -22,7 +26,7 @@ export const website = await tanstackStartApp("website", {
   adopt: true,
   cwd: "apps/web",
   bindings: {
-    AUTH_BASE_URL: `https://${domainName}`,
+    AUTH_BASE_URL: authBaseUrl,
     AUTH_SECRET: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
     DB: db,
     GOOGLE_CLIENT_ID: alchemy.secret.env("GOOGLE_CLIENT_ID"),

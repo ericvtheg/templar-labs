@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@templar/auth": "workspace:*",
-    "@templar/deploy": "workspace:*"
+    "@templar/deploy": "workspace:*",
+    "@templar/dev-ports": "workspace:*"
   },
   "devDependencies": {
     "alchemy": "^0.93.7",

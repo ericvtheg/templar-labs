@@ -133,34 +133,6 @@ test("duplicate cron expressions are rejected", async () => {
   assert.match(result.left.message, /more than one scheduled task/);
 });
 
-test("driver validation failures remain scheduler validation errors", async () => {
-  const schedules = defineSchedules({ invalid: "invalid" });
-  const scheduler = makeSchedulerService({
-    driver: makeDriver({ rejectCron: "invalid" }),
-    schedules,
-    handlers: {
-      invalid: () => Effect.void,
-    },
-  });
-
-  const result = await Effect.runPromise(
-    Effect.either(
-      scheduler.handle({
-        cron: "invalid",
-        scheduledAt: TEST_SCHEDULED_AT,
-      }),
-    ),
-  );
-
-  if (Either.isRight(result)) {
-    assert.fail("Expected driver cron validation to fail.");
-  }
-
-  assert.ok(result.left instanceof SchedulerValidationError);
-  assert.equal(result.left.provider, "test");
-  assert.equal(result.left.scheduleName, "invalid");
-});
-
 test("handler failures are wrapped with execution context", async () => {
   const failure = new Error("cleanup failed");
   const schedules = defineSchedules({ nightlyCleanup: "0 2 * * *" });
@@ -215,20 +187,9 @@ test("custom scheduler tags preserve typed provider input", async () => {
   assert.equal(handled, true);
 });
 
-function makeDriver(options: { readonly rejectCron?: string } = {}): SchedulerDriver<TestTrigger> {
+function makeDriver(): SchedulerDriver<TestTrigger> {
   return {
     provider: "test",
-    validateCron: ({ scheduleName, cron }) =>
-      cron === options.rejectCron
-        ? Effect.fail(
-            new SchedulerValidationError({
-              provider: "test",
-              scheduleName,
-              cron,
-              message: "Test driver rejected cron.",
-            }),
-          )
-        : Effect.void,
     toTrigger: (trigger) => Effect.succeed(trigger),
   };
 }

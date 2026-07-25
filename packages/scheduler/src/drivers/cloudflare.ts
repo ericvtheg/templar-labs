@@ -1,6 +1,6 @@
 import { type Context, Effect, type Layer } from "effect";
 import type { SchedulerDriver } from "../driver.ts";
-import { SchedulerProviderError, SchedulerValidationError } from "../errors.ts";
+import { SchedulerProviderError } from "../errors.ts";
 import {
   makeSchedulerLayer,
   makeSchedulerLayerFor,
@@ -10,7 +10,6 @@ import {
 import type { SchedulerDefinitions, SchedulerHandlers } from "../types.ts";
 
 const CLOUDFLARE_PROVIDER = "cloudflare";
-const CLOUDFLARE_CRON_FIELD_PATTERN = /^[0-9A-Za-z*,/#-]+$/;
 
 export type CloudflareScheduledControllerLike = {
   readonly cron: string;
@@ -19,7 +18,6 @@ export type CloudflareScheduledControllerLike = {
 
 export const cloudflareSchedulerDriver = {
   provider: CLOUDFLARE_PROVIDER,
-  validateCron: ({ scheduleName, cron }) => validateCloudflareCron(scheduleName, cron),
   toTrigger: (controller) => cloudflareTrigger(controller),
 } satisfies SchedulerDriver<CloudflareScheduledControllerLike>;
 
@@ -54,32 +52,6 @@ export function cloudflareSchedulerLayerFor<Id, const Definitions extends Schedu
 }
 
 export const schedulerLayerFor = cloudflareSchedulerLayerFor;
-
-function validateCloudflareCron(
-  scheduleName: string,
-  cron: string,
-): Effect.Effect<void, SchedulerValidationError> {
-  const fields = cron.split(" ");
-  const isCanonical =
-    cron.length > 0 &&
-    cron.trim() === cron &&
-    fields.length === 5 &&
-    fields.every((field) => field.length > 0 && CLOUDFLARE_CRON_FIELD_PATTERN.test(field));
-
-  if (isCanonical) {
-    return Effect.void;
-  }
-
-  return Effect.fail(
-    new SchedulerValidationError({
-      provider: CLOUDFLARE_PROVIDER,
-      scheduleName,
-      cron,
-      message:
-        "Cloudflare schedules must use a canonical five-field cron expression separated by single spaces.",
-    }),
-  );
-}
 
 function cloudflareTrigger(
   controller: CloudflareScheduledControllerLike,

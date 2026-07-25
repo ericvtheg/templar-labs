@@ -129,7 +129,6 @@ function validateScheduler<Input, Definitions extends SchedulerDefinitions>(
       }
 
       seenCrons.add(cron);
-      yield* driver.validateCron({ scheduleName, cron });
     }
 
     for (const handlerName of Object.keys(handlers)) {

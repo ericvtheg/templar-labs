@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Effect, Either } from "effect";
 import { cloudflareSchedulerDriver, makeScheduler } from "../src/drivers/cloudflare.ts";
-import { SchedulerProviderError, SchedulerValidationError } from "../src/errors.ts";
+import { SchedulerProviderError } from "../src/errors.ts";
 import { defineSchedules } from "../src/service.ts";
 
 const TEST_SCHEDULED_TIME = Date.parse("2026-07-26T07:00:00.000Z");
@@ -37,44 +37,6 @@ test("Cloudflare scheduler decodes and dispatches ScheduledController input", as
       executionId: `weeklyDigest:${TEST_SCHEDULED_TIME}`,
     },
   ]);
-});
-
-test("Cloudflare driver accepts supported named and Quartz-like fields", async () => {
-  await Effect.runPromise(
-    cloudflareSchedulerDriver.validateCron({
-      scheduleName: "lastFriday",
-      cron: "0 18 * * friL",
-    }),
-  );
-  await Effect.runPromise(
-    cloudflareSchedulerDriver.validateCron({
-      scheduleName: "lastWeekday",
-      cron: "59 23 LW * *",
-    }),
-  );
-});
-
-test("Cloudflare driver rejects non-canonical and non-five-field expressions", async () => {
-  const results = await Promise.all(
-    ["0  7 * * MON", "0 7 * *", " 0 7 * * MON", "0 7 * * MON "].map((cron) =>
-      Effect.runPromise(
-        Effect.either(
-          cloudflareSchedulerDriver.validateCron({
-            scheduleName: "invalid",
-            cron,
-          }),
-        ),
-      ),
-    ),
-  );
-
-  for (const result of results) {
-    if (Either.isRight(result)) {
-      assert.fail("Expected Cloudflare cron validation to fail.");
-    }
-
-    assert.ok(result.left instanceof SchedulerValidationError);
-  }
 });
 
 test("Cloudflare driver rejects malformed scheduled controller values", async () => {

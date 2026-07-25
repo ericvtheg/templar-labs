@@ -86,10 +86,10 @@ claim exactly-once execution.
 
 ## Drivers
 
-`SchedulerDriver<Input>` is the provider boundary. A driver validates provider
-cron conventions and converts the provider's event into a normalized scheduler
-trigger. The shared service owns registry validation, dispatch, errors, logging,
-tags, and layers.
+`SchedulerDriver<Input>` is the provider boundary. A driver converts the
+provider's event into a normalized scheduler trigger. The shared service owns
+registry validation, dispatch, errors, logging, tags, and layers. Cron syntax
+validation remains the deployment provider's responsibility.
 
 The root `makeScheduler` and `schedulerLayer` constructors use Cloudflare. A
 future provider can implement `SchedulerDriver` without changing schedule or

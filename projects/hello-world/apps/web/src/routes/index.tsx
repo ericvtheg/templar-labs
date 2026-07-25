@@ -152,7 +152,7 @@ const publishQueueEvent = createServerFn({ method: "POST" }).handler(async () =>
     readonly [templarBindings.jobsQueue]: Queue<string>;
   };
   const database = makeDatabase(bindings[templarBindings.db], { schema });
-  const queue = makeQueue(bindings[templarBindings.jobsQueue]);
+  const queue = makeQueue<QueueJob>(bindings[templarBindings.jobsQueue]);
   const publishedAt = new Date();
   const job: QueueJob = {
     id: crypto.randomUUID(),

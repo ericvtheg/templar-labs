@@ -59,6 +59,61 @@ a {
   color: inherit;
 }
 
+.admin-page {
+  min-height: 100vh;
+}
+
+.admin-auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 50% 35%, rgb(242 123 118 / 12%), transparent 24rem), var(--paper);
+}
+
+.admin-auth-card {
+  width: min(100%, 28rem);
+  padding: clamp(2rem, 7vw, 3.5rem);
+  border: 1px solid var(--hairline);
+  border-radius: 2rem;
+  text-align: center;
+  background: rgb(255 255 255 / 52%);
+  box-shadow: 0 24px 70px rgb(68 71 47 / 8%);
+}
+
+.admin-auth-card h1 {
+  margin: 0;
+  font-family: "Fraunces Variable", serif;
+  font-size: clamp(2.75rem, 10vw, 4.5rem);
+  font-weight: 470;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+}
+
+.admin-auth-copy,
+.admin-auth-error {
+  margin: 1.5rem auto 0;
+  color: var(--olive-muted);
+  line-height: 1.6;
+}
+
+.admin-auth-error {
+  color: #a93e3c;
+  font-weight: 650;
+}
+
+.admin-auth-button {
+  width: 100%;
+  margin-top: 1.75rem;
+  cursor: pointer;
+}
+
+.admin-auth-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .wedding-site {
   min-height: 100vh;
   overflow: hidden;

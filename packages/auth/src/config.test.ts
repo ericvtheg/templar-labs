@@ -80,3 +80,24 @@ test("uses Templar session lifetime defaults", () => {
   assert.equal(options.session?.updateAge, templarAuthSessionUpdateAgeSeconds);
   assert.equal(options.session?.freshAge, templarAuthSessionFreshAgeSeconds);
 });
+
+test("passes app-specific database hooks to Better Auth", () => {
+  const databaseHooks = {
+    user: {
+      create: {
+        before: async () => false,
+      },
+    },
+  } satisfies NonNullable<BetterAuthOptions["databaseHooks"]>;
+  const config = normalizeTemplarAuthConfig({
+    project: "Hello World",
+    app: "Web",
+    baseURL: "https://example.com/",
+    secret: "secret",
+    db,
+    databaseHooks,
+  });
+  const options = createBetterAuthOptions(config, {} as BetterAuthOptions["database"], []);
+
+  assert.equal(options.databaseHooks, databaseHooks);
+});

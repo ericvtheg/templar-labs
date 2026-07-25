@@ -667,6 +667,9 @@ importers:
 
   projects/emma-eric-wedding:
     dependencies:
+      '@templar/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@templar/deploy':
         specifier: workspace:*
         version: link:../../packages/deploy
@@ -704,6 +707,9 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.132.0
         version: 1.167.65(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
+      '@templar/auth':
+        specifier: workspace:*
+        version: link:../../../../packages/auth
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../../../tools/dev-ports

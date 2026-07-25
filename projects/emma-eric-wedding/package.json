@@ -10,10 +10,11 @@
     "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
     "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'No tests configured yet.'",
+    "test": "pnpm --filter emma-eric-wedding-web test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@templar/auth": "workspace:*",
     "@templar/deploy": "workspace:*"
   },
   "devDependencies": {

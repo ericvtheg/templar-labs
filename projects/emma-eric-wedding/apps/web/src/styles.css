@@ -2200,6 +2200,7 @@ a {
   }
 
   .hero-art {
+    align-self: stretch;
     flex: 1 1 auto;
     min-height: 365px;
     margin: -1rem -18px 0;

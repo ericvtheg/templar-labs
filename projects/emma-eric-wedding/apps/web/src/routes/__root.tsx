@@ -1,4 +1,4 @@
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Link, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
 
@@ -100,8 +100,28 @@ export const Route = createRootRoute({
       },
     ],
   }),
+  notFoundComponent: NotFoundPage,
   shellComponent: RootDocument,
 });
+
+function NotFoundPage() {
+  return (
+    <main className="style-board">
+      <header className="style-board-header">
+        <div>
+          <p className="eyebrow">404 · Wrong garden path</p>
+          <h1>Lost in the garden.</h1>
+          <p className="style-intro">
+            This page could not be found, but the celebration is still right where we left it.
+          </p>
+        </div>
+        <Link className="back-link" to="/">
+          Return home <span aria-hidden="true">→</span>
+        </Link>
+      </header>
+    </main>
+  );
+}
 
 function RootDocument({ children }: { readonly children: React.ReactNode }) {
   return (

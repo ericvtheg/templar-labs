@@ -27,7 +27,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
 
       <g className="garden-stems" fill="none" strokeLinecap="round">
         <path d="M118 760C129 605 193 470 296 315" />
-        <path d="M250 760C271 555 327 364 413 180" />
+        <path d="M250 760C271 555 327 364 387 180" />
         <path d="M389 760C407 585 486 448 579 343" />
         <path d="M521 760C520 600 551 459 626 310" />
         <path d="M80 760C122 652 157 591 207 534" />
@@ -52,7 +52,11 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         <path className="leaf leaf-mid" d="M74 737C38 663 28 600 40 548c54 53 78 116 34 189Z" />
       </g>
 
-      <g className="flower flower-coral flower-tall" filter={`url(#${textureId})`}>
+      <g
+        className="flower flower-coral flower-tall"
+        filter={`url(#${textureId})`}
+        transform="translate(9)"
+      >
         <path d="M348 214c-47-59-39-130 21-168 37 52 39 113-21 168Z" />
         <path d="M402 207c-25-72 8-130 70-145 19 65 1 118-70 145Z" />
         <path d="M359 217c12-83 60-139 110-148 3 80-33 133-110 148Z" />

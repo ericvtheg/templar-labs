@@ -11,7 +11,7 @@ every item.
 - One household flow showing every invited event before responses begin.
 - Per-person attendance for the wedding and rehearsal dinner.
 - One review and one final confirmation for the complete household response.
-- Per-person wedding meal choices using temporary mock menu options.
+- Per-person wedding meal choices and optional dietary restrictions using temporary mock menu options.
 - Named plus-ones with their own meal choices; they attend the same selected events as their host.
 - Existing responses can be reviewed and updated through the same lookup flow.
 - A required confirmation email address and one best-effort send after each successful save.

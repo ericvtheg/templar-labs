@@ -3,6 +3,7 @@ import { desc, eq } from "@templar/db";
 import {
   eventInvitations,
   guestEventResponses,
+  guestRsvpDetails,
   guests,
   householdRsvps,
   households,
@@ -253,6 +254,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     householdRsvpRows,
     eventResponseRows,
     plusOneResponseRows,
+    guestRsvpDetailRows,
   ] = await Promise.all([
     database.db.select().from(households).orderBy(desc(households.createdAt)),
     database.db.select().from(guests),
@@ -260,6 +262,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     database.db.select().from(householdRsvps),
     database.db.select().from(guestEventResponses),
     database.db.select().from(plusOneResponses),
+    database.db.select().from(guestRsvpDetails),
   ]);
 
   return buildEnrollmentDashboard(
@@ -269,6 +272,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     householdRsvpRows,
     eventResponseRows,
     plusOneResponseRows,
+    guestRsvpDetailRows,
   );
 }
 

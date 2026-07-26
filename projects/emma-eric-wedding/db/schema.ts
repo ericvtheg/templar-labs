@@ -59,6 +59,15 @@ export const householdRsvps = sqliteTable("household_rsvps", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const guestRsvpDetails = sqliteTable("guest_rsvp_details", {
+  guestId: text("guest_id")
+    .primaryKey()
+    .references(() => guests.id, { onDelete: "cascade" }),
+  dietaryRestrictions: text("dietary_restrictions").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const rsvpRevisions = sqliteTable(
   "rsvp_revisions",
   {
@@ -95,6 +104,7 @@ export const plusOneResponses = sqliteTable("plus_one_responses", {
     .primaryKey()
     .references(() => guests.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  dietaryRestrictions: text("dietary_restrictions").notNull().default(""),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });

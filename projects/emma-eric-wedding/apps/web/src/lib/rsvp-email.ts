@@ -19,8 +19,15 @@ export function buildRsvpConfirmationEmail(household: RsvpHousehold): RsvpEmail 
       return `  ${weddingEvent?.shortTitle ?? response.eventId}: ${response.attending ? "Attending" : "Declining"}${meal === undefined || meal === null ? "" : ` · ${meal.label}`}`;
     });
 
+    if (guest.dietaryRestrictions.length > 0) {
+      lines.push(`  Dietary restrictions: ${guest.dietaryRestrictions}`);
+    }
+
     if (guest.plusOne !== null) {
       lines.push(`  Guest: ${guest.plusOne.name}`);
+      if (guest.plusOne.dietaryRestrictions.length > 0) {
+        lines.push(`    Dietary restrictions: ${guest.plusOne.dietaryRestrictions}`);
+      }
       for (const response of guest.eventResponses.filter((candidate) => candidate.attending)) {
         const weddingEvent = eventById(response.eventId);
         const selection = guest.plusOne.mealSelections.find(
@@ -62,10 +69,18 @@ export function buildRsvpConfirmationEmail(household: RsvpHousehold): RsvpEmail 
           }${meal === undefined || meal === null ? "" : ` · ${escapeHtml(meal.label)}`}</li>`;
         })
         .join("");
+      const dietaryRestrictions =
+        guest.dietaryRestrictions.length === 0
+          ? ""
+          : `<p><strong>Dietary restrictions:</strong> ${escapeHtml(guest.dietaryRestrictions)}</p>`;
       const plusOne =
         guest.plusOne === null
           ? ""
           : `<p><strong>Guest:</strong> ${escapeHtml(guest.plusOne.name)}</p>${
+              guest.plusOne.dietaryRestrictions.length === 0
+                ? ""
+                : `<p><strong>Dietary restrictions:</strong> ${escapeHtml(guest.plusOne.dietaryRestrictions)}</p>`
+            }${
               guest.eventResponses.every((response) => !response.attending)
                 ? ""
                 : `<ul>${guest.eventResponses
@@ -84,7 +99,7 @@ export function buildRsvpConfirmationEmail(household: RsvpHousehold): RsvpEmail 
                     .join("")}</ul>`
             }`;
 
-      return `<section style="margin:24px 0"><h2 style="font:600 24px Georgia,serif;margin:0 0 10px">${escapeHtml(guest.name)}</h2><ul style="line-height:1.7;margin:0;padding-left:20px">${responses}</ul>${plusOne}</section>`;
+      return `<section style="margin:24px 0"><h2 style="font:600 24px Georgia,serif;margin:0 0 10px">${escapeHtml(guest.name)}</h2><ul style="line-height:1.7;margin:0;padding-left:20px">${responses}</ul>${dietaryRestrictions}${plusOne}</section>`;
     })
     .join("");
 

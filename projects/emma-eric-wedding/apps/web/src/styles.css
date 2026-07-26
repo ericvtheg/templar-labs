@@ -1715,6 +1715,7 @@ a {
 
 .rsvp-lookup-card label,
 .rsvp-plus-one-name,
+.rsvp-dietary-field,
 .rsvp-email-card label {
   display: grid;
   gap: 0.55rem;
@@ -1722,6 +1723,7 @@ a {
 
 .rsvp-lookup-card label > span,
 .rsvp-plus-one-name > span,
+.rsvp-dietary-field > span,
 .rsvp-email-card label > span {
   font-size: 0.67rem;
   font-weight: 780;
@@ -1731,6 +1733,7 @@ a {
 
 .rsvp-lookup-card input,
 .rsvp-plus-one-name input,
+.rsvp-dietary-field textarea,
 .rsvp-email-card input {
   width: 100%;
   min-height: 56px;
@@ -1745,6 +1748,7 @@ a {
 
 .rsvp-lookup-card input:focus,
 .rsvp-plus-one-name input:focus,
+.rsvp-dietary-field textarea:focus,
 .rsvp-email-card input:focus {
   border-color: rgb(239 83 81 / 65%);
   box-shadow: 0 0 0 3px rgb(239 83 81 / 10%);
@@ -2105,6 +2109,23 @@ a {
   margin-top: 1.3rem;
 }
 
+.rsvp-dietary-field {
+  margin-top: 1.7rem;
+  padding-top: 1.7rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.rsvp-dietary-field textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.rsvp-dietary-field > small {
+  color: var(--olive-muted);
+  font-size: 0.68rem;
+}
+
 .rsvp-email-card {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
@@ -2241,6 +2262,27 @@ a {
   margin-top: 0.4rem;
   color: var(--olive-muted);
   font-size: 0.68rem;
+}
+
+.rsvp-summary-dietary {
+  display: grid;
+  gap: 0.2rem;
+  margin: 1rem 0 0;
+  color: var(--olive-muted);
+  font-size: 0.72rem;
+}
+
+.rsvp-summary-dietary span {
+  font-size: 0.62rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rsvp-summary-dietary strong {
+  color: var(--olive);
+  font-weight: 600;
+  white-space: pre-wrap;
 }
 
 .rsvp-review-email,

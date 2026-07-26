@@ -27,6 +27,7 @@ const eventResponseInput = z.object({
 
 const plusOneInput = z.object({
   name: z.string().trim().min(1, "Enter your guest’s full name.").max(100),
+  dietaryRestrictions: z.string().trim().max(500),
   mealSelections: z.array(
     z.object({
       eventId: weddingEventIdInput,
@@ -42,6 +43,7 @@ export const householdRsvpInput = z.object({
     .array(
       z.object({
         guestId: z.string().min(1),
+        dietaryRestrictions: z.string().trim().max(500),
         eventResponses: z.array(eventResponseInput),
         plusOne: plusOneInput.nullable(),
       }),
@@ -59,6 +61,7 @@ export type RsvpEventResponse = {
 
 export type RsvpPlusOne = {
   readonly name: string;
+  readonly dietaryRestrictions: string;
   readonly mealSelections: readonly {
     readonly eventId: WeddingEventId;
     readonly mealOptionId: string;
@@ -68,6 +71,7 @@ export type RsvpPlusOne = {
 export type RsvpGuest = {
   readonly id: string;
   readonly name: string;
+  readonly dietaryRestrictions: string;
   readonly plusOneAllowed: boolean;
   readonly eventIds: readonly WeddingEventId[];
   readonly eventResponses: readonly RsvpEventResponse[];
@@ -162,6 +166,10 @@ export function validateCompleteRsvp(
     const attendingEventIds = guestResponse.eventResponses
       .filter((response) => response.attending)
       .map((response) => response.eventId);
+
+    if (attendingEventIds.length === 0 && guestResponse.dietaryRestrictions.length > 0) {
+      return `Remove the dietary restrictions for ${invitedGuest.name}’s declined invitation.`;
+    }
 
     if (guestResponse.plusOne !== null) {
       if (!invitedGuest.plusOneAllowed || attendingEventIds.length === 0) {

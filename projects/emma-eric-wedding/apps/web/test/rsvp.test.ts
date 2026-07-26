@@ -66,7 +66,7 @@ test("requires a meal for each attending named guest and plus-one", () => {
       guests: [
         {
           ...firstGuest,
-          plusOne: { name: "Taylor Bloom", mealSelections: [] },
+          plusOne: { name: "Taylor Bloom", dietaryRestrictions: "", mealSelections: [] },
         },
         required(response.guests[1]),
       ],
@@ -83,6 +83,36 @@ test("requires a valid confirmation email", () => {
   assert.equal(householdRsvpInput.safeParse({ ...response, contactEmail: "" }).success, false);
   assert.equal(
     householdRsvpInput.safeParse({ ...response, contactEmail: "not-an-email" }).success,
+    false,
+  );
+});
+
+test("trims and limits dietary restrictions for every person", () => {
+  const response = completeResponse();
+  const firstGuest = required(response.guests[0]);
+  const parsed = householdRsvpInput.parse({
+    ...response,
+    guests: [
+      {
+        ...firstGuest,
+        dietaryRestrictions: "  Peanut allergy  ",
+        plusOne: {
+          name: "Taylor Bloom",
+          dietaryRestrictions: "  Gluten-free  ",
+          mealSelections: [{ eventId: "wedding", mealOptionId: "wild-mushroom-risotto" }],
+        },
+      },
+      required(response.guests[1]),
+    ],
+  });
+
+  assert.equal(parsed.guests[0]?.dietaryRestrictions, "Peanut allergy");
+  assert.equal(parsed.guests[0]?.plusOne?.dietaryRestrictions, "Gluten-free");
+  assert.equal(
+    householdRsvpInput.safeParse({
+      ...response,
+      guests: [{ ...firstGuest, dietaryRestrictions: "x".repeat(501) }, response.guests[1]],
+    }).success,
     false,
   );
 });
@@ -105,6 +135,8 @@ test("renders every guest and event in the confirmation email", () => {
   assert.match(email.text, /Wedding: Attending/);
   assert.match(email.text, /Rehearsal dinner: Attending/);
   assert.match(email.text, /Taylor Bloom/);
+  assert.match(email.text, /Peanut allergy/);
+  assert.match(email.html, /Gluten-free/);
   assert.match(email.html, /Wild mushroom risotto/);
 });
 
@@ -115,6 +147,7 @@ function completeResponse(): HouseholdRsvpInput {
     guests: [
       {
         guestId: "guest-1",
+        dietaryRestrictions: "Peanut allergy",
         eventResponses: [
           {
             eventId: "wedding",
@@ -129,11 +162,13 @@ function completeResponse(): HouseholdRsvpInput {
         ],
         plusOne: {
           name: "Taylor Bloom",
+          dietaryRestrictions: "Gluten-free",
           mealSelections: [{ eventId: "wedding", mealOptionId: "wild-mushroom-risotto" }],
         },
       },
       {
         guestId: "guest-2",
+        dietaryRestrictions: "",
         eventResponses: [
           {
             eventId: "wedding",
@@ -161,6 +196,7 @@ function confirmationHousehold(): RsvpHousehold {
       {
         id: "guest-1",
         name: "Alex Garden",
+        dietaryRestrictions: firstGuest.dietaryRestrictions,
         plusOneAllowed: true,
         eventIds: ["wedding", "rehearsal-dinner"],
         eventResponses: firstGuest.eventResponses,

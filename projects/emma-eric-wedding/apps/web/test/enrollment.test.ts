@@ -231,7 +231,14 @@ test("summarizes submitted responses and attending guests", () => {
         mealOptionId: null,
       },
     ],
-    [{ guestId: "guest-1", name: "Taylor Bloom" }],
+    [
+      {
+        guestId: "guest-1",
+        name: "Taylor Bloom",
+        dietaryRestrictions: "Gluten-free",
+      },
+    ],
+    [{ guestId: "guest-1", dietaryRestrictions: "Peanut allergy" }],
   );
 
   assert.deepEqual(dashboard.responseSummary, {
@@ -241,6 +248,8 @@ test("summarizes submitted responses and attending guests", () => {
     rehearsalDinnerAttendingCount: 2,
   });
   assert.equal(dashboard.households[0]?.guests[0]?.plusOneName, "Taylor Bloom");
+  assert.equal(dashboard.households[0]?.guests[0]?.dietaryRestrictions, "Peanut allergy");
+  assert.equal(dashboard.households[0]?.guests[0]?.plusOneDietaryRestrictions, "Gluten-free");
   assert.deepEqual(dashboard.households[0]?.guests[0]?.eventResponses, [
     {
       eventId: "wedding",

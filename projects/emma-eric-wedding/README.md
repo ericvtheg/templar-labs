@@ -12,7 +12,7 @@ whose details and menu can be filled in later.
 The admin stores household contact and mailing details, named invitees,
 per-person event invitations, and explicit plus-one permissions. It also shows
 which households have responded, event headcounts, attendance choices, meal
-choices, and plus-one names.
+choices, per-person dietary restrictions, and plus-one names.
 
 ```sh
 pnpm --filter emma-eric-wedding dev

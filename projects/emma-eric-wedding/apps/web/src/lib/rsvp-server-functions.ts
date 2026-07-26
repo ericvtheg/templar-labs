@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import {
   eventInvitations,
   guestEventResponses,
+  guestRsvpDetails,
   guests,
   householdRsvps,
   households,
@@ -138,6 +139,7 @@ async function persistRsvp(
           {
             guestId: guest.guestId,
             name: guest.plusOne.name,
+            dietaryRestrictions: guest.plusOne.dietaryRestrictions,
             createdAt: now,
             updatedAt: now,
           },
@@ -182,12 +184,23 @@ async function persistRsvp(
       database.db.delete(guestEventResponses).where(eq(guestEventResponses.guestId, guest.id)),
     ),
     ...invitedGuests.map((guest) =>
+      database.db.delete(guestRsvpDetails).where(eq(guestRsvpDetails.guestId, guest.id)),
+    ),
+    ...invitedGuests.map((guest) =>
       database.db.delete(plusOneMealSelections).where(eq(plusOneMealSelections.guestId, guest.id)),
     ),
     ...invitedGuests.map((guest) =>
       database.db.delete(plusOneResponses).where(eq(plusOneResponses.guestId, guest.id)),
     ),
     database.db.insert(guestEventResponses).values(guestResponses),
+    database.db.insert(guestRsvpDetails).values(
+      input.guests.map((guest) => ({
+        guestId: guest.guestId,
+        dietaryRestrictions: guest.dietaryRestrictions,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    ),
     ...(plusOnes.length === 0 ? [] : [database.db.insert(plusOneResponses).values(plusOnes)]),
     ...(plusOneMeals.length === 0
       ? []
@@ -225,6 +238,7 @@ async function readRsvpHousehold(
     invitationRows,
     householdRsvpRows,
     responseRows,
+    guestRsvpDetailRows,
     plusOneRows,
     plusOneMealRows,
   ] = await Promise.all([
@@ -237,6 +251,7 @@ async function readRsvpHousehold(
       .where(eq(householdRsvps.householdId, householdId))
       .limit(1),
     database.db.select().from(guestEventResponses),
+    database.db.select().from(guestRsvpDetails),
     database.db.select().from(plusOneResponses),
     database.db.select().from(plusOneMealSelections),
   ]);
@@ -275,6 +290,9 @@ async function readRsvpHousehold(
           name: guest.name,
           plusOneAllowed: guest.plusOneAllowed,
           eventIds,
+          dietaryRestrictions:
+            guestRsvpDetailRows.find((detail) => detail.guestId === guest.id)
+              ?.dietaryRestrictions ?? "",
           eventResponses: eventIds.map((eventId) => {
             const response = responseRows.find(
               (candidate) => candidate.guestId === guest.id && candidate.eventId === eventId,
@@ -291,6 +309,7 @@ async function readRsvpHousehold(
               ? null
               : {
                   name: plusOne.name,
+                  dietaryRestrictions: plusOne.dietaryRestrictions,
                   mealSelections: plusOneMealRows
                     .filter(
                       (selection) =>

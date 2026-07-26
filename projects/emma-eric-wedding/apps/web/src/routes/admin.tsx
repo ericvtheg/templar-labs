@@ -679,6 +679,15 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                             {guest.plusOneName.length === 0 ? null : (
                               <em>Guest: {guest.plusOneName}</em>
                             )}
+                            {guest.dietaryRestrictions.length === 0 ? null : (
+                              <em>Dietary restrictions: {guest.dietaryRestrictions}</em>
+                            )}
+                            {guest.plusOneDietaryRestrictions.length === 0 ? null : (
+                              <em>
+                                {guest.plusOneName || "Guest"}’s dietary restrictions:{" "}
+                                {guest.plusOneDietaryRestrictions}
+                              </em>
+                            )}
                           </div>
                           {guest.plusOneAllowed ? <small>+1 granted</small> : null}
                         </li>

@@ -114,6 +114,7 @@ function RsvpPage() {
             contactEmail: household.contactEmail,
             guests: household.guests.map((guest) => ({
               guestId: guest.id,
+              dietaryRestrictions: guest.dietaryRestrictions,
               eventResponses: guest.eventResponses.map((response) => ({
                 eventId: response.eventId,
                 attending: response.attending === true,
@@ -124,6 +125,7 @@ function RsvpPage() {
                   ? null
                   : {
                       name: guest.plusOne.name,
+                      dietaryRestrictions: guest.plusOne.dietaryRestrictions,
                       mealSelections: guest.plusOne.mealSelections.map((selection) => ({
                         eventId: selection.eventId,
                         mealOptionId: selection.mealOptionId,
@@ -347,6 +349,7 @@ function GuestResponseCard({
         attending,
         mealOptionId: attending ? response.mealOptionId : null,
       })),
+      dietaryRestrictions: attending ? current.dietaryRestrictions : "",
       plusOne: attending ? current.plusOne : null,
     }));
   };
@@ -382,6 +385,10 @@ function GuestResponseCard({
 
   const setPlusOne = (plusOne: RsvpPlusOne | null) => {
     onChange((current) => ({ ...current, plusOne }));
+  };
+
+  const setDietaryRestrictions = (dietaryRestrictions: string) => {
+    onChange((current) => ({ ...current, dietaryRestrictions }));
   };
 
   return (
@@ -452,6 +459,14 @@ function GuestResponseCard({
           />
         );
       })}
+
+      {attendingResponses.length > 0 ? (
+        <DietaryRestrictionsField
+          name={guest.name}
+          onChange={setDietaryRestrictions}
+          value={guest.dietaryRestrictions}
+        />
+      ) : null}
 
       {guest.plusOneAllowed && attendingResponses.length > 0 ? (
         <PlusOneResponse
@@ -529,6 +544,30 @@ function MealChoices({
   );
 }
 
+function DietaryRestrictionsField({
+  name,
+  onChange,
+  value,
+}: {
+  readonly name: string;
+  readonly onChange: (dietaryRestrictions: string) => void;
+  readonly value: string;
+}) {
+  return (
+    <label className="rsvp-dietary-field">
+      <span>{name}’s dietary restrictions</span>
+      <textarea
+        maxLength={500}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Allergies or dietary needs"
+        rows={3}
+        value={value}
+      />
+      <small>Optional. Leave blank if there are none.</small>
+    </label>
+  );
+}
+
 function PlusOneResponse({
   attendingEventIds,
   guest,
@@ -556,7 +595,10 @@ function PlusOneResponse({
   return (
     <section className="rsvp-plus-one">
       {plusOne === null ? (
-        <button onClick={() => onChange({ name: "", mealSelections: [] })} type="button">
+        <button
+          onClick={() => onChange({ name: "", dietaryRestrictions: "", mealSelections: [] })}
+          type="button"
+        >
           <span aria-hidden="true">+</span> Add {firstName(guest.name)}’s invited guest
         </button>
       ) : (
@@ -596,6 +638,11 @@ function PlusOneResponse({
               />
             );
           })}
+          <DietaryRestrictionsField
+            name={plusOne.name.trim() || "Invited guest"}
+            onChange={(dietaryRestrictions) => onChange({ ...plusOne, dietaryRestrictions })}
+            value={plusOne.dietaryRestrictions}
+          />
         </>
       )}
     </section>
@@ -705,6 +752,12 @@ function ResponseSummary({ household }: { readonly household: RsvpHousehold }) {
               );
             })}
           </ul>
+          {guest.dietaryRestrictions.length === 0 ? null : (
+            <p className="rsvp-summary-dietary">
+              <span>Dietary restrictions</span>
+              <strong>{guest.dietaryRestrictions}</strong>
+            </p>
+          )}
           {guest.plusOne === null ? null : (
             <div className="rsvp-summary-plus-one">
               <p>
@@ -729,6 +782,9 @@ function ResponseSummary({ household }: { readonly household: RsvpHousehold }) {
                     </small>
                   );
                 })}
+              {guest.plusOne.dietaryRestrictions.length === 0 ? null : (
+                <small>Dietary restrictions: {guest.plusOne.dietaryRestrictions}</small>
+              )}
             </div>
           )}
         </article>

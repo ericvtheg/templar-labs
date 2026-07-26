@@ -13,8 +13,12 @@ test("validates and trims a household enrollment", () => {
     postalCode: " 67203 ",
     country: " United States ",
     guests: [
-      { name: "  Alex Garden ", plusOneAllowed: true },
-      { name: "Sam Garden", plusOneAllowed: false },
+      {
+        name: "  Alex Garden ",
+        plusOneAllowed: true,
+        eventIds: ["wedding", "rehearsal-dinner"],
+      },
+      { name: "Sam Garden", plusOneAllowed: false, eventIds: ["wedding"] },
     ],
   });
 
@@ -28,8 +32,12 @@ test("validates and trims a household enrollment", () => {
     postalCode: "67203",
     country: "United States",
     guests: [
-      { name: "Alex Garden", plusOneAllowed: true },
-      { name: "Sam Garden", plusOneAllowed: false },
+      {
+        name: "Alex Garden",
+        plusOneAllowed: true,
+        eventIds: ["wedding", "rehearsal-dinner"],
+      },
+      { name: "Sam Garden", plusOneAllowed: false, eventIds: ["wedding"] },
     ],
   });
 });
@@ -60,7 +68,26 @@ test("rejects an invalid household email", () => {
     region: "",
     postalCode: "",
     country: "",
-    guests: [{ name: "Alex Garden", plusOneAllowed: false }],
+    guests: [{ name: "Alex Garden", plusOneAllowed: false, eventIds: ["wedding"] }],
+  });
+
+  assert.equal(result.success, false);
+});
+
+test("requires full names to be unique without case or spacing differences", () => {
+  const result = householdEnrollmentInput.safeParse({
+    householdName: "The Garden household",
+    contactEmail: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    country: "",
+    guests: [
+      { name: "Alex Garden", plusOneAllowed: false, eventIds: ["wedding"] },
+      { name: "  ALEX   GARDEN ", plusOneAllowed: false, eventIds: ["wedding"] },
+    ],
   });
 
   assert.equal(result.success, false);
@@ -132,4 +159,94 @@ test("counts explicit plus-ones as invited seats", () => {
   assert.equal(dashboard.households[0]?.invitedSeatCount, 3);
   assert.equal(dashboard.households[0]?.contactEmail, "garden@example.com");
   assert.equal(dashboard.households[1]?.contactEmail, "");
+});
+
+test("summarizes submitted responses and attending guests", () => {
+  const dashboard = buildEnrollmentDashboard(
+    [
+      {
+        id: "household-1",
+        name: "The Garden household",
+        contactEmail: "garden@example.com",
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        region: null,
+        postalCode: null,
+        country: null,
+        createdAt: new Date("2026-07-26T12:00:00.000Z"),
+      },
+      {
+        id: "household-2",
+        name: "The Orchard household",
+        contactEmail: null,
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        region: null,
+        postalCode: null,
+        country: null,
+        createdAt: new Date("2026-07-26T13:00:00.000Z"),
+      },
+    ],
+    [
+      {
+        id: "guest-1",
+        householdId: "household-1",
+        name: "Alex Garden",
+        plusOneAllowed: true,
+        position: 0,
+      },
+      {
+        id: "guest-2",
+        householdId: "household-2",
+        name: "Jo Orchard",
+        plusOneAllowed: false,
+        position: 0,
+      },
+    ],
+    [
+      { guestId: "guest-1", eventId: "wedding" },
+      { guestId: "guest-1", eventId: "rehearsal-dinner" },
+      { guestId: "guest-2", eventId: "wedding" },
+    ],
+    [{ householdId: "household-1", updatedAt: new Date("2026-08-01T12:00:00.000Z") }],
+    [
+      {
+        guestId: "guest-1",
+        eventId: "wedding",
+        attending: true,
+        mealOptionId: "herb-roasted-chicken",
+      },
+      {
+        guestId: "guest-1",
+        eventId: "rehearsal-dinner",
+        attending: true,
+        mealOptionId: null,
+      },
+      {
+        guestId: "guest-2",
+        eventId: "wedding",
+        attending: false,
+        mealOptionId: null,
+      },
+    ],
+    [{ guestId: "guest-1", name: "Taylor Bloom" }],
+  );
+
+  assert.deepEqual(dashboard.responseSummary, {
+    respondedHouseholdCount: 1,
+    pendingHouseholdCount: 1,
+    weddingAttendingCount: 2,
+    rehearsalDinnerAttendingCount: 2,
+  });
+  assert.equal(dashboard.households[0]?.guests[0]?.plusOneName, "Taylor Bloom");
+  assert.deepEqual(dashboard.households[0]?.guests[0]?.eventResponses, [
+    {
+      eventId: "wedding",
+      attending: true,
+      mealOptionId: "herb-roasted-chicken",
+    },
+    { eventId: "rehearsal-dinner", attending: true, mealOptionId: "" },
+  ]);
 });

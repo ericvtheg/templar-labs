@@ -1,9 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { desc, eq, makeDatabase } from "@templar/db";
-import * as schema from "../../../../db/schema.ts";
-import { guests, households } from "../../../../db/schema.ts";
+import { desc, eq } from "@templar/db";
+import {
+  eventInvitations,
+  guestEventResponses,
+  guests,
+  householdRsvps,
+  households,
+  plusOneResponses,
+} from "../../../../db/schema.ts";
 import type { AdminAccess } from "./admin-auth.ts";
 import { getAdminAccess, requireAdmin } from "./auth.server.ts";
+import { getWeddingDatabase, type WeddingDatabase } from "./database.server.ts";
 import {
   buildEnrollmentDashboard,
   type EnrollmentDashboard,
@@ -11,8 +18,7 @@ import {
   householdEnrollmentInput,
   householdUpdateInput,
 } from "./enrollment.ts";
-
-type EnrollmentDatabase = ReturnType<typeof makeDatabase<typeof schema>>;
+import { normalizeGuestName } from "./guest-name.ts";
 
 export type AdminDashboardLoaderData =
   | {
@@ -37,7 +43,7 @@ export const loadAdminDashboard = createServerFn({ method: "GET" }).handler(
 
     return {
       access: "authorized",
-      dashboard: await readEnrollmentDashboard(await getDatabase()),
+      dashboard: await readEnrollmentDashboard(await getWeddingDatabase()),
     };
   },
 );
@@ -48,9 +54,21 @@ export const enrollHousehold = createServerFn({ method: "POST" })
     const request = requestFromContext(context);
     await requireAdmin(request);
 
-    const database = await getDatabase();
+    const database = await getWeddingDatabase();
+    await ensureUniqueGuestNames(database, context.data.guests);
     const householdId = crypto.randomUUID();
     const now = new Date();
+
+    const enrolledGuests = context.data.guests.map((guest, position) => ({
+      id: crypto.randomUUID(),
+      householdId,
+      name: guest.name,
+      plusOneAllowed: guest.plusOneAllowed,
+      position,
+      createdAt: now,
+      updatedAt: now,
+      eventIds: guest.eventIds,
+    }));
 
     await database.db.batch([
       database.db.insert(households).values({
@@ -59,17 +77,14 @@ export const enrollHousehold = createServerFn({ method: "POST" })
         createdAt: now,
         updatedAt: now,
       }),
-      database.db.insert(guests).values(
-        context.data.guests.map((guest, position) => ({
-          id: crypto.randomUUID(),
-          householdId,
-          name: guest.name,
-          plusOneAllowed: guest.plusOneAllowed,
-          position,
-          createdAt: now,
-          updatedAt: now,
-        })),
-      ),
+      database.db.insert(guests).values(enrolledGuests.map(({ eventIds: _, ...guest }) => guest)),
+      database.db
+        .insert(eventInvitations)
+        .values(
+          enrolledGuests.flatMap((guest) =>
+            guest.eventIds.map((eventId) => ({ guestId: guest.id, eventId, createdAt: now })),
+          ),
+        ),
     ]);
 
     return await readEnrollmentDashboard(database);
@@ -81,7 +96,7 @@ export const updateHousehold = createServerFn({ method: "POST" })
     const request = requestFromContext(context);
     await requireAdmin(request);
 
-    const database = await getDatabase();
+    const database = await getWeddingDatabase();
     const existingHouseholds = await database.db
       .select({ id: households.id })
       .from(households)
@@ -111,6 +126,8 @@ export const updateHousehold = createServerFn({ method: "POST" })
       submittedGuestIds.add(guest.id);
     }
 
+    await ensureUniqueGuestNames(database, context.data.guests, existingGuestIds);
+
     const now = new Date();
 
     await database.db
@@ -121,31 +138,53 @@ export const updateHousehold = createServerFn({ method: "POST" })
       })
       .where(eq(households.id, context.data.householdId));
 
+    const resolvedGuests = context.data.guests.map((guest, position) => ({
+      ...guest,
+      id: guest.id ?? crypto.randomUUID(),
+      position,
+    }));
+
     await Promise.all(
-      context.data.guests.map((guest, position) => {
+      resolvedGuests.map((guest) => {
         if (guest.id === undefined) {
-          return database.db.insert(guests).values({
-            id: crypto.randomUUID(),
-            householdId: context.data.householdId,
-            name: guest.name,
-            plusOneAllowed: guest.plusOneAllowed,
-            position,
-            createdAt: now,
-            updatedAt: now,
-          });
+          throw new Error("Guest identifier unavailable.");
         }
 
-        return database.db
-          .update(guests)
-          .set({
-            name: guest.name,
-            plusOneAllowed: guest.plusOneAllowed,
-            position,
-            updatedAt: now,
-          })
-          .where(eq(guests.id, guest.id));
+        return existingGuestIds.has(guest.id)
+          ? database.db
+              .update(guests)
+              .set({
+                name: guest.name,
+                plusOneAllowed: guest.plusOneAllowed,
+                position: guest.position,
+                updatedAt: now,
+              })
+              .where(eq(guests.id, guest.id))
+          : database.db.insert(guests).values({
+              id: guest.id,
+              householdId: context.data.householdId,
+              name: guest.name,
+              plusOneAllowed: guest.plusOneAllowed,
+              position: guest.position,
+              createdAt: now,
+              updatedAt: now,
+            });
       }),
     );
+
+    await Promise.all(
+      existingGuests.map((guest) =>
+        database.db.delete(eventInvitations).where(eq(eventInvitations.guestId, guest.id)),
+      ),
+    );
+
+    await database.db
+      .insert(eventInvitations)
+      .values(
+        resolvedGuests.flatMap((guest) =>
+          guest.eventIds.map((eventId) => ({ guestId: guest.id, eventId, createdAt: now })),
+        ),
+      );
 
     const removedGuestIds = existingGuests
       .map((guest) => guest.id)
@@ -164,7 +203,7 @@ export const deleteHousehold = createServerFn({ method: "POST" })
     const request = requestFromContext(context);
     await requireAdmin(request);
 
-    const database = await getDatabase();
+    const database = await getWeddingDatabase();
     await database.db.delete(households).where(eq(households.id, context.data.householdId));
 
     return await readEnrollmentDashboard(database);
@@ -206,18 +245,54 @@ function requestFromContext(context: unknown): Request {
   return request;
 }
 
-async function getDatabase(): Promise<EnrollmentDatabase> {
-  const { env } = await import("cloudflare:workers");
-  const bindings = env as { readonly DB: D1Database };
-
-  return makeDatabase(bindings.DB, { schema });
-}
-
-async function readEnrollmentDashboard(database: EnrollmentDatabase): Promise<EnrollmentDashboard> {
-  const [householdRows, guestRows] = await Promise.all([
+async function readEnrollmentDashboard(database: WeddingDatabase): Promise<EnrollmentDashboard> {
+  const [
+    householdRows,
+    guestRows,
+    eventInvitationRows,
+    householdRsvpRows,
+    eventResponseRows,
+    plusOneResponseRows,
+  ] = await Promise.all([
     database.db.select().from(households).orderBy(desc(households.createdAt)),
     database.db.select().from(guests),
+    database.db.select().from(eventInvitations),
+    database.db.select().from(householdRsvps),
+    database.db.select().from(guestEventResponses),
+    database.db.select().from(plusOneResponses),
   ]);
 
-  return buildEnrollmentDashboard(householdRows, guestRows);
+  return buildEnrollmentDashboard(
+    householdRows,
+    guestRows,
+    eventInvitationRows,
+    householdRsvpRows,
+    eventResponseRows,
+    plusOneResponseRows,
+  );
+}
+
+async function ensureUniqueGuestNames(
+  database: WeddingDatabase,
+  submittedGuests: readonly { readonly name: string }[],
+  ignoredGuestIds: ReadonlySet<string> = new Set(),
+) {
+  const submittedNames = submittedGuests.map((guest) => normalizeGuestName(guest.name));
+
+  if (new Set(submittedNames).size !== submittedNames.length) {
+    throw new Error("Each named guest needs a unique full name.");
+  }
+
+  const existingGuests = await database.db
+    .select({ id: guests.id, name: guests.name })
+    .from(guests);
+  const existingNames = new Set(
+    existingGuests
+      .filter((guest) => !ignoredGuestIds.has(guest.id))
+      .map((guest) => normalizeGuestName(guest.name)),
+  );
+
+  if (submittedNames.some((name) => existingNames.has(name))) {
+    throw new Error("That full name is already assigned to another invitation.");
+  }
 }

@@ -751,6 +751,9 @@ importers:
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../../../tools/dev-ports
+      '@templar/email':
+        specifier: workspace:*
+        version: link:../../../../packages/email
       effect:
         specifier: ^3.21.2
         version: 3.21.2

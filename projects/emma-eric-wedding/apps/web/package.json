@@ -23,6 +23,7 @@
     "@templar/auth": "workspace:*",
     "@templar/db": "workspace:*",
     "@templar/dev-ports": "workspace:*",
+    "@templar/email": "workspace:*",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-start": "^1.132.0",
     "react": "^19.0.0",

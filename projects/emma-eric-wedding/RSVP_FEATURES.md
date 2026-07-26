@@ -4,6 +4,20 @@ This document collects potential features for the Emma and Eric wedding
 website and its future RSVP system. It is a backlog, not a commitment to build
 every item.
 
+## Implemented RSVP Foundation
+
+- One shared RSVP URL suitable for a shared invitation QR code.
+- Exact full-name lookup, with no postal-code confirmation while names remain unique.
+- One household flow showing every invited event before responses begin.
+- Per-person attendance for the wedding and rehearsal dinner.
+- One review and one final confirmation for the complete household response.
+- Per-person wedding meal choices using temporary mock menu options.
+- Named plus-ones with their own meal choices; they attend the same selected events as their host.
+- Existing responses can be reviewed and updated through the same lookup flow.
+- One best-effort confirmation email after each successful save.
+- Admin event assignment, RSVP status, event headcounts, responses, meals, and plus-one names.
+- Server validation, signed household access, rate-limited name lookup, and response history.
+
 ## Suggested First Release
 
 - Guest lookup by first and last name.

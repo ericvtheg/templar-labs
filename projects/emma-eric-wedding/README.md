@@ -1,13 +1,18 @@
 # Emma & Eric Wedding
 
-Draft wedding website and design system for Emma and Eric.
+Wedding website and RSVP system for Emma and Eric.
 
-The current milestone includes a responsive homepage shell, an interactive
-style board at `/style`, and Google-protected household enrollment at `/admin`.
-The admin stores household contact and mailing details, named invitees, and
-explicit per-person plus-one permissions. Enrolled households can be edited or
-removed. It does not yet include guest-facing RSVP responses or invented
-personal content.
+The site includes a responsive homepage, an interactive style board at `/style`,
+a guest RSVP at `/rsvp`, and Google-protected household management at `/admin`.
+Guests find their invitation with a full name and submit one complete household
+response covering every named person and invited event. Wedding meal choices
+are currently mock options; the rehearsal dinner is wired as a second event
+whose details and menu can be filled in later.
+
+The admin stores household contact and mailing details, named invitees,
+per-person event invitations, and explicit plus-one permissions. It also shows
+which households have responded, event headcounts, attendance choices, meal
+choices, and plus-one names.
 
 ```sh
 pnpm --filter emma-eric-wedding dev
@@ -18,6 +23,11 @@ The `/admin` route authenticates through the local Templar Auth service on port 
 Emma does not receive Google credentials, maintain canonical identity tables, or create local user
 rows. It uses the database-free `createTemplarAuthApp` integration. Admin access comes from the
 centrally signed global `admin` claim, and no sign-in UI is shown outside `/admin`.
+
+An RSVP save is atomic and remains successful even if its confirmation email
+fails. Production makes one best-effort send from `rsvp@ericventor.com`; local
+development skips delivery. There is intentionally no queue, retry flow, or
+manual resend in this release.
 
 The production target is `emmaand.ericventor.com`. The draft is marked
 `noindex` and disallowed by `robots.txt` while privacy and guest access are still

@@ -45,9 +45,9 @@ function WeddingHome() {
               <a className="button button-primary" href="#weekend">
                 Explore the draft
               </a>
-              <span aria-disabled="true" className="button button-quiet">
-                RSVP opens later
-              </span>
+              <Link className="button button-quiet" to="/rsvp">
+                RSVP
+              </Link>
             </div>
           </div>
 
@@ -90,15 +90,14 @@ function WeddingHome() {
         <section className="rsvp-preview" id={rsvpId}>
           <BotanicalStamp className="rsvp-stamp rsvp-stamp-left" />
           <BotanicalStamp className="rsvp-stamp rsvp-stamp-right" />
-          <p className="eyebrow">Coming later</p>
+          <p className="eyebrow">Your invitation</p>
           <h2>Save your seat</h2>
           <p>
-            The private RSVP flow will appear here after the guest list and event details are
-            confirmed.
+            Enter your full name as it appears on your invitation to respond for your household.
           </p>
-          <span aria-disabled="true" className="button button-dark">
-            RSVP is not open yet
-          </span>
+          <Link className="button button-dark" to="/rsvp">
+            RSVP now
+          </Link>
         </section>
       </main>
 

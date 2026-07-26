@@ -1,0 +1,880 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { type SyntheticEvent, useId, useRef, useState, useTransition } from "react";
+import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
+import { eventById, mealOptionById, type WeddingEventId } from "../content/rsvp.ts";
+import type {
+  RsvpEventResponse,
+  RsvpGuest,
+  RsvpHousehold,
+  RsvpPlusOne,
+  RsvpSubmissionResult,
+} from "../lib/rsvp.ts";
+import { findRsvpHousehold, submitHouseholdRsvp } from "../lib/rsvp-server-functions.ts";
+
+type RsvpStep = "lookup" | "respond" | "review" | "confirmed";
+type OverallAttendance = "all" | "some" | "none" | null;
+
+export const Route = createFileRoute("/rsvp")({
+  component: RsvpPage,
+});
+
+function RsvpPage() {
+  const titleId = useId();
+  const messageRef = useRef<HTMLDivElement>(null);
+  const findHousehold = useServerFn(findRsvpHousehold);
+  const submitRsvp = useServerFn(submitHouseholdRsvp);
+  const [step, setStep] = useState<RsvpStep>("lookup");
+  const [fullName, setFullName] = useState("");
+  const [household, setHousehold] = useState<RsvpHousehold | null>(null);
+  const [emailStatus, setEmailStatus] = useState<RsvpSubmissionResult["emailStatus"]>("skipped");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const announceError = (message: string) => {
+    setError(message);
+    requestAnimationFrame(() => messageRef.current?.focus());
+  };
+
+  const handleLookup = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+
+    startTransition(async () => {
+      try {
+        const result = await findHousehold({ data: { fullName } });
+
+        if (result.status === "rate-limited") {
+          announceError("Too many lookup attempts. Please wait a minute and try again.");
+          return;
+        }
+
+        if (result.status === "not-found") {
+          announceError(
+            "We couldn’t find that name. Enter your full name exactly as it appears on your invitation.",
+          );
+          return;
+        }
+
+        setHousehold(result.household);
+        setStep("respond");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        announceError("We couldn’t look up the invitation. Please try again.");
+      }
+    });
+  };
+
+  const updateGuest = (guestId: string, update: (guest: RsvpGuest) => RsvpGuest) => {
+    setHousehold((current) =>
+      current === null
+        ? null
+        : {
+            ...current,
+            guests: current.guests.map((guest) => (guest.id === guestId ? update(guest) : guest)),
+          },
+    );
+    setError(null);
+  };
+
+  const reviewResponses = () => {
+    if (household === null) {
+      return;
+    }
+
+    const incompleteMessage = firstIncompleteMessage(household);
+    if (incompleteMessage !== null) {
+      announceError(incompleteMessage);
+      return;
+    }
+
+    setError(null);
+    setStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const confirmResponses = () => {
+    if (household === null) {
+      return;
+    }
+
+    const incompleteMessage = firstIncompleteMessage(household);
+    if (incompleteMessage !== null) {
+      setStep("respond");
+      announceError(incompleteMessage);
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await submitRsvp({
+          data: {
+            accessToken: household.accessToken,
+            contactEmail: household.contactEmail,
+            guests: household.guests.map((guest) => ({
+              guestId: guest.id,
+              eventResponses: guest.eventResponses.map((response) => ({
+                eventId: response.eventId,
+                attending: response.attending === true,
+                mealOptionId: response.mealOptionId,
+              })),
+              plusOne:
+                guest.plusOne === null
+                  ? null
+                  : {
+                      name: guest.plusOne.name,
+                      mealSelections: guest.plusOne.mealSelections.map((selection) => ({
+                        eventId: selection.eventId,
+                        mealOptionId: selection.mealOptionId,
+                      })),
+                    },
+            })),
+          },
+        });
+
+        setHousehold(result.household);
+        setEmailStatus(result.emailStatus);
+        setStep("confirmed");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (submissionError) {
+        announceError(
+          submissionError instanceof Error && submissionError.message.includes("expired")
+            ? submissionError.message
+            : "Your RSVP could not be saved. Nothing was submitted; please try again.",
+        );
+      }
+    });
+  };
+
+  return (
+    <main className="rsvp-page">
+      <BotanicalStamp className="rsvp-page-botanical rsvp-page-botanical-left" />
+      <BotanicalStamp className="rsvp-page-botanical rsvp-page-botanical-right" />
+      <header className="rsvp-header">
+        <Link aria-label="Emma and Eric wedding home" className="admin-monogram" to="/">
+          E <span>&</span> E
+        </Link>
+        <p>{stepLabel(step)}</p>
+        <Link className="admin-text-link" to="/">
+          Wedding website
+        </Link>
+      </header>
+
+      <div className="rsvp-shell">
+        <header className="rsvp-title">
+          <p className="eyebrow">September 25, 2027</p>
+          <h1 id={titleId}>{stepTitle(step, household?.submitted ?? false)}</h1>
+          <LineFlourish className="rsvp-title-flourish" />
+          <p>{stepIntroduction(step, household)}</p>
+        </header>
+
+        <div aria-live="polite" className="rsvp-message" ref={messageRef} tabIndex={-1}>
+          {error === null ? null : <p role="alert">{error}</p>}
+        </div>
+
+        {step === "lookup" ? (
+          <LookupForm
+            fullName={fullName}
+            isPending={isPending}
+            onChange={setFullName}
+            onSubmit={handleLookup}
+          />
+        ) : null}
+
+        {step === "respond" && household !== null ? (
+          <>
+            <InvitationOverview household={household} />
+            <section aria-label="Household responses" className="rsvp-guest-list">
+              {household.guests.map((guest, index) => (
+                <GuestResponseCard
+                  guest={guest}
+                  index={index}
+                  key={guest.id}
+                  onChange={(update) => updateGuest(guest.id, update)}
+                />
+              ))}
+            </section>
+            <ConfirmationEmailField
+              email={household.contactEmail}
+              onChange={(contactEmail) =>
+                setHousehold((current) => (current === null ? null : { ...current, contactEmail }))
+              }
+            />
+            <div className="rsvp-page-actions">
+              <button className="button button-primary" onClick={reviewResponses} type="button">
+                Review entire RSVP
+              </button>
+              <button
+                className="rsvp-start-over"
+                onClick={() => {
+                  setHousehold(null);
+                  setStep("lookup");
+                  setError(null);
+                }}
+                type="button"
+              >
+                Use a different name
+              </button>
+            </div>
+          </>
+        ) : null}
+
+        {step === "review" && household !== null ? <ReviewResponse household={household} /> : null}
+
+        {step === "review" && household !== null ? (
+          <div className="rsvp-page-actions rsvp-review-actions">
+            <button
+              className="button admin-secondary-button"
+              disabled={isPending}
+              onClick={() => {
+                setStep("respond");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              type="button"
+            >
+              Edit responses
+            </button>
+            <button
+              className="button button-primary"
+              disabled={isPending}
+              onClick={confirmResponses}
+              type="button"
+            >
+              {isPending
+                ? "Saving…"
+                : household.submitted
+                  ? "Update household RSVP"
+                  : "Confirm household RSVP"}
+            </button>
+          </div>
+        ) : null}
+
+        {step === "confirmed" && household !== null ? (
+          <Confirmation household={household} emailStatus={emailStatus} />
+        ) : null}
+      </div>
+    </main>
+  );
+}
+
+function LookupForm({
+  fullName,
+  isPending,
+  onChange,
+  onSubmit,
+}: {
+  readonly fullName: string;
+  readonly isPending: boolean;
+  readonly onChange: (name: string) => void;
+  readonly onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <form className="rsvp-lookup-card" onSubmit={onSubmit}>
+      <label>
+        <span>Full name</span>
+        <input
+          autoComplete="name"
+          maxLength={100}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="As it appears on your invitation"
+          required
+          type="text"
+          value={fullName}
+        />
+      </label>
+      <button className="button button-primary" disabled={isPending} type="submit">
+        {isPending ? "Finding your invitation…" : "Find my invitation"}
+      </button>
+      <small>Any person named on the invitation can respond for the complete household.</small>
+    </form>
+  );
+}
+
+function InvitationOverview({ household }: { readonly household: RsvpHousehold }) {
+  return (
+    <section className="rsvp-invitation-overview">
+      <div className="rsvp-overview-heading">
+        <p className="eyebrow">Your invitation</p>
+        <h2>
+          {household.events.length === 1
+            ? "Come celebrate with us."
+            : "Join us for both celebrations."}
+        </h2>
+      </div>
+      <div
+        className={`rsvp-event-grid ${household.events.length === 1 ? "rsvp-event-grid-single" : ""}`}
+      >
+        {household.events.map((event, index) => (
+          <article className="rsvp-event-card" key={event.id}>
+            {household.events.length > 1 ? <span>0{index + 1}</span> : null}
+            <h3>{event.title}</h3>
+            <p>{event.date ?? event.detail}</p>
+            {event.date === null || event.location === null ? null : (
+              <small>{event.location}</small>
+            )}
+            <ul>
+              {household.guests
+                .filter((guest) => guest.eventIds.includes(event.id))
+                .map((guest) => (
+                  <li key={guest.id}>{guest.name}</li>
+                ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function GuestResponseCard({
+  guest,
+  index,
+  onChange,
+}: {
+  readonly guest: RsvpGuest;
+  readonly index: number;
+  readonly onChange: (update: (guest: RsvpGuest) => RsvpGuest) => void;
+}) {
+  const overallAttendance = overallAttendanceFor(guest.eventResponses);
+  const attendingResponses = guest.eventResponses.filter((response) => response.attending);
+
+  const setAllAttendance = (attending: boolean) => {
+    onChange((current) => ({
+      ...current,
+      eventResponses: current.eventResponses.map((response) => ({
+        ...response,
+        attending,
+        mealOptionId: attending ? response.mealOptionId : null,
+      })),
+      plusOne: attending ? current.plusOne : null,
+    }));
+  };
+
+  const chooseSomeEvents = () => {
+    onChange((current) => ({
+      ...current,
+      eventResponses:
+        overallAttendance === "some"
+          ? current.eventResponses
+          : current.eventResponses.map((response) => ({
+              ...response,
+              attending: null,
+              mealOptionId: null,
+            })),
+      plusOne: null,
+    }));
+  };
+
+  const setEventAttendance = (eventId: WeddingEventId, attending: boolean) => {
+    onChange((current) => {
+      const eventResponses = current.eventResponses.map((response) =>
+        response.eventId === eventId
+          ? {
+              ...response,
+              attending,
+              mealOptionId: attending ? response.mealOptionId : null,
+            }
+          : response,
+      );
+
+      return {
+        ...current,
+        eventResponses,
+        plusOne: eventResponses.some((response) => response.attending) ? current.plusOne : null,
+      };
+    });
+  };
+
+  const setMeal = (eventId: WeddingEventId, mealOptionId: string) => {
+    onChange((current) => ({
+      ...current,
+      eventResponses: current.eventResponses.map((response) =>
+        response.eventId === eventId ? { ...response, mealOptionId } : response,
+      ),
+    }));
+  };
+
+  const setPlusOne = (plusOne: RsvpPlusOne | null) => {
+    onChange((current) => ({ ...current, plusOne }));
+  };
+
+  return (
+    <article className="rsvp-guest-card">
+      <header>
+        <span>Person {index + 1}</span>
+        <h2>{guest.name}</h2>
+        <p>
+          Invited to {guest.eventIds.map((eventId) => eventById(eventId)?.shortTitle).join(" and ")}
+        </p>
+      </header>
+
+      {guest.eventResponses.length > 1 ? (
+        <fieldset className="rsvp-attendance-options">
+          <legend>Can {firstName(guest.name)} celebrate with us?</legend>
+          <Choice
+            checked={overallAttendance === "all"}
+            label="Attending all invited events"
+            name={`${guest.id}-overall`}
+            onChange={() => setAllAttendance(true)}
+            value="all"
+          />
+          <Choice
+            checked={overallAttendance === "some"}
+            label="Attending some events"
+            name={`${guest.id}-overall`}
+            onChange={chooseSomeEvents}
+            value="some"
+          />
+          <Choice
+            checked={overallAttendance === "none"}
+            label="Unable to attend"
+            name={`${guest.id}-overall`}
+            onChange={() => setAllAttendance(false)}
+            value="none"
+          />
+        </fieldset>
+      ) : (
+        <fieldset className="rsvp-attendance-options">
+          <legend>Can {firstName(guest.name)} celebrate with us?</legend>
+          <Choice
+            checked={guest.eventResponses[0]?.attending === true}
+            label="Joyfully accepts"
+            name={`${guest.id}-single`}
+            onChange={() => setAllAttendance(true)}
+            value="attending"
+          />
+          <Choice
+            checked={guest.eventResponses[0]?.attending === false}
+            label="Regretfully declines"
+            name={`${guest.id}-single`}
+            onChange={() => setAllAttendance(false)}
+            value="declining"
+          />
+        </fieldset>
+      )}
+
+      {guest.eventResponses.length > 1 && overallAttendance === "some" ? (
+        <div className="rsvp-event-responses">
+          {guest.eventResponses.map((response) => (
+            <fieldset key={response.eventId}>
+              <legend>{eventById(response.eventId)?.title}</legend>
+              <Choice
+                checked={response.attending === true}
+                label="Attending"
+                name={`${guest.id}-${response.eventId}`}
+                onChange={() => setEventAttendance(response.eventId, true)}
+                value="attending"
+              />
+              <Choice
+                checked={response.attending === false}
+                label="Declining"
+                name={`${guest.id}-${response.eventId}`}
+                onChange={() => setEventAttendance(response.eventId, false)}
+                value="declining"
+              />
+            </fieldset>
+          ))}
+        </div>
+      ) : null}
+
+      {attendingResponses.map((response) => {
+        const weddingEvent = eventById(response.eventId);
+        return weddingEvent === undefined || weddingEvent.mealOptions.length === 0 ? null : (
+          <MealChoices
+            controlName={guest.id}
+            eventId={response.eventId}
+            key={response.eventId}
+            name={guest.name}
+            onChange={(mealOptionId) => setMeal(response.eventId, mealOptionId)}
+            selectedMealId={response.mealOptionId}
+          />
+        );
+      })}
+
+      {guest.plusOneAllowed && attendingResponses.length > 0 ? (
+        <PlusOneResponse
+          guest={guest}
+          onChange={setPlusOne}
+          attendingEventIds={attendingResponses.map((response) => response.eventId)}
+        />
+      ) : null}
+    </article>
+  );
+}
+
+function Choice({
+  checked,
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  readonly checked: boolean;
+  readonly label: string;
+  readonly name: string;
+  readonly onChange: () => void;
+  readonly value: string;
+}) {
+  return (
+    <label className="rsvp-choice">
+      <input checked={checked} name={name} onChange={onChange} type="radio" value={value} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function MealChoices({
+  controlName,
+  eventId,
+  name,
+  onChange,
+  selectedMealId,
+}: {
+  readonly controlName: string;
+  readonly eventId: WeddingEventId;
+  readonly name: string;
+  readonly onChange: (mealOptionId: string) => void;
+  readonly selectedMealId: string | null;
+}) {
+  const weddingEvent = eventById(eventId);
+  if (weddingEvent === undefined || weddingEvent.mealOptions.length === 0) {
+    return null;
+  }
+
+  return (
+    <fieldset className="rsvp-meal-options">
+      <legend>
+        {name}’s meal <small>{weddingEvent.shortTitle} · menu to be confirmed</small>
+      </legend>
+      <div>
+        {weddingEvent.mealOptions.map((meal) => (
+          <label className="rsvp-meal-choice" key={meal.id}>
+            <input
+              checked={selectedMealId === meal.id}
+              name={`${controlName}-${eventId}-meal`}
+              onChange={() => onChange(meal.id)}
+              type="radio"
+              value={meal.id}
+            />
+            <span>
+              <strong>{meal.label}</strong>
+              <small>{meal.description}</small>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function PlusOneResponse({
+  attendingEventIds,
+  guest,
+  onChange,
+}: {
+  readonly attendingEventIds: readonly WeddingEventId[];
+  readonly guest: RsvpGuest;
+  readonly onChange: (plusOne: RsvpPlusOne | null) => void;
+}) {
+  const plusOne = guest.plusOne;
+  const setPlusOneMeal = (eventId: WeddingEventId, mealOptionId: string) => {
+    if (plusOne === null) {
+      return;
+    }
+
+    onChange({
+      ...plusOne,
+      mealSelections: [
+        ...plusOne.mealSelections.filter((selection) => selection.eventId !== eventId),
+        { eventId, mealOptionId },
+      ],
+    });
+  };
+
+  return (
+    <section className="rsvp-plus-one">
+      {plusOne === null ? (
+        <button onClick={() => onChange({ name: "", mealSelections: [] })} type="button">
+          <span aria-hidden="true">+</span> Add {firstName(guest.name)}’s invited guest
+        </button>
+      ) : (
+        <>
+          <div className="rsvp-plus-one-heading">
+            <div>
+              <span>Invited guest</span>
+              <p>They’ll join {firstName(guest.name)} at the same selected events.</p>
+            </div>
+            <button onClick={() => onChange(null)} type="button">
+              Remove guest
+            </button>
+          </div>
+          <label className="rsvp-plus-one-name">
+            <span>Guest’s full name</span>
+            <input
+              maxLength={100}
+              onChange={(event) => onChange({ ...plusOne, name: event.target.value })}
+              placeholder="Full name"
+              type="text"
+              value={plusOne.name}
+            />
+          </label>
+          {attendingEventIds.map((eventId) => {
+            const weddingEvent = eventById(eventId);
+            return weddingEvent === undefined || weddingEvent.mealOptions.length === 0 ? null : (
+              <MealChoices
+                controlName={`${guest.id}-plus-one`}
+                eventId={eventId}
+                key={eventId}
+                name={plusOne.name.trim() || "Invited guest"}
+                onChange={(mealOptionId) => setPlusOneMeal(eventId, mealOptionId)}
+                selectedMealId={
+                  plusOne.mealSelections.find((selection) => selection.eventId === eventId)
+                    ?.mealOptionId ?? null
+                }
+              />
+            );
+          })}
+        </>
+      )}
+    </section>
+  );
+}
+
+function ConfirmationEmailField({
+  email,
+  onChange,
+}: {
+  readonly email: string;
+  readonly onChange: (email: string) => void;
+}) {
+  return (
+    <section className="rsvp-email-card">
+      <div>
+        <p className="eyebrow">Courtesy copy</p>
+        <h2>Where should we send the confirmation?</h2>
+        <p>Email is optional. Your on-screen confirmation is the official record.</p>
+      </div>
+      <label>
+        <span>Household email</span>
+        <input
+          autoComplete="email"
+          maxLength={254}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="name@example.com"
+          type="email"
+          value={email}
+        />
+      </label>
+    </section>
+  );
+}
+
+function ReviewResponse({ household }: { readonly household: RsvpHousehold }) {
+  return (
+    <section className="rsvp-review">
+      <header>
+        <p className="eyebrow">One complete response</p>
+        <h2>{household.name}</h2>
+        <p>Review every person, event, and meal before confirming.</p>
+      </header>
+      <ResponseSummary household={household} />
+      {household.contactEmail.length === 0 ? null : (
+        <p className="rsvp-review-email">
+          Confirmation copy: <strong>{household.contactEmail}</strong>
+        </p>
+      )}
+    </section>
+  );
+}
+
+function Confirmation({
+  emailStatus,
+  household,
+}: {
+  readonly emailStatus: RsvpSubmissionResult["emailStatus"];
+  readonly household: RsvpHousehold;
+}) {
+  return (
+    <section className="rsvp-confirmation">
+      <BotanicalStamp className="rsvp-confirmation-stamp" />
+      <span className="rsvp-confirmation-mark" aria-hidden="true">
+        ✓
+      </span>
+      <p className="eyebrow">All together</p>
+      <h2>Your RSVP is confirmed.</h2>
+      <p className="rsvp-confirmation-intro">
+        Thank you. This is the complete response for every event on your invitation.
+      </p>
+      <ResponseSummary household={household} />
+      {emailStatus === "sent" ? (
+        <p className="rsvp-confirmation-email">
+          A copy is on its way to <strong>{household.contactEmail}</strong>.
+        </p>
+      ) : null}
+      <div className="rsvp-page-actions">
+        <Link className="button button-primary" to="/">
+          Return to the wedding website
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function ResponseSummary({ household }: { readonly household: RsvpHousehold }) {
+  return (
+    <div className="rsvp-response-summary">
+      {household.guests.map((guest) => (
+        <article key={guest.id}>
+          <h3>{guest.name}</h3>
+          <ul>
+            {guest.eventResponses.map((response) => {
+              const weddingEvent = eventById(response.eventId);
+              const meal =
+                response.mealOptionId === null
+                  ? null
+                  : mealOptionById(response.eventId, response.mealOptionId);
+              return (
+                <li key={response.eventId}>
+                  <span>{weddingEvent?.shortTitle}</span>
+                  <strong>{response.attending ? "Attending" : "Declining"}</strong>
+                  {meal === undefined || meal === null ? null : <small>{meal.label}</small>}
+                </li>
+              );
+            })}
+          </ul>
+          {guest.plusOne === null ? null : (
+            <div className="rsvp-summary-plus-one">
+              <p>
+                <span>Invited guest</span>
+                <strong>{guest.plusOne.name}</strong>
+              </p>
+              {guest.eventResponses
+                .filter((response) => response.attending)
+                .map((response) => {
+                  const selection = guest.plusOne?.mealSelections.find(
+                    (meal) => meal.eventId === response.eventId,
+                  );
+                  const meal =
+                    selection === undefined
+                      ? null
+                      : mealOptionById(response.eventId, selection.mealOptionId);
+
+                  return (
+                    <small key={response.eventId}>
+                      {eventById(response.eventId)?.shortTitle}: Attending
+                      {meal === undefined || meal === null ? "" : ` · ${meal.label}`}
+                    </small>
+                  );
+                })}
+            </div>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function overallAttendanceFor(responses: readonly RsvpEventResponse[]): OverallAttendance {
+  if (responses.some((response) => response.attending === null)) {
+    return responses.every((response) => response.attending === null) ? null : "some";
+  }
+
+  if (responses.every((response) => response.attending)) {
+    return "all";
+  }
+
+  return responses.every((response) => !response.attending) ? "none" : "some";
+}
+
+function firstIncompleteMessage(household: RsvpHousehold): string | null {
+  for (const guest of household.guests) {
+    for (const response of guest.eventResponses) {
+      const weddingEvent = eventById(response.eventId);
+
+      if (response.attending === null) {
+        return `Choose ${guest.name}’s response for ${weddingEvent?.shortTitle ?? "each event"}.`;
+      }
+
+      if (
+        response.attending &&
+        weddingEvent !== undefined &&
+        weddingEvent.mealOptions.length > 0 &&
+        response.mealOptionId === null
+      ) {
+        return `Choose ${guest.name}’s meal for ${weddingEvent.shortTitle}.`;
+      }
+    }
+
+    if (guest.plusOne !== null) {
+      if (guest.plusOne.name.trim().length === 0) {
+        return `Enter the full name of ${guest.name}’s guest.`;
+      }
+
+      for (const response of guest.eventResponses.filter((candidate) => candidate.attending)) {
+        const weddingEvent = eventById(response.eventId);
+        if (
+          weddingEvent !== undefined &&
+          weddingEvent.mealOptions.length > 0 &&
+          !guest.plusOne.mealSelections.some((selection) => selection.eventId === response.eventId)
+        ) {
+          return `Choose ${guest.plusOne.name.trim()}’s meal for ${weddingEvent.shortTitle}.`;
+        }
+      }
+    }
+  }
+
+  if (
+    household.contactEmail.length > 0 &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(household.contactEmail)
+  ) {
+    return "Enter a valid confirmation email or leave it blank.";
+  }
+
+  return null;
+}
+
+function firstName(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
+}
+
+function stepLabel(step: RsvpStep): string {
+  switch (step) {
+    case "lookup":
+      return "Find your invitation";
+    case "respond":
+      return "Household RSVP";
+    case "review":
+      return "Review everything";
+    case "confirmed":
+      return "RSVP confirmed";
+  }
+}
+
+function stepTitle(step: RsvpStep, submitted: boolean): string {
+  switch (step) {
+    case "lookup":
+      return "Let’s find your invitation.";
+    case "respond":
+      return submitted ? "Update your celebration plans." : "Tell us who can celebrate.";
+    case "review":
+      return "One last look.";
+    case "confirmed":
+      return "We have your response.";
+  }
+}
+
+function stepIntroduction(step: RsvpStep, household: RsvpHousehold | null): string {
+  switch (step) {
+    case "lookup":
+      return "Enter your full name exactly as it appears on your invitation.";
+    case "respond":
+      return household === null
+        ? ""
+        : `You’re responding for ${household.name}. Everyone named on the invitation is included below.`;
+    case "review":
+      return "Nothing is submitted until you confirm the complete household RSVP below.";
+    case "confirmed":
+      return "Every person and every event was submitted together.";
+  }
+}

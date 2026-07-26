@@ -2,14 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type SyntheticEvent, useId, useRef, useState, useTransition } from "react";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
+import {
+  defaultEventIds,
+  mealOptionById,
+  rsvpEvents,
+  type WeddingEventId,
+} from "../content/rsvp.ts";
 import type { AdminAccess } from "../lib/admin-auth.ts";
-import type { EnrolledHousehold, EnrollmentDashboard } from "../lib/enrollment.ts";
+import type { EnrolledGuest, EnrolledHousehold, EnrollmentDashboard } from "../lib/enrollment.ts";
 import {
   deleteHousehold,
   enrollHousehold,
   loadAdminDashboard,
   updateHousehold,
 } from "../lib/enrollment-server-functions.ts";
+import { normalizeGuestName } from "../lib/guest-name.ts";
 
 type AdminSearch = {
   readonly error?: string;
@@ -20,6 +27,7 @@ type GuestDraft = {
   readonly guestId?: string;
   readonly name: string;
   readonly plusOneAllowed: boolean;
+  readonly eventIds: readonly WeddingEventId[];
 };
 
 type HouseholdDetailsDraft = {
@@ -37,6 +45,7 @@ const initialGuestDraft: GuestDraft = {
   rowId: "draft-0",
   name: "",
   plusOneAllowed: false,
+  eventIds: defaultEventIds,
 };
 
 const emptyHouseholdDetails: HouseholdDetailsDraft = {
@@ -155,6 +164,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
         guestId: guest.id,
         name: guest.name,
         plusOneAllowed: guest.plusOneAllowed,
+        eventIds: guest.eventIds,
       })),
     );
     setError(null);
@@ -172,6 +182,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
       ...(guest.guestId === undefined ? {} : { id: guest.guestId }),
       name: guest.name.trim(),
       plusOneAllowed: guest.plusOneAllowed,
+      eventIds: guest.eventIds,
     }));
 
     if (trimmedDetails.householdName.length === 0) {
@@ -186,6 +197,28 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
       return;
     }
 
+    if (trimmedGuests.some((guest) => guest.eventIds.length === 0)) {
+      setError("Invite each named person to at least one event.");
+      setSuccess(null);
+      return;
+    }
+
+    const submittedNames = trimmedGuests.map((guest) => normalizeGuestName(guest.name));
+    const existingNames = new Set(
+      dashboard.households
+        .filter((household) => household.id !== editingHouseholdId)
+        .flatMap((household) => household.guests.map((guest) => normalizeGuestName(guest.name))),
+    );
+
+    if (
+      new Set(submittedNames).size !== submittedNames.length ||
+      submittedNames.some((name) => existingNames.has(name))
+    ) {
+      setError("Each person needs a full name that is unique across the guest list.");
+      setSuccess(null);
+      return;
+    }
+
     setError(null);
     setSuccess(null);
     startTransition(async () => {
@@ -195,9 +228,10 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
             ? await enrollHouseholdFn({
                 data: {
                   ...trimmedDetails,
-                  guests: trimmedGuests.map(({ name, plusOneAllowed }) => ({
+                  guests: trimmedGuests.map(({ name, plusOneAllowed, eventIds }) => ({
                     name,
                     plusOneAllowed,
+                    eventIds: [...eventIds],
                   })),
                 },
               })
@@ -205,7 +239,12 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                 data: {
                   householdId: editingHouseholdId,
                   ...trimmedDetails,
-                  guests: trimmedGuests,
+                  guests: trimmedGuests.map(({ id, name, plusOneAllowed, eventIds }) => ({
+                    id,
+                    name,
+                    plusOneAllowed,
+                    eventIds: [...eventIds],
+                  })),
                 },
               });
 
@@ -287,9 +326,15 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
 
         <dl className="admin-summary" aria-label="Invitation totals">
           <SummaryItem label="Households" value={dashboard.summary.householdCount} />
-          <SummaryItem label="Named guests" value={dashboard.summary.namedGuestCount} />
-          <SummaryItem label="Open +1s" value={dashboard.summary.plusOneCount} />
-          <SummaryItem label="Invited seats" value={dashboard.summary.invitedSeatCount} />
+          <SummaryItem label="RSVPs in" value={dashboard.responseSummary.respondedHouseholdCount} />
+          <SummaryItem
+            label="Wedding yes"
+            value={dashboard.responseSummary.weddingAttendingCount}
+          />
+          <SummaryItem
+            label="Rehearsal yes"
+            value={dashboard.responseSummary.rehearsalDinnerAttendingCount}
+          />
         </dl>
 
         <div className="admin-workspace">
@@ -435,6 +480,25 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                         <small>Creates one open guest seat</small>
                       </span>
                     </label>
+                    <fieldset className="admin-event-toggles">
+                      <legend>Invited events</legend>
+                      {rsvpEvents.map((weddingEvent) => (
+                        <label key={weddingEvent.id}>
+                          <input
+                            checked={guest.eventIds.includes(weddingEvent.id)}
+                            onChange={(event) =>
+                              updateGuest(guest.rowId, {
+                                eventIds: event.target.checked
+                                  ? [...guest.eventIds, weddingEvent.id]
+                                  : guest.eventIds.filter((eventId) => eventId !== weddingEvent.id),
+                              })
+                            }
+                            type="checkbox"
+                          />
+                          <span>{weddingEvent.shortTitle}</span>
+                        </label>
+                      ))}
+                    </fieldset>
                     {guestDrafts.length > 1 ? (
                       <button
                         aria-label={`Remove person ${index + 1}`}
@@ -574,6 +638,11 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                         </p>
                       </div>
                       <div className="admin-household-actions">
+                        <span
+                          className={`admin-rsvp-status ${household.respondedAt === null ? "admin-rsvp-pending" : ""}`}
+                        >
+                          {household.respondedAt === null ? "Awaiting RSVP" : "RSVP received"}
+                        </span>
                         <span className="admin-seat-count">
                           {household.invitedSeatCount}{" "}
                           {pluralize("seat", household.invitedSeatCount)}
@@ -600,7 +669,17 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                     <ul className="admin-named-guests">
                       {household.guests.map((guest) => (
                         <li key={guest.id}>
-                          <span>{guest.name}</span>
+                          <div>
+                            <span>{guest.name}</span>
+                            <em>
+                              {guest.eventIds
+                                .map((eventId) => eventResponseLabel(guest, eventId))
+                                .join(" · ") || "No events assigned"}
+                            </em>
+                            {guest.plusOneName.length === 0 ? null : (
+                              <em>Guest: {guest.plusOneName}</em>
+                            )}
+                          </div>
                           {guest.plusOneAllowed ? <small>+1 granted</small> : null}
                         </li>
                       ))}
@@ -623,6 +702,25 @@ function SummaryItem({ label, value }: { readonly label: string; readonly value:
       <dd>{value}</dd>
     </div>
   );
+}
+
+function eventResponseLabel(guest: EnrolledGuest, eventId: WeddingEventId) {
+  const weddingEvent = rsvpEvents.find((event) => event.id === eventId);
+  const eventLabel = weddingEvent?.shortTitle ?? eventId;
+  const response = guest.eventResponses.find((candidate) => candidate.eventId === eventId);
+
+  if (response === undefined) {
+    return eventLabel;
+  }
+
+  if (!response.attending) {
+    return `${eventLabel} · Declining`;
+  }
+
+  const meal =
+    response.mealOptionId.length === 0 ? undefined : mealOptionById(eventId, response.mealOptionId);
+
+  return `${eventLabel} · Attending${meal === undefined ? "" : ` · ${meal.label}`}`;
 }
 
 function pluralize(noun: string, count: number) {

@@ -5,6 +5,7 @@ import { schedulerCrons } from "@templar/scheduler";
 import { withUsersMigrations } from "@templar/users/deploy";
 import { schedules } from "./apps/web/src/schedules.ts";
 
+const domainName = "hello-world.breli.app";
 const app = await deployApp("hello-world");
 const authIssuer = app.local
   ? `http://localhost:${devPort("templar-auth-web")}`
@@ -31,7 +32,7 @@ export const website = await templarApp("website", {
   project: "hello-world",
   adopt: true,
   cwd: "apps/web",
-  domainName: "hello-world.ericventor.com",
+  domainName,
   url: false,
   crons: schedulerCrons(schedules),
   db,
@@ -43,7 +44,7 @@ export const website = await templarApp("website", {
 });
 
 console.log({
-  url: "https://hello-world.ericventor.com",
+  url: `https://${domainName}`,
 });
 
 await app.finalize();

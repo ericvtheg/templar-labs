@@ -24,10 +24,10 @@ Emma does not receive Google credentials, maintain canonical identity tables, or
 rows. It uses the database-free `createTemplarAuthApp` integration. Admin access comes from the
 centrally signed global `admin` claim, and no sign-in UI is shown outside `/admin`.
 
-An RSVP save is atomic and remains successful even if its confirmation email
-fails. Production makes one best-effort send from `rsvp@ericventor.com`; local
-development skips delivery. There is intentionally no queue, retry flow, or
-manual resend in this release.
+The RSVP requires a confirmation email address. A save is atomic and remains
+successful even if email delivery fails. Production makes one best-effort send
+from `rsvp@ericventor.com`; local development skips delivery. There is
+intentionally no queue, retry flow, or manual resend in this release.
 
 The production target is `emmaand.ericventor.com`. The draft is marked
 `noindex` and disallowed by `robots.txt` while privacy and guest access are still

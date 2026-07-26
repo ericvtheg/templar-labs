@@ -14,7 +14,7 @@ every item.
 - Per-person wedding meal choices using temporary mock menu options.
 - Named plus-ones with their own meal choices; they attend the same selected events as their host.
 - Existing responses can be reviewed and updated through the same lookup flow.
-- One best-effort confirmation email after each successful save.
+- A required confirmation email address and one best-effort send after each successful save.
 - Admin event assignment, RSVP status, event headcounts, responses, meals, and plus-one names.
 - Server validation, signed household access, rate-limited name lookup, and response history.
 

@@ -13,7 +13,7 @@ import type {
 import { findRsvpHousehold, submitHouseholdRsvp } from "../lib/rsvp-server-functions.ts";
 
 type RsvpStep = "lookup" | "respond" | "review" | "confirmed";
-type OverallAttendance = "all" | "some" | "none" | null;
+type OverallAttendance = "all" | "wedding-only" | "none" | null;
 
 export const Route = createFileRoute("/rsvp")({
   component: RsvpPage,
@@ -351,39 +351,24 @@ function GuestResponseCard({
     }));
   };
 
-  const chooseSomeEvents = () => {
+  const chooseWeddingOnly = () => {
     onChange((current) => ({
       ...current,
-      eventResponses:
-        overallAttendance === "some"
-          ? current.eventResponses
-          : current.eventResponses.map((response) => ({
-              ...response,
-              attending: null,
-              mealOptionId: null,
-            })),
-      plusOne: null,
+      eventResponses: current.eventResponses.map((response) => ({
+        ...response,
+        attending: response.eventId === "wedding",
+        mealOptionId: response.eventId === "wedding" ? response.mealOptionId : null,
+      })),
+      plusOne:
+        current.plusOne === null
+          ? null
+          : {
+              ...current.plusOne,
+              mealSelections: current.plusOne.mealSelections.filter(
+                (selection) => selection.eventId === "wedding",
+              ),
+            },
     }));
-  };
-
-  const setEventAttendance = (eventId: WeddingEventId, attending: boolean) => {
-    onChange((current) => {
-      const eventResponses = current.eventResponses.map((response) =>
-        response.eventId === eventId
-          ? {
-              ...response,
-              attending,
-              mealOptionId: attending ? response.mealOptionId : null,
-            }
-          : response,
-      );
-
-      return {
-        ...current,
-        eventResponses,
-        plusOne: eventResponses.some((response) => response.attending) ? current.plusOne : null,
-      };
-    });
   };
 
   const setMeal = (eventId: WeddingEventId, mealOptionId: string) => {
@@ -420,11 +405,11 @@ function GuestResponseCard({
             value="all"
           />
           <Choice
-            checked={overallAttendance === "some"}
-            label="Attending some events"
+            checked={overallAttendance === "wedding-only"}
+            label="Attending only wedding"
             name={`${guest.id}-overall`}
-            onChange={chooseSomeEvents}
-            value="some"
+            onChange={chooseWeddingOnly}
+            value="wedding-only"
           />
           <Choice
             checked={overallAttendance === "none"}
@@ -453,30 +438,6 @@ function GuestResponseCard({
           />
         </fieldset>
       )}
-
-      {guest.eventResponses.length > 1 && overallAttendance === "some" ? (
-        <div className="rsvp-event-responses">
-          {guest.eventResponses.map((response) => (
-            <fieldset key={response.eventId}>
-              <legend>{eventById(response.eventId)?.title}</legend>
-              <Choice
-                checked={response.attending === true}
-                label="Attending"
-                name={`${guest.id}-${response.eventId}`}
-                onChange={() => setEventAttendance(response.eventId, true)}
-                value="attending"
-              />
-              <Choice
-                checked={response.attending === false}
-                label="Declining"
-                name={`${guest.id}-${response.eventId}`}
-                onChange={() => setEventAttendance(response.eventId, false)}
-                value="declining"
-              />
-            </fieldset>
-          ))}
-        </div>
-      ) : null}
 
       {attendingResponses.map((response) => {
         const weddingEvent = eventById(response.eventId);
@@ -651,17 +612,18 @@ function ConfirmationEmailField({
   return (
     <section className="rsvp-email-card">
       <div>
-        <p className="eyebrow">Courtesy copy</p>
+        <p className="eyebrow">Confirmation</p>
         <h2>Where should we send the confirmation?</h2>
-        <p>Email is optional. Your on-screen confirmation is the official record.</p>
+        <p>We’ll send a copy of the complete household response to this address.</p>
       </div>
       <label>
-        <span>Household email</span>
+        <span>Confirmation email</span>
         <input
           autoComplete="email"
           maxLength={254}
           onChange={(event) => onChange(event.target.value)}
           placeholder="name@example.com"
+          required
           type="email"
           value={email}
         />
@@ -777,14 +739,21 @@ function ResponseSummary({ household }: { readonly household: RsvpHousehold }) {
 
 function overallAttendanceFor(responses: readonly RsvpEventResponse[]): OverallAttendance {
   if (responses.some((response) => response.attending === null)) {
-    return responses.every((response) => response.attending === null) ? null : "some";
+    return null;
   }
 
   if (responses.every((response) => response.attending)) {
     return "all";
   }
 
-  return responses.every((response) => !response.attending) ? "none" : "some";
+  if (
+    responses.some((response) => response.eventId === "wedding" && response.attending) &&
+    responses.every((response) => response.eventId === "wedding" || !response.attending)
+  ) {
+    return "wedding-only";
+  }
+
+  return responses.every((response) => !response.attending) ? "none" : null;
 }
 
 function firstIncompleteMessage(household: RsvpHousehold): string | null {
@@ -824,11 +793,12 @@ function firstIncompleteMessage(household: RsvpHousehold): string | null {
     }
   }
 
-  if (
-    household.contactEmail.length > 0 &&
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(household.contactEmail)
-  ) {
-    return "Enter a valid confirmation email or leave it blank.";
+  if (household.contactEmail.length === 0) {
+    return "Enter an email address for the RSVP confirmation.";
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(household.contactEmail)) {
+    return "Enter a valid confirmation email.";
   }
 
   return null;

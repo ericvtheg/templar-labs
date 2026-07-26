@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { normalizeGuestName } from "../src/lib/guest-name.ts";
 import {
   type HouseholdRsvpInput,
+  householdRsvpInput,
   type RsvpHousehold,
   validateCompleteRsvp,
 } from "../src/lib/rsvp.ts";
@@ -74,6 +75,16 @@ test("requires a meal for each attending named guest and plus-one", () => {
   );
 
   assert.match(result ?? "", /Taylor Bloom’s meal/i);
+});
+
+test("requires a valid confirmation email", () => {
+  const response = completeResponse();
+
+  assert.equal(householdRsvpInput.safeParse({ ...response, contactEmail: "" }).success, false);
+  assert.equal(
+    householdRsvpInput.safeParse({ ...response, contactEmail: "not-an-email" }).success,
+    false,
+  );
 });
 
 test("signs, verifies, and expires household access tokens", async () => {

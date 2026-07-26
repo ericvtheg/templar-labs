@@ -8,14 +8,12 @@ import {
 } from "../content/rsvp.ts";
 
 const weddingEventIdInput = z.enum(["wedding", "rehearsal-dinner"]);
-const optionalEmailInput = z
+const confirmationEmailInput = z
   .string()
   .trim()
+  .min(1, "Enter an email address for the RSVP confirmation.")
   .max(254)
-  .refine(
-    (email) => email.length === 0 || z.email().safeParse(email).success,
-    "Enter a valid email address.",
-  );
+  .refine((email) => z.email().safeParse(email).success, "Enter a valid email address.");
 
 export const rsvpLookupInput = z.object({
   fullName: z.string().trim().min(2, "Enter your full name.").max(100),
@@ -39,7 +37,7 @@ const plusOneInput = z.object({
 
 export const householdRsvpInput = z.object({
   accessToken: z.string().min(1),
-  contactEmail: optionalEmailInput,
+  contactEmail: confirmationEmailInput,
   guests: z
     .array(
       z.object({

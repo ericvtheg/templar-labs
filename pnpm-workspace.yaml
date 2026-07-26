@@ -5,6 +5,7 @@ packages:
   - 'projects/*/packages/*'
   - 'tools/*'
 allowBuilds:
+  core-js: true
   esbuild: true
   lefthook: true
   sharp: false

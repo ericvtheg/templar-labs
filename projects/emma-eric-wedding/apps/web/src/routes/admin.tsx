@@ -57,7 +57,9 @@ function AdminSignIn({
         <p className="admin-auth-copy">Continue through Templar Auth.</p>
         {hasError ? (
           <p className="admin-auth-error" role="alert">
-            This Google account does not have access.
+            {access === "forbidden"
+              ? "This Google account does not have access."
+              : "Sign-in could not be completed. Please try again."}
           </p>
         ) : null}
         {access === "forbidden" ? (

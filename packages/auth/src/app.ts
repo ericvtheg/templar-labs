@@ -1,4 +1,4 @@
-import { verifyJWT } from "better-auth/plugins";
+import { createRemoteJWKSet, customFetch, jwtVerify } from "jose";
 import {
   firstPartyAuthorizePath,
   firstPartyExchangePath,
@@ -81,6 +81,9 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
   const sessionExpiresInSeconds = config.sessionExpiresInSeconds ?? 60 * 60 * 24 * 30;
   const now = config.now ?? Date.now;
   const fetchImplementation = config.fetch ?? globalThis.fetch;
+  const jwks = createRemoteJWKSet(new URL(`${issuer}/api/auth/jwks`), {
+    [customFetch]: (url, options) => fetchImplementation(url, options),
+  });
   const transactionCookie = "templar.auth.transaction";
   const sessionCookie = "templar.auth.session";
 
@@ -169,14 +172,11 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
         throw new Error("Authorization code exchange returned no token.");
       }
 
-      const claims = await verifyJWT<FirstPartyClaims>(exchange.token, {
-        jwks: { remoteUrl: `${issuer}/api/auth/jwks` },
-        jwt: {
-          issuer,
-          audience: templarFirstPartyAudience,
-        },
+      const { payload: claims } = await jwtVerify<FirstPartyClaims>(exchange.token, jwks, {
+        issuer,
+        audience: templarFirstPartyAudience,
       });
-      if (claims === null || typeof claims.sub !== "string") {
+      if (typeof claims.sub !== "string") {
         throw new Error("The auth handoff token is invalid.");
       }
 

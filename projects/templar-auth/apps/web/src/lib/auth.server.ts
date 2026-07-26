@@ -30,7 +30,7 @@ export async function getAuth() {
         clientSecret: bindings.GOOGLE_CLIENT_SECRET,
       },
     },
-    trustedOrigins: ["http://localhost:5181", "https://auth.ericventor.com"],
+    trustedOrigins: ["http://localhost:5181", "https://auth.breli.app"],
     plugins: [
       jwt({
         disableSettingJwtHeader: true,

@@ -10,7 +10,7 @@ Use a Google OAuth **Web application** client with no Authorized JavaScript orig
 Authorized redirect URIs:
 
 - `http://localhost:5181/api/auth/callback/google`
-- `https://auth.ericventor.com/api/auth/callback/google`
+- `https://auth.breli.app/api/auth/callback/google`
 
 The credential values are read from the ignored root `.env` as `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET`. They must also exist as encrypted GitHub Actions repository secrets.
@@ -23,8 +23,10 @@ projects when testing the complete local flow.
 ## First-party applications
 
 There is no per-application OAuth client registry. Production handoffs accept the standard
-`/api/auth/callback` path on `ericventor.com` and its HTTPS subdomains; local auth accepts loopback
-callbacks. All handoff tokens use the shared `templar-first-party` audience.
+`/api/auth/callback` path on `breli.app`, `ericventor.com`, and their HTTPS subdomains; local auth
+accepts loopback callbacks. The legacy root remains allowed for existing applications, but the
+canonical auth issuer is `auth.breli.app`. All handoff tokens use the shared `templar-first-party`
+audience.
 
 Authorization codes live in Better Auth's `verification` table for at most 60 seconds and are
 deleted atomically during PKCE exchange. This is transient protocol state, not a durable record of

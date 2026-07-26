@@ -5,7 +5,7 @@ import { devPort } from "@templar/dev-ports";
 import alchemy from "alchemy";
 
 const project = "templar-auth";
-const domainName = "auth.ericventor.com";
+const domainName = "auth.breli.app";
 
 const app = await deployApp(project);
 const authOrigin = app.local

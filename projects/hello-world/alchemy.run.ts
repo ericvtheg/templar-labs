@@ -8,7 +8,7 @@ import { schedules } from "./apps/web/src/schedules.ts";
 const app = await deployApp("hello-world");
 const authIssuer = app.local
   ? `http://localhost:${devPort("templar-auth-web")}`
-  : "https://auth.ericventor.com";
+  : "https://auth.breli.app";
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",

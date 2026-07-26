@@ -1,15 +1,15 @@
 # Users
 
 `@templar/users` adds one local application-user row to a D1-backed app after a successful
-Templar SSO handoff. Canonical identity remains in `auth.ericventor.com`; the local table stores
+Templar SSO handoff. Canonical identity remains in `auth.breli.app`; the local table stores
 only the canonical ID and app-local timestamps.
 
 ```ts
 import { createTemplarUserApp } from "@templar/users";
 
 const app = createTemplarUserApp({
-  baseURL: "https://example.ericventor.com",
-  issuer: "https://auth.ericventor.com",
+  baseURL: "https://example.breli.app",
+  issuer: "https://auth.breli.app",
   secret: env.AUTH_SECRET,
   db: env.DB,
 });

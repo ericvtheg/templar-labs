@@ -3,4 +3,4 @@
  *
  * Each entry allows both the root domain and all of its subdomains.
  */
-export const firstPartyAllowedRootDomains = ["ericventor.com"] as const;
+export const firstPartyAllowedRootDomains = ["breli.app", "ericventor.com"] as const;

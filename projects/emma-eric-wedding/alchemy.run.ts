@@ -12,7 +12,7 @@ const authBaseUrl = app.local
   : `https://${domainName}`;
 const authIssuer = app.local
   ? `http://localhost:${devPort("templar-auth-web")}`
-  : "https://auth.ericventor.com";
+  : "https://auth.breli.app";
 
 export const website = await tanstackStartApp("website", {
   project,

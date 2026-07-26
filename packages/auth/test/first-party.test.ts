@@ -5,7 +5,7 @@ import { createTemplarFirstPartyHandler, isAllowedFirstPartyCallback } from "../
 import type { AuthSession } from "../src/service.ts";
 
 test("production auth accepts only standard callbacks on first-party domains", () => {
-  const auth = new URL("https://auth.ericventor.com");
+  const auth = new URL("https://auth.breli.app");
 
   for (const domain of firstPartyAllowedRootDomains) {
     assert.equal(
@@ -49,7 +49,7 @@ test("local auth accepts loopback callbacks only while running locally", () => {
   assert.equal(
     isAllowedFirstPartyCallback(
       new URL("http://localhost:5180/api/auth/callback"),
-      new URL("https://auth.ericventor.com"),
+      new URL("https://auth.breli.app"),
     ),
     false,
   );
@@ -86,12 +86,12 @@ test("an unauthenticated authorization starts Google without a central sign-in p
       handler: async () => new Response("fallback"),
     },
     db: fakeD1(new Map()),
-    baseURL: "https://auth.ericventor.com",
+    baseURL: "https://auth.breli.app",
     adminEmails: new Set(),
     signToken: async () => "unused",
   });
-  const authorizeURL = new URL("https://auth.ericventor.com/api/auth/first-party/authorize");
-  authorizeURL.searchParams.set("callback", "https://app.ericventor.com/api/auth/callback");
+  const authorizeURL = new URL("https://auth.breli.app/api/auth/first-party/authorize");
+  authorizeURL.searchParams.set("callback", "https://app.breli.app/api/auth/callback");
   authorizeURL.searchParams.set("state", "s".repeat(43));
   authorizeURL.searchParams.set("code_challenge", "c".repeat(43));
 
@@ -104,7 +104,7 @@ test("an unauthenticated authorization starts Google without a central sign-in p
   assert.equal(socialInput?.callbackURL, `${authorizeURL.pathname}${authorizeURL.search}`);
   assert.equal(
     socialInput?.errorCallbackURL,
-    `https://app.ericventor.com/api/auth/callback?error=oauth&state=${"s".repeat(43)}`,
+    `https://app.breli.app/api/auth/callback?error=oauth&state=${"s".repeat(43)}`,
   );
 });
 
@@ -122,7 +122,7 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
       handler: async () => new Response("fallback"),
     },
     db,
-    baseURL: "https://auth.ericventor.com",
+    baseURL: "https://auth.breli.app",
     adminEmails: new Set(["TEST@EXAMPLE.COM"]),
     signToken: (payload) => {
       const { admin, sub } = payload;
@@ -134,8 +134,8 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
   const verifier = "v".repeat(43);
   const challenge = await sha256Base64Url(verifier);
   const state = "s".repeat(43);
-  const authorizeURL = new URL("https://auth.ericventor.com/api/auth/first-party/authorize");
-  authorizeURL.searchParams.set("callback", "https://app.ericventor.com/api/auth/callback");
+  const authorizeURL = new URL("https://auth.breli.app/api/auth/first-party/authorize");
+  authorizeURL.searchParams.set("callback", "https://app.breli.app/api/auth/callback");
   authorizeURL.searchParams.set("state", state);
   authorizeURL.searchParams.set("code_challenge", challenge);
 
@@ -148,7 +148,7 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
   assert.ok(code !== null);
 
   const exchangeRequest = () =>
-    new Request("https://auth.ericventor.com/api/auth/first-party/exchange", {
+    new Request("https://auth.breli.app/api/auth/first-party/exchange", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ code, codeVerifier: verifier }),

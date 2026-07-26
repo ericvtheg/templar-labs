@@ -406,7 +406,7 @@ function GuestResponseCard({
           <legend>Can {firstName(guest.name)} celebrate with us?</legend>
           <Choice
             checked={overallAttendance === "all"}
-            label="Attending all invited events"
+            label="Attending rehersal dinner and wedding"
             name={`${guest.id}-overall`}
             onChange={() => setAllAttendance(true)}
             value="all"

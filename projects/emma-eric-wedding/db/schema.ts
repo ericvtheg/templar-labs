@@ -5,6 +5,13 @@ export const households = sqliteTable(
   {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
+    contactEmail: text("contact_email"),
+    addressLine1: text("address_line_1"),
+    addressLine2: text("address_line_2"),
+    city: text("city"),
+    region: text("region"),
+    postalCode: text("postal_code"),
+    country: text("country"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },

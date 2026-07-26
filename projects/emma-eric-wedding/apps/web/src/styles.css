@@ -338,7 +338,8 @@ a {
 }
 
 .admin-field > span,
-.admin-guest-fields legend {
+.admin-guest-fields legend,
+.admin-address-fields legend {
   color: var(--olive);
   font-size: 0.67rem;
   font-weight: 780;
@@ -371,6 +372,26 @@ a {
 .admin-search input:focus {
   border-color: rgb(239 83 81 / 65%);
   box-shadow: 0 0 0 3px rgb(239 83 81 / 10%);
+}
+
+.admin-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-address-fields {
+  margin: 2rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin-address-fields legend {
+  margin-bottom: 0.8rem;
 }
 
 .admin-guest-fields {
@@ -503,14 +524,96 @@ a {
 }
 
 .admin-enroll-button {
-  width: 100%;
-  margin-top: 0.7rem;
+  min-width: 210px;
   cursor: pointer;
 }
 
 .admin-enroll-button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.7rem;
+}
+
+.admin-secondary-button {
+  border-color: var(--hairline);
+  color: var(--olive);
+  background: rgb(255 255 255 / 48%);
+  cursor: pointer;
+}
+
+.admin-secondary-button:hover,
+.admin-secondary-button:focus-visible {
+  border-color: rgb(68 71 47 / 32%);
+  background: rgb(255 255 255 / 72%);
+  transform: translateY(-2px);
+}
+
+.admin-delete-household {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  color: #a93e3c;
+  background: transparent;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin-form-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-delete-confirmation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgb(169 62 60 / 25%);
+  border-radius: 1rem;
+  color: #7d3432;
+  background: rgb(251 237 232 / 72%);
+}
+
+.admin-delete-confirmation p {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.admin-delete-confirmation > div {
+  display: flex;
+  flex: none;
+  gap: 0.55rem;
+}
+
+.admin-delete-confirmation button {
+  min-height: 36px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgb(169 62 60 / 28%);
+  border-radius: 999px;
+  color: #7d3432;
+  background: rgb(255 255 255 / 55%);
+  font-size: 0.62rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.admin-delete-confirmation button:first-child {
+  color: var(--paper);
+  background: #a93e3c;
 }
 
 .admin-roster-header {
@@ -551,6 +654,32 @@ a {
   gap: 1rem;
 }
 
+.admin-household-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-edit-household {
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgb(242 123 118 / 35%);
+  border-radius: 999px;
+  color: #a93e3c;
+  background: rgb(251 237 232 / 55%);
+  font-size: 0.6rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin-edit-household:hover,
+.admin-edit-household:focus-visible {
+  border-color: var(--coral);
+  background: var(--blush);
+}
+
 .admin-household h3 {
   margin: 0;
   font-family: "Fraunces Variable", serif;
@@ -563,6 +692,25 @@ a {
   margin: 0.35rem 0 0;
   color: var(--olive-muted);
   font-size: 0.72rem;
+}
+
+.admin-household-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.2rem;
+  margin-top: 1rem;
+  color: var(--olive-muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.admin-household-contact a {
+  color: var(--olive);
+  text-underline-offset: 0.18em;
+}
+
+.admin-household-contact address {
+  font-style: normal;
 }
 
 .admin-seat-count,
@@ -1911,6 +2059,14 @@ a {
     border-radius: 1.5rem;
   }
 
+  .admin-contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-field-wide {
+    grid-column: auto;
+  }
+
   .admin-guest-row {
     grid-template-columns: 1fr;
   }
@@ -1937,8 +2093,33 @@ a {
     width: 100%;
   }
 
+  .admin-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-enroll-button,
+  .admin-secondary-button {
+    width: 100%;
+  }
+
+  .admin-delete-household {
+    margin: 0.7rem auto 0;
+  }
+
+  .admin-delete-confirmation,
+  .admin-delete-confirmation > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .admin-household-heading {
     flex-direction: column;
+  }
+
+  .admin-household-actions {
+    justify-content: space-between;
+    width: 100%;
   }
 
   .site-header {

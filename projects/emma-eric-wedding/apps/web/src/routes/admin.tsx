@@ -3,23 +3,51 @@ import { useServerFn } from "@tanstack/react-start";
 import { type SyntheticEvent, useId, useRef, useState, useTransition } from "react";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
 import type { AdminAccess } from "../lib/admin-auth.ts";
-import type { EnrollmentDashboard } from "../lib/enrollment.ts";
-import { enrollHousehold, loadAdminDashboard } from "../lib/enrollment-server-functions.ts";
+import type { EnrolledHousehold, EnrollmentDashboard } from "../lib/enrollment.ts";
+import {
+  deleteHousehold,
+  enrollHousehold,
+  loadAdminDashboard,
+  updateHousehold,
+} from "../lib/enrollment-server-functions.ts";
 
 type AdminSearch = {
   readonly error?: string;
 };
 
 type GuestDraft = {
-  readonly id: number;
+  readonly rowId: string;
+  readonly guestId?: string;
   readonly name: string;
   readonly plusOneAllowed: boolean;
 };
 
+type HouseholdDetailsDraft = {
+  readonly householdName: string;
+  readonly contactEmail: string;
+  readonly addressLine1: string;
+  readonly addressLine2: string;
+  readonly city: string;
+  readonly region: string;
+  readonly postalCode: string;
+  readonly country: string;
+};
+
 const initialGuestDraft: GuestDraft = {
-  id: 0,
+  rowId: "draft-0",
   name: "",
   plusOneAllowed: false,
+};
+
+const emptyHouseholdDetails: HouseholdDetailsDraft = {
+  householdName: "",
+  contactEmail: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  region: "",
+  postalCode: "",
+  country: "",
 };
 
 export const Route = createFileRoute("/admin")({
@@ -47,14 +75,20 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
   const formTitleId = useId();
   const introTitleId = useId();
   const rosterTitleId = useId();
+  const formSectionRef = useRef<HTMLElement>(null);
   const nextGuestId = useRef(1);
   const enrollHouseholdFn = useServerFn(enrollHousehold);
+  const updateHouseholdFn = useServerFn(updateHousehold);
+  const deleteHouseholdFn = useServerFn(deleteHousehold);
   const [dashboard, setDashboard] = useState(initialDashboard);
-  const [householdName, setHouseholdName] = useState("");
+  const [editingHouseholdId, setEditingHouseholdId] = useState<string | null>(null);
+  const [householdDetails, setHouseholdDetails] =
+    useState<HouseholdDetailsDraft>(emptyHouseholdDetails);
   const [guestDrafts, setGuestDrafts] = useState<readonly GuestDraft[]>([initialGuestDraft]);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const openGuestCount = guestDrafts.filter((guest) => guest.plusOneAllowed).length;
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
@@ -62,34 +96,85 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
     (household) =>
       normalizedSearch.length === 0 ||
       household.name.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.contactEmail.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.addressLine1.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.addressLine2.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.city.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.region.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.postalCode.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.country.toLocaleLowerCase().includes(normalizedSearch) ||
       household.guests.some((guest) => guest.name.toLocaleLowerCase().includes(normalizedSearch)),
   );
 
-  const updateGuest = (id: number, update: Partial<Omit<GuestDraft, "id">>) => {
+  const updateDetails = (update: Partial<HouseholdDetailsDraft>) => {
+    setHouseholdDetails((current) => ({ ...current, ...update }));
+  };
+
+  const updateGuest = (rowId: string, update: Partial<Omit<GuestDraft, "rowId">>) => {
     setGuestDrafts((current) =>
-      current.map((guest) => (guest.id === id ? { ...guest, ...update } : guest)),
+      current.map((guest) => (guest.rowId === rowId ? { ...guest, ...update } : guest)),
     );
   };
 
   const addGuest = () => {
-    const id = nextGuestId.current;
+    const rowId = `draft-${nextGuestId.current}`;
     nextGuestId.current += 1;
-    setGuestDrafts((current) => [...current, { ...initialGuestDraft, id }]);
+    setGuestDrafts((current) => [...current, { ...initialGuestDraft, rowId }]);
   };
 
-  const removeGuest = (id: number) => {
-    setGuestDrafts((current) => current.filter((guest) => guest.id !== id));
+  const removeGuest = (rowId: string) => {
+    setGuestDrafts((current) => current.filter((guest) => guest.rowId !== rowId));
+  };
+
+  const resetForm = () => {
+    const rowId = `draft-${nextGuestId.current}`;
+    nextGuestId.current += 1;
+    setEditingHouseholdId(null);
+    setHouseholdDetails(emptyHouseholdDetails);
+    setGuestDrafts([{ ...initialGuestDraft, rowId }]);
+    setError(null);
+    setSuccess(null);
+    setDeleteConfirmationOpen(false);
+  };
+
+  const startEditing = (household: EnrolledHousehold) => {
+    setEditingHouseholdId(household.id);
+    setHouseholdDetails({
+      householdName: household.name,
+      contactEmail: household.contactEmail,
+      addressLine1: household.addressLine1,
+      addressLine2: household.addressLine2,
+      city: household.city,
+      region: household.region,
+      postalCode: household.postalCode,
+      country: household.country,
+    });
+    setGuestDrafts(
+      household.guests.map((guest) => ({
+        rowId: `guest-${guest.id}`,
+        guestId: guest.id,
+        name: guest.name,
+        plusOneAllowed: guest.plusOneAllowed,
+      })),
+    );
+    setError(null);
+    setSuccess(null);
+    setDeleteConfirmationOpen(false);
+    formSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmedHouseholdName = householdName.trim();
+    const trimmedDetails = Object.fromEntries(
+      Object.entries(householdDetails).map(([key, value]) => [key, value.trim()]),
+    ) as unknown as HouseholdDetailsDraft;
     const trimmedGuests = guestDrafts.map((guest) => ({
+      ...(guest.guestId === undefined ? {} : { id: guest.guestId }),
       name: guest.name.trim(),
       plusOneAllowed: guest.plusOneAllowed,
     }));
 
-    if (trimmedHouseholdName.length === 0) {
+    if (trimmedDetails.householdName.length === 0) {
       setError("Give this household a name.");
       setSuccess(null);
       return;
@@ -105,20 +190,61 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
     setSuccess(null);
     startTransition(async () => {
       try {
-        const nextDashboard = await enrollHouseholdFn({
-          data: {
-            householdName: trimmedHouseholdName,
-            guests: trimmedGuests,
-          },
-        });
+        const nextDashboard =
+          editingHouseholdId === null
+            ? await enrollHouseholdFn({
+                data: {
+                  ...trimmedDetails,
+                  guests: trimmedGuests.map(({ name, plusOneAllowed }) => ({
+                    name,
+                    plusOneAllowed,
+                  })),
+                },
+              })
+            : await updateHouseholdFn({
+                data: {
+                  householdId: editingHouseholdId,
+                  ...trimmedDetails,
+                  guests: trimmedGuests,
+                },
+              });
 
         setDashboard(nextDashboard);
-        setHouseholdName("");
-        setGuestDrafts([{ ...initialGuestDraft, id: nextGuestId.current }]);
-        nextGuestId.current += 1;
-        setSuccess(`${trimmedHouseholdName} is now on the guest list.`);
+        resetForm();
+        setSuccess(
+          editingHouseholdId === null
+            ? `${trimmedDetails.householdName} is now on the guest list.`
+            : `${trimmedDetails.householdName} has been updated.`,
+        );
       } catch {
-        setError("That household could not be enrolled. Please try again.");
+        setError(
+          editingHouseholdId === null
+            ? "That household could not be enrolled. Please try again."
+            : "That household could not be updated. Please try again.",
+        );
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    if (editingHouseholdId === null) {
+      return;
+    }
+
+    const householdName = householdDetails.householdName.trim() || "this household";
+
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      try {
+        const nextDashboard = await deleteHouseholdFn({
+          data: { householdId: editingHouseholdId },
+        });
+        setDashboard(nextDashboard);
+        resetForm();
+        setSuccess(`${householdName} has been removed.`);
+      } catch {
+        setError("That household could not be removed. Please try again.");
       }
     });
   };
@@ -167,37 +293,129 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
         </dl>
 
         <div className="admin-workspace">
-          <section aria-labelledby={formTitleId} className="admin-enrollment-card">
+          <section
+            aria-labelledby={formTitleId}
+            className="admin-enrollment-card"
+            ref={formSectionRef}
+          >
             <div className="admin-section-heading">
-              <p className="eyebrow">New invitation</p>
-              <h2 id={formTitleId}>Enroll a household</h2>
-              <p>Add named invitees first. A checked +1 creates one additional unnamed seat.</p>
+              <p className="eyebrow">
+                {editingHouseholdId === null ? "New invitation" : "Edit invitation"}
+              </p>
+              <h2 id={formTitleId}>
+                {editingHouseholdId === null ? "Enroll a household" : "Update this household"}
+              </h2>
+              <p>
+                Add the household’s contact details and named invitees. A checked +1 creates one
+                additional unnamed seat.
+              </p>
             </div>
 
             <form className="admin-enrollment-form" onSubmit={handleSubmit}>
-              <label className="admin-field">
-                <span>Household name</span>
-                <input
-                  autoComplete="off"
-                  maxLength={120}
-                  onChange={(event) => setHouseholdName(event.target.value)}
-                  placeholder="For example, The Anderson household"
-                  required
-                  type="text"
-                  value={householdName}
-                />
-              </label>
+              <div className="admin-contact-grid">
+                <label className="admin-field">
+                  <span>Household name</span>
+                  <input
+                    autoComplete="off"
+                    maxLength={120}
+                    onChange={(event) => updateDetails({ householdName: event.target.value })}
+                    placeholder="For example, The Anderson household"
+                    required
+                    type="text"
+                    value={householdDetails.householdName}
+                  />
+                </label>
+                <label className="admin-field">
+                  <span>Email</span>
+                  <input
+                    autoComplete="email"
+                    maxLength={254}
+                    onChange={(event) => updateDetails({ contactEmail: event.target.value })}
+                    placeholder="name@example.com"
+                    type="email"
+                    value={householdDetails.contactEmail}
+                  />
+                </label>
+              </div>
+
+              <fieldset className="admin-address-fields">
+                <legend>Mailing address</legend>
+                <div className="admin-contact-grid">
+                  <label className="admin-field admin-field-wide">
+                    <span>Address line 1</span>
+                    <input
+                      autoComplete="address-line1"
+                      maxLength={160}
+                      onChange={(event) => updateDetails({ addressLine1: event.target.value })}
+                      placeholder="Street address"
+                      type="text"
+                      value={householdDetails.addressLine1}
+                    />
+                  </label>
+                  <label className="admin-field admin-field-wide">
+                    <span>Address line 2</span>
+                    <input
+                      autoComplete="address-line2"
+                      maxLength={160}
+                      onChange={(event) => updateDetails({ addressLine2: event.target.value })}
+                      placeholder="Apartment, suite, or unit"
+                      type="text"
+                      value={householdDetails.addressLine2}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    <span>City</span>
+                    <input
+                      autoComplete="address-level2"
+                      maxLength={100}
+                      onChange={(event) => updateDetails({ city: event.target.value })}
+                      type="text"
+                      value={householdDetails.city}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    <span>State / region</span>
+                    <input
+                      autoComplete="address-level1"
+                      maxLength={100}
+                      onChange={(event) => updateDetails({ region: event.target.value })}
+                      type="text"
+                      value={householdDetails.region}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    <span>Postal code</span>
+                    <input
+                      autoComplete="postal-code"
+                      maxLength={32}
+                      onChange={(event) => updateDetails({ postalCode: event.target.value })}
+                      type="text"
+                      value={householdDetails.postalCode}
+                    />
+                  </label>
+                  <label className="admin-field">
+                    <span>Country</span>
+                    <input
+                      autoComplete="country-name"
+                      maxLength={100}
+                      onChange={(event) => updateDetails({ country: event.target.value })}
+                      type="text"
+                      value={householdDetails.country}
+                    />
+                  </label>
+                </div>
+              </fieldset>
 
               <fieldset className="admin-guest-fields">
                 <legend>People named on the invitation</legend>
                 {guestDrafts.map((guest, index) => (
-                  <div className="admin-guest-row" key={guest.id}>
+                  <div className="admin-guest-row" key={guest.rowId}>
                     <label className="admin-field admin-guest-name">
                       <span>Person {index + 1}</span>
                       <input
                         autoComplete="off"
                         maxLength={100}
-                        onChange={(event) => updateGuest(guest.id, { name: event.target.value })}
+                        onChange={(event) => updateGuest(guest.rowId, { name: event.target.value })}
                         placeholder="Full name"
                         required
                         type="text"
@@ -208,7 +426,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                       <input
                         checked={guest.plusOneAllowed}
                         onChange={(event) =>
-                          updateGuest(guest.id, { plusOneAllowed: event.target.checked })
+                          updateGuest(guest.rowId, { plusOneAllowed: event.target.checked })
                         }
                         type="checkbox"
                       />
@@ -221,7 +439,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                       <button
                         aria-label={`Remove person ${index + 1}`}
                         className="admin-remove-person"
-                        onClick={() => removeGuest(guest.id)}
+                        onClick={() => removeGuest(guest.rowId)}
                         type="button"
                       >
                         Remove
@@ -254,13 +472,61 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                 {success === null ? null : <p className="admin-form-success">{success}</p>}
               </div>
 
-              <button
-                className="button button-primary admin-enroll-button"
-                disabled={isPending}
-                type="submit"
-              >
-                {isPending ? "Enrolling…" : "Enroll household"}
-              </button>
+              <div className="admin-form-actions">
+                <button
+                  className="button button-primary admin-enroll-button"
+                  disabled={isPending}
+                  type="submit"
+                >
+                  {isPending
+                    ? editingHouseholdId === null
+                      ? "Enrolling…"
+                      : "Saving…"
+                    : editingHouseholdId === null
+                      ? "Enroll household"
+                      : "Save household"}
+                </button>
+                {editingHouseholdId === null ? null : (
+                  <>
+                    <button
+                      className="button admin-secondary-button"
+                      disabled={isPending}
+                      onClick={resetForm}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="admin-delete-household"
+                      disabled={isPending}
+                      onClick={() => setDeleteConfirmationOpen(true)}
+                      type="button"
+                    >
+                      Remove household
+                    </button>
+                  </>
+                )}
+              </div>
+              {editingHouseholdId !== null && deleteConfirmationOpen ? (
+                <div className="admin-delete-confirmation" role="alert">
+                  <p>
+                    Remove {householdDetails.householdName || "this household"} and all of its named
+                    guests?
+                  </p>
+                  <div>
+                    <button disabled={isPending} onClick={handleDelete} type="button">
+                      {isPending ? "Removing…" : "Yes, remove household"}
+                    </button>
+                    <button
+                      disabled={isPending}
+                      onClick={() => setDeleteConfirmationOpen(false)}
+                      type="button"
+                    >
+                      Keep household
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </form>
           </section>
 
@@ -307,10 +573,30 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                           · {household.invitedSeatCount} total
                         </p>
                       </div>
-                      <span className="admin-seat-count">
-                        {household.invitedSeatCount} {pluralize("seat", household.invitedSeatCount)}
-                      </span>
+                      <div className="admin-household-actions">
+                        <span className="admin-seat-count">
+                          {household.invitedSeatCount}{" "}
+                          {pluralize("seat", household.invitedSeatCount)}
+                        </span>
+                        <button
+                          className="admin-edit-household"
+                          onClick={() => startEditing(household)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
+                    {hasContactDetails(household) ? (
+                      <div className="admin-household-contact">
+                        {household.contactEmail.length === 0 ? null : (
+                          <a href={`mailto:${household.contactEmail}`}>{household.contactEmail}</a>
+                        )}
+                        {formatMailingAddress(household).length === 0 ? null : (
+                          <address>{formatMailingAddress(household).join(" · ")}</address>
+                        )}
+                      </div>
+                    ) : null}
                     <ul className="admin-named-guests">
                       {household.guests.map((guest) => (
                         <li key={guest.id}>
@@ -341,6 +627,19 @@ function SummaryItem({ label, value }: { readonly label: string; readonly value:
 
 function pluralize(noun: string, count: number) {
   return count === 1 ? noun : `${noun}s`;
+}
+
+function hasContactDetails(household: EnrolledHousehold) {
+  return household.contactEmail.length > 0 || formatMailingAddress(household).length > 0;
+}
+
+function formatMailingAddress(household: EnrolledHousehold) {
+  const cityAndRegion = [household.city, household.region].filter(Boolean).join(", ");
+  const locality = [cityAndRegion, household.postalCode].filter(Boolean).join(" ");
+
+  return [household.addressLine1, household.addressLine2, locality, household.country].filter(
+    (line) => line.length > 0,
+  );
 }
 
 function AdminSignIn({

@@ -5,6 +5,13 @@ import { buildEnrollmentDashboard, householdEnrollmentInput } from "../src/lib/e
 test("validates and trims a household enrollment", () => {
   const enrollment = householdEnrollmentInput.parse({
     householdName: "  The Garden household  ",
+    contactEmail: "  garden@example.com ",
+    addressLine1: "  123 Flower Lane ",
+    addressLine2: "",
+    city: " Wichita ",
+    region: " Kansas ",
+    postalCode: " 67203 ",
+    country: " United States ",
     guests: [
       { name: "  Alex Garden ", plusOneAllowed: true },
       { name: "Sam Garden", plusOneAllowed: false },
@@ -13,6 +20,13 @@ test("validates and trims a household enrollment", () => {
 
   assert.deepEqual(enrollment, {
     householdName: "The Garden household",
+    contactEmail: "garden@example.com",
+    addressLine1: "123 Flower Lane",
+    addressLine2: "",
+    city: "Wichita",
+    region: "Kansas",
+    postalCode: "67203",
+    country: "United States",
     guests: [
       { name: "Alex Garden", plusOneAllowed: true },
       { name: "Sam Garden", plusOneAllowed: false },
@@ -23,7 +37,30 @@ test("validates and trims a household enrollment", () => {
 test("requires at least one named guest", () => {
   const result = householdEnrollmentInput.safeParse({
     householdName: "The Garden household",
+    contactEmail: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    country: "",
     guests: [],
+  });
+
+  assert.equal(result.success, false);
+});
+
+test("rejects an invalid household email", () => {
+  const result = householdEnrollmentInput.safeParse({
+    householdName: "The Garden household",
+    contactEmail: "not-an-email",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    region: "",
+    postalCode: "",
+    country: "",
+    guests: [{ name: "Alex Garden", plusOneAllowed: false }],
   });
 
   assert.equal(result.success, false);
@@ -35,11 +72,25 @@ test("counts explicit plus-ones as invited seats", () => {
       {
         id: "household-1",
         name: "The Garden household",
+        contactEmail: "garden@example.com",
+        addressLine1: "123 Flower Lane",
+        addressLine2: null,
+        city: "Wichita",
+        region: "Kansas",
+        postalCode: "67203",
+        country: "United States",
         createdAt: new Date("2026-07-26T12:00:00.000Z"),
       },
       {
         id: "household-2",
         name: "The Orchard household",
+        contactEmail: null,
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        region: null,
+        postalCode: null,
+        country: null,
         createdAt: new Date("2026-07-26T13:00:00.000Z"),
       },
     ],
@@ -79,4 +130,6 @@ test("counts explicit plus-ones as invited seats", () => {
     ["Alex Garden", "Sam Garden"],
   );
   assert.equal(dashboard.households[0]?.invitedSeatCount, 3);
+  assert.equal(dashboard.households[0]?.contactEmail, "garden@example.com");
+  assert.equal(dashboard.households[1]?.contactEmail, "");
 });

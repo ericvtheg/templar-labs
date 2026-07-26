@@ -5,16 +5,53 @@ const namedGuestInput = z.object({
   plusOneAllowed: z.boolean(),
 });
 
-export const householdEnrollmentInput = z.object({
+const optionalTextInput = (maximumLength: number) => z.string().trim().max(maximumLength);
+const contactEmailInput = optionalTextInput(254).refine(
+  (email) => email.length === 0 || z.email().safeParse(email).success,
+  "Enter a valid email address.",
+);
+const householdDetailsInput = {
   householdName: z.string().trim().min(1, "Household name is required.").max(120),
+  contactEmail: contactEmailInput,
+  addressLine1: optionalTextInput(160),
+  addressLine2: optionalTextInput(160),
+  city: optionalTextInput(100),
+  region: optionalTextInput(100),
+  postalCode: optionalTextInput(32),
+  country: optionalTextInput(100),
+};
+
+export const householdEnrollmentInput = z.object({
+  ...householdDetailsInput,
   guests: z.array(namedGuestInput).min(1, "Add at least one named guest.").max(20),
 });
 
+export const householdUpdateInput = z.object({
+  householdId: z.string().trim().min(1),
+  ...householdDetailsInput,
+  guests: z
+    .array(namedGuestInput.extend({ id: z.string().trim().min(1).optional() }))
+    .min(1, "Add at least one named guest.")
+    .max(20),
+});
+
+export const householdDeleteInput = z.object({
+  householdId: z.string().trim().min(1),
+});
+
 export type HouseholdEnrollmentInput = z.infer<typeof householdEnrollmentInput>;
+export type HouseholdUpdateInput = z.infer<typeof householdUpdateInput>;
 
 export type EnrollmentHouseholdRow = {
   readonly id: string;
   readonly name: string;
+  readonly contactEmail: string | null;
+  readonly addressLine1: string | null;
+  readonly addressLine2: string | null;
+  readonly city: string | null;
+  readonly region: string | null;
+  readonly postalCode: string | null;
+  readonly country: string | null;
   readonly createdAt: Date;
 };
 
@@ -35,6 +72,13 @@ export type EnrolledGuest = {
 export type EnrolledHousehold = {
   readonly id: string;
   readonly name: string;
+  readonly contactEmail: string;
+  readonly addressLine1: string;
+  readonly addressLine2: string;
+  readonly city: string;
+  readonly region: string;
+  readonly postalCode: string;
+  readonly country: string;
   readonly guests: readonly EnrolledGuest[];
   readonly namedGuestCount: number;
   readonly plusOneCount: number;
@@ -73,6 +117,13 @@ export function buildEnrollmentDashboard(
     return {
       id: household.id,
       name: household.name,
+      contactEmail: household.contactEmail ?? "",
+      addressLine1: household.addressLine1 ?? "",
+      addressLine2: household.addressLine2 ?? "",
+      city: household.city ?? "",
+      region: household.region ?? "",
+      postalCode: household.postalCode ?? "",
+      country: household.country ?? "",
       guests,
       namedGuestCount: guests.length,
       plusOneCount,

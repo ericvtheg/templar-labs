@@ -21,15 +21,19 @@ import {
   householdUpdateInput,
 } from "./enrollment.ts";
 import { normalizeGuestName } from "./guest-name.ts";
+import type { RsvpSettings } from "./rsvp-settings.ts";
+import { readRsvpSettings } from "./rsvp-settings-server-functions.ts";
 
 export type AdminDashboardLoaderData =
   | {
       readonly access: "authorized";
       readonly dashboard: EnrollmentDashboard;
+      readonly settings: RsvpSettings;
     }
   | {
       readonly access: Exclude<AdminAccess, "authorized">;
       readonly dashboard: null;
+      readonly settings: null;
     };
 
 export const loadAdminDashboard = createServerFn({ method: "GET" }).handler(
@@ -38,14 +42,17 @@ export const loadAdminDashboard = createServerFn({ method: "GET" }).handler(
     const access = await getAdminAccess(request);
 
     if (access !== "authorized") {
-      return { access, dashboard: null };
+      return { access, dashboard: null, settings: null };
     }
 
     await requireAdmin(request);
 
+    const database = await getWeddingDatabase();
+
     return {
       access: "authorized",
-      dashboard: await readEnrollmentDashboard(await getWeddingDatabase()),
+      dashboard: await readEnrollmentDashboard(database),
+      settings: await readRsvpSettings(database),
     };
   },
 );

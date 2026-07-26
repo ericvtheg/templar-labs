@@ -18,6 +18,8 @@ every item.
 - One optional household message to Emma and Eric.
 - Admin event assignment, RSVP status, event headcounts, responses, meals, and plus-one names.
 - Vendor-ready CSV export with event responses, meal selections, and dietary needs.
+- A visible, admin-configurable RSVP deadline with an early-close control.
+- Cancellation-only updates after the deadline, with a notification to Emma and Eric.
 - Server validation, signed household access, rate-limited name lookup, and response history.
 
 ## Suggested First Release

@@ -98,6 +98,11 @@ export type RsvpSubmissionResult = {
   readonly emailStatus: "sent" | "skipped" | "failed";
 };
 
+export type LateRsvpCancellation = {
+  readonly name: string;
+  readonly event: string;
+};
+
 export type InvitedGuest = {
   readonly id: string;
   readonly name: string;
@@ -221,4 +226,149 @@ export function validateCompleteRsvp(
   }
 
   return null;
+}
+
+export function validateLateRsvpChange(
+  input: HouseholdRsvpInput,
+  existing: RsvpHousehold | null,
+): string | null {
+  const restrictedMessage =
+    "After the RSVP deadline, you can only cancel attendance. Please contact Emma or Eric for any other change.";
+
+  if (existing === null || !existing.submitted) {
+    return "The RSVP deadline has passed. Please contact Emma or Eric so they can help with your response.";
+  }
+
+  if (input.contactEmail !== existing.contactEmail || input.message !== existing.message) {
+    return restrictedMessage;
+  }
+
+  const inputGuests = new Map(input.guests.map((guest) => [guest.guestId, guest]));
+  let hasCancellation = false;
+
+  for (const existingGuest of existing.guests) {
+    const inputGuest = inputGuests.get(existingGuest.id);
+    if (inputGuest === undefined) {
+      return restrictedMessage;
+    }
+
+    const inputResponses = new Map(
+      inputGuest.eventResponses.map((response) => [response.eventId, response]),
+    );
+
+    for (const existingResponse of existingGuest.eventResponses) {
+      const inputResponse = inputResponses.get(existingResponse.eventId);
+      if (inputResponse === undefined || existingResponse.attending === null) {
+        return restrictedMessage;
+      }
+
+      if (!existingResponse.attending && inputResponse.attending) {
+        return restrictedMessage;
+      }
+
+      if (existingResponse.attending && !inputResponse.attending) {
+        hasCancellation = true;
+        continue;
+      }
+
+      if (existingResponse.mealOptionId !== inputResponse.mealOptionId) {
+        return restrictedMessage;
+      }
+    }
+
+    const stillAttending = inputGuest.eventResponses.some((response) => response.attending);
+    const clearedAfterDecliningAll =
+      !stillAttending &&
+      inputGuest.dietaryRestrictions.length === 0 &&
+      existingGuest.eventResponses.some((response) => response.attending);
+
+    if (
+      inputGuest.dietaryRestrictions !== existingGuest.dietaryRestrictions &&
+      !clearedAfterDecliningAll
+    ) {
+      return restrictedMessage;
+    }
+
+    if (existingGuest.plusOne === null) {
+      if (inputGuest.plusOne !== null) {
+        return restrictedMessage;
+      }
+      continue;
+    }
+
+    if (inputGuest.plusOne === null) {
+      hasCancellation = true;
+      continue;
+    }
+
+    if (
+      inputGuest.plusOne.name !== existingGuest.plusOne.name ||
+      inputGuest.plusOne.dietaryRestrictions !== existingGuest.plusOne.dietaryRestrictions
+    ) {
+      return restrictedMessage;
+    }
+
+    const existingMeals = new Map(
+      existingGuest.plusOne.mealSelections.map((meal) => [meal.eventId, meal.mealOptionId]),
+    );
+    for (const meal of inputGuest.plusOne.mealSelections) {
+      if (existingMeals.get(meal.eventId) !== meal.mealOptionId) {
+        return restrictedMessage;
+      }
+    }
+  }
+
+  return hasCancellation
+    ? null
+    : "No cancellation was selected. Please contact Emma or Eric for other changes after the RSVP deadline.";
+}
+
+export function collectLateRsvpCancellations(
+  input: HouseholdRsvpInput,
+  existing: RsvpHousehold,
+): readonly LateRsvpCancellation[] {
+  const inputGuests = new Map(input.guests.map((guest) => [guest.guestId, guest]));
+  const cancellations: LateRsvpCancellation[] = [];
+
+  for (const existingGuest of existing.guests) {
+    const inputGuest = inputGuests.get(existingGuest.id);
+    if (inputGuest === undefined) {
+      continue;
+    }
+
+    const inputResponses = new Map(
+      inputGuest.eventResponses.map((response) => [response.eventId, response]),
+    );
+    const cancelledEventIds: WeddingEventId[] = [];
+    for (const existingResponse of existingGuest.eventResponses) {
+      if (
+        existingResponse.attending &&
+        inputResponses.get(existingResponse.eventId)?.attending === false
+      ) {
+        cancelledEventIds.push(existingResponse.eventId);
+        cancellations.push({
+          name: existingGuest.name,
+          event: eventById(existingResponse.eventId)?.shortTitle ?? existingResponse.eventId,
+        });
+      }
+    }
+
+    if (existingGuest.plusOne !== null) {
+      const plusOneCancelledEventIds =
+        inputGuest.plusOne === null
+          ? existingGuest.eventResponses
+              .filter((response) => response.attending)
+              .map((response) => response.eventId)
+          : cancelledEventIds;
+
+      for (const eventId of plusOneCancelledEventIds) {
+        cancellations.push({
+          name: existingGuest.plusOne.name,
+          event: eventById(eventId)?.shortTitle ?? eventId,
+        });
+      }
+    }
+  }
+
+  return cancellations;
 }

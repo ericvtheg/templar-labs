@@ -11,15 +11,18 @@ import type {
   RsvpSubmissionResult,
 } from "../lib/rsvp.ts";
 import { findRsvpHousehold, submitHouseholdRsvp } from "../lib/rsvp-server-functions.ts";
+import { loadRsvpSettings } from "../lib/rsvp-settings-server-functions.ts";
 
 type RsvpStep = "lookup" | "respond" | "review" | "confirmed";
 type OverallAttendance = "all" | "wedding-only" | "none" | null;
 
 export const Route = createFileRoute("/rsvp")({
+  loader: () => loadRsvpSettings(),
   component: RsvpPage,
 });
 
 function RsvpPage() {
+  const settings = Route.useLoaderData();
   const titleId = useId();
   const messageRef = useRef<HTMLDivElement>(null);
   const findHousehold = useServerFn(findRsvpHousehold);
@@ -27,6 +30,7 @@ function RsvpPage() {
   const [step, setStep] = useState<RsvpStep>("lookup");
   const [fullName, setFullName] = useState("");
   const [household, setHousehold] = useState<RsvpHousehold | null>(null);
+  const [originalHousehold, setOriginalHousehold] = useState<RsvpHousehold | null>(null);
   const [emailStatus, setEmailStatus] = useState<RsvpSubmissionResult["emailStatus"]>("skipped");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -57,6 +61,7 @@ function RsvpPage() {
         }
 
         setHousehold(result.household);
+        setOriginalHousehold(result.household);
         setStep("respond");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch {
@@ -79,6 +84,15 @@ function RsvpPage() {
 
   const reviewResponses = () => {
     if (household === null) {
+      return;
+    }
+
+    if (
+      !settings.fullEditingAllowed &&
+      originalHousehold !== null &&
+      !hasSelectedCancellation(household, originalHousehold)
+    ) {
+      announceError("Select at least one attendance cancellation to continue.");
       return;
     }
 
@@ -137,13 +151,17 @@ function RsvpPage() {
         });
 
         setHousehold(result.household);
+        setOriginalHousehold(result.household);
         setEmailStatus(result.emailStatus);
         setStep("confirmed");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (submissionError) {
+        const serverMessage = submissionError instanceof Error ? submissionError.message : "";
         announceError(
-          submissionError instanceof Error && submissionError.message.includes("expired")
-            ? submissionError.message
+          serverMessage.includes("expired") ||
+            serverMessage.includes("RSVP deadline") ||
+            serverMessage.includes("After the RSVP deadline")
+            ? serverMessage
             : "Your RSVP could not be saved. Nothing was submitted; please try again.",
         );
       }
@@ -169,6 +187,9 @@ function RsvpPage() {
           <p className="eyebrow">September 25, 2027</p>
           <h1 id={titleId}>{stepTitle(step, household?.submitted ?? false)}</h1>
           <LineFlourish className="rsvp-title-flourish" />
+          <p className="rsvp-deadline">
+            Please RSVP by: <strong>{settings.deadlineDisplay}</strong>
+          </p>
           <p>{stepIntroduction(step, household)}</p>
         </header>
 
@@ -185,7 +206,21 @@ function RsvpPage() {
           />
         ) : null}
 
-        {step === "respond" && household !== null ? (
+        {step === "respond" && household !== null && !settings.fullEditingAllowed ? (
+          <LateRsvpNotice
+            onStartOver={() => {
+              setHousehold(null);
+              setOriginalHousehold(null);
+              setStep("lookup");
+              setError(null);
+            }}
+            submitted={household.submitted}
+          />
+        ) : null}
+
+        {step === "respond" &&
+        household !== null &&
+        (settings.fullEditingAllowed || household.submitted) ? (
           <>
             <InvitationOverview household={household} />
             <section aria-label="Household responses" className="rsvp-guest-list">
@@ -194,30 +229,37 @@ function RsvpPage() {
                   guest={guest}
                   index={index}
                   key={guest.id}
+                  lateChangesOnly={!settings.fullEditingAllowed}
                   onChange={(update) => updateGuest(guest.id, update)}
+                  originalGuest={originalHousehold?.guests.find(
+                    (candidate) => candidate.id === guest.id,
+                  )}
                 />
               ))}
             </section>
             <HouseholdMessageField
               message={household.message}
+              disabled={!settings.fullEditingAllowed}
               onChange={(message) =>
                 setHousehold((current) => (current === null ? null : { ...current, message }))
               }
             />
             <ConfirmationEmailField
               email={household.contactEmail}
+              disabled={!settings.fullEditingAllowed}
               onChange={(contactEmail) =>
                 setHousehold((current) => (current === null ? null : { ...current, contactEmail }))
               }
             />
             <div className="rsvp-page-actions">
               <button className="button button-primary" onClick={reviewResponses} type="button">
-                Review entire RSVP
+                {settings.fullEditingAllowed ? "Review entire RSVP" : "Review cancellations"}
               </button>
               <button
                 className="rsvp-start-over"
                 onClick={() => {
                   setHousehold(null);
+                  setOriginalHousehold(null);
                   setStep("lookup");
                   setError(null);
                 }}
@@ -336,19 +378,59 @@ function InvitationOverview({ household }: { readonly household: RsvpHousehold }
   );
 }
 
+function LateRsvpNotice({
+  onStartOver,
+  submitted,
+}: {
+  readonly onStartOver: () => void;
+  readonly submitted: boolean;
+}) {
+  return (
+    <section className="rsvp-late-notice">
+      <p className="eyebrow">The response window has closed</p>
+      <h2>{submitted ? "Plans changed? Let us know." : "Please contact Emma or Eric."}</h2>
+      <p>
+        {submitted
+          ? "You can still cancel attendance below. For a late acceptance, meal change, or any other update, please contact Emma or Eric directly."
+          : "The RSVP deadline has passed, but Emma or Eric can help record your household’s response."}
+      </p>
+      {submitted ? null : (
+        <button
+          className="rsvp-start-over rsvp-late-start-over"
+          onClick={onStartOver}
+          type="button"
+        >
+          Use a different name
+        </button>
+      )}
+    </section>
+  );
+}
+
 function GuestResponseCard({
   guest,
   index,
+  lateChangesOnly,
   onChange,
+  originalGuest,
 }: {
   readonly guest: RsvpGuest;
   readonly index: number;
+  readonly lateChangesOnly: boolean;
   readonly onChange: (update: (guest: RsvpGuest) => RsvpGuest) => void;
+  readonly originalGuest: RsvpGuest | undefined;
 }) {
   const overallAttendance = overallAttendanceFor(guest.eventResponses);
   const attendingResponses = guest.eventResponses.filter((response) => response.attending);
+  const originalResponseFor = (eventId: WeddingEventId) =>
+    originalGuest?.eventResponses.find((response) => response.eventId === eventId);
 
   const setAllAttendance = (attending: boolean) => {
+    if (attending && lateChangesOnly && originalGuest !== undefined) {
+      onChange(() => originalGuest);
+      return;
+    }
+
     onChange((current) => ({
       ...current,
       eventResponses: current.eventResponses.map((response) => ({
@@ -362,6 +444,27 @@ function GuestResponseCard({
   };
 
   const chooseWeddingOnly = () => {
+    if (lateChangesOnly && originalGuest !== undefined) {
+      onChange(() => ({
+        ...originalGuest,
+        eventResponses: originalGuest.eventResponses.map((response) => ({
+          ...response,
+          attending: response.eventId === "wedding",
+          mealOptionId: response.eventId === "wedding" ? response.mealOptionId : null,
+        })),
+        plusOne:
+          originalGuest.plusOne === null
+            ? null
+            : {
+                ...originalGuest.plusOne,
+                mealSelections: originalGuest.plusOne.mealSelections.filter(
+                  (selection) => selection.eventId === "wedding",
+                ),
+              },
+      }));
+      return;
+    }
+
     onChange((current) => ({
       ...current,
       eventResponses: current.eventResponses.map((response) => ({
@@ -413,13 +516,20 @@ function GuestResponseCard({
           <legend>Can {firstName(guest.name)} celebrate with us?</legend>
           <Choice
             checked={overallAttendance === "all"}
-            label="Attending rehersal dinner and wedding"
+            disabled={
+              lateChangesOnly &&
+              !guest.eventResponses.every(
+                (response) => originalResponseFor(response.eventId)?.attending === true,
+              )
+            }
+            label="Attending rehearsal dinner and wedding"
             name={`${guest.id}-overall`}
             onChange={() => setAllAttendance(true)}
             value="all"
           />
           <Choice
             checked={overallAttendance === "wedding-only"}
+            disabled={lateChangesOnly && originalResponseFor("wedding")?.attending !== true}
             label="Attending only wedding"
             name={`${guest.id}-overall`}
             onChange={chooseWeddingOnly}
@@ -427,6 +537,7 @@ function GuestResponseCard({
           />
           <Choice
             checked={overallAttendance === "none"}
+            disabled={false}
             label="Unable to attend"
             name={`${guest.id}-overall`}
             onChange={() => setAllAttendance(false)}
@@ -438,6 +549,10 @@ function GuestResponseCard({
           <legend>Can {firstName(guest.name)} celebrate with us?</legend>
           <Choice
             checked={guest.eventResponses[0]?.attending === true}
+            disabled={
+              lateChangesOnly &&
+              originalResponseFor(guest.eventResponses[0]?.eventId ?? "wedding")?.attending !== true
+            }
             label="Joyfully accepts"
             name={`${guest.id}-single`}
             onChange={() => setAllAttendance(true)}
@@ -445,6 +560,7 @@ function GuestResponseCard({
           />
           <Choice
             checked={guest.eventResponses[0]?.attending === false}
+            disabled={false}
             label="Regretfully declines"
             name={`${guest.id}-single`}
             onChange={() => setAllAttendance(false)}
@@ -459,6 +575,7 @@ function GuestResponseCard({
           <MealChoices
             controlName={guest.id}
             eventId={response.eventId}
+            disabled={lateChangesOnly}
             key={response.eventId}
             name={guest.name}
             onChange={(mealOptionId) => setMeal(response.eventId, mealOptionId)}
@@ -470,6 +587,7 @@ function GuestResponseCard({
       {attendingResponses.length > 0 ? (
         <DietaryRestrictionsField
           name={guest.name}
+          disabled={lateChangesOnly}
           onChange={setDietaryRestrictions}
           value={guest.dietaryRestrictions}
         />
@@ -478,7 +596,9 @@ function GuestResponseCard({
       {guest.plusOneAllowed && attendingResponses.length > 0 ? (
         <PlusOneResponse
           guest={guest}
+          locked={lateChangesOnly}
           onChange={setPlusOne}
+          originalPlusOne={originalGuest?.plusOne ?? null}
           attendingEventIds={attendingResponses.map((response) => response.eventId)}
         />
       ) : null}
@@ -488,12 +608,14 @@ function GuestResponseCard({
 
 function Choice({
   checked,
+  disabled,
   label,
   name,
   onChange,
   value,
 }: {
   readonly checked: boolean;
+  readonly disabled: boolean;
   readonly label: string;
   readonly name: string;
   readonly onChange: () => void;
@@ -501,7 +623,14 @@ function Choice({
 }) {
   return (
     <label className="rsvp-choice">
-      <input checked={checked} name={name} onChange={onChange} type="radio" value={value} />
+      <input
+        checked={checked}
+        disabled={disabled}
+        name={name}
+        onChange={onChange}
+        type="radio"
+        value={value}
+      />
       <span>{label}</span>
     </label>
   );
@@ -509,12 +638,14 @@ function Choice({
 
 function MealChoices({
   controlName,
+  disabled,
   eventId,
   name,
   onChange,
   selectedMealId,
 }: {
   readonly controlName: string;
+  readonly disabled: boolean;
   readonly eventId: WeddingEventId;
   readonly name: string;
   readonly onChange: (mealOptionId: string) => void;
@@ -535,6 +666,7 @@ function MealChoices({
           <label className="rsvp-meal-choice" key={meal.id}>
             <input
               checked={selectedMealId === meal.id}
+              disabled={disabled}
               name={`${controlName}-${eventId}-meal`}
               onChange={() => onChange(meal.id)}
               type="radio"
@@ -552,10 +684,12 @@ function MealChoices({
 }
 
 function DietaryRestrictionsField({
+  disabled,
   name,
   onChange,
   value,
 }: {
+  readonly disabled: boolean;
   readonly name: string;
   readonly onChange: (dietaryRestrictions: string) => void;
   readonly value: string;
@@ -565,6 +699,7 @@ function DietaryRestrictionsField({
       <span>{name}’s dietary restrictions</span>
       <textarea
         maxLength={500}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Allergies or dietary needs"
         rows={3}
@@ -578,11 +713,15 @@ function DietaryRestrictionsField({
 function PlusOneResponse({
   attendingEventIds,
   guest,
+  locked,
   onChange,
+  originalPlusOne,
 }: {
   readonly attendingEventIds: readonly WeddingEventId[];
   readonly guest: RsvpGuest;
+  readonly locked: boolean;
   readonly onChange: (plusOne: RsvpPlusOne | null) => void;
+  readonly originalPlusOne: RsvpPlusOne | null;
 }) {
   const plusOne = guest.plusOne;
   const setPlusOneMeal = (eventId: WeddingEventId, mealOptionId: string) => {
@@ -602,12 +741,19 @@ function PlusOneResponse({
   return (
     <section className="rsvp-plus-one">
       {plusOne === null ? (
-        <button
-          onClick={() => onChange({ name: "", dietaryRestrictions: "", mealSelections: [] })}
-          type="button"
-        >
-          <span aria-hidden="true">+</span> Add {firstName(guest.name)}’s invited guest
-        </button>
+        locked && originalPlusOne === null ? null : (
+          <button
+            onClick={() =>
+              onChange(originalPlusOne ?? { name: "", dietaryRestrictions: "", mealSelections: [] })
+            }
+            type="button"
+          >
+            <span aria-hidden="true">+</span>{" "}
+            {locked
+              ? `Keep ${originalPlusOne?.name ?? "invited guest"} on the RSVP`
+              : `Add ${firstName(guest.name)}’s invited guest`}
+          </button>
+        )
       ) : (
         <>
           <div className="rsvp-plus-one-heading">
@@ -623,6 +769,7 @@ function PlusOneResponse({
             <span>Guest’s full name</span>
             <input
               maxLength={100}
+              disabled={locked}
               onChange={(event) => onChange({ ...plusOne, name: event.target.value })}
               placeholder="Full name"
               type="text"
@@ -634,6 +781,7 @@ function PlusOneResponse({
             return weddingEvent === undefined || weddingEvent.mealOptions.length === 0 ? null : (
               <MealChoices
                 controlName={`${guest.id}-plus-one`}
+                disabled={locked}
                 eventId={eventId}
                 key={eventId}
                 name={plusOne.name.trim() || "Invited guest"}
@@ -647,6 +795,7 @@ function PlusOneResponse({
           })}
           <DietaryRestrictionsField
             name={plusOne.name.trim() || "Invited guest"}
+            disabled={locked}
             onChange={(dietaryRestrictions) => onChange({ ...plusOne, dietaryRestrictions })}
             value={plusOne.dietaryRestrictions}
           />
@@ -657,9 +806,11 @@ function PlusOneResponse({
 }
 
 function ConfirmationEmailField({
+  disabled,
   email,
   onChange,
 }: {
+  readonly disabled: boolean;
   readonly email: string;
   readonly onChange: (email: string) => void;
 }) {
@@ -674,6 +825,7 @@ function ConfirmationEmailField({
         <span>Confirmation email</span>
         <input
           autoComplete="email"
+          disabled={disabled}
           maxLength={254}
           onChange={(event) => onChange(event.target.value)}
           placeholder="name@example.com"
@@ -687,9 +839,11 @@ function ConfirmationEmailField({
 }
 
 function HouseholdMessageField({
+  disabled,
   message,
   onChange,
 }: {
+  readonly disabled: boolean;
   readonly message: string;
   readonly onChange: (message: string) => void;
 }) {
@@ -703,6 +857,7 @@ function HouseholdMessageField({
       <label>
         <span>Message to Emma &amp; Eric</span>
         <textarea
+          disabled={disabled}
           maxLength={2_000}
           onChange={(event) => onChange(event.target.value)}
           placeholder="We can’t wait to celebrate with you!"
@@ -857,6 +1012,28 @@ function overallAttendanceFor(responses: readonly RsvpEventResponse[]): OverallA
   }
 
   return responses.every((response) => !response.attending) ? "none" : null;
+}
+
+function hasSelectedCancellation(
+  household: RsvpHousehold,
+  originalHousehold: RsvpHousehold,
+): boolean {
+  return originalHousehold.guests.some((originalGuest) => {
+    const guest = household.guests.find((candidate) => candidate.id === originalGuest.id);
+    if (guest === undefined) {
+      return false;
+    }
+
+    const attendanceCancelled = originalGuest.eventResponses.some(
+      (originalResponse) =>
+        originalResponse.attending === true &&
+        guest.eventResponses.find((response) => response.eventId === originalResponse.eventId)
+          ?.attending === false,
+    );
+    const plusOneCancelled = originalGuest.plusOne !== null && guest.plusOne === null;
+
+    return attendanceCancelled || plusOneCancelled;
+  });
 }
 
 function firstIncompleteMessage(household: RsvpHousehold): string | null {

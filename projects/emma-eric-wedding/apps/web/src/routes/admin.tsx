@@ -17,6 +17,8 @@ import {
   updateHousehold,
 } from "../lib/enrollment-server-functions.ts";
 import { normalizeGuestName } from "../lib/guest-name.ts";
+import type { RsvpSettings } from "../lib/rsvp-settings.ts";
+import { updateRsvpSettings } from "../lib/rsvp-settings-server-functions.ts";
 import { buildVendorCsv, vendorExportFilename } from "../lib/vendor-export.ts";
 
 type AdminSearch = {
@@ -75,22 +77,42 @@ function AdminPage() {
   const search = Route.useSearch();
 
   if (loaderData.access === "authorized") {
-    return <EnrollmentAdmin initialDashboard={loaderData.dashboard} />;
+    return (
+      <EnrollmentAdmin
+        initialDashboard={loaderData.dashboard}
+        initialSettings={loaderData.settings}
+      />
+    );
   }
 
   return <AdminSignIn access={loaderData.access} oauthError={search.error !== undefined} />;
 }
 
-function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: EnrollmentDashboard }) {
+function EnrollmentAdmin({
+  initialDashboard,
+  initialSettings,
+}: {
+  readonly initialDashboard: EnrollmentDashboard;
+  readonly initialSettings: RsvpSettings;
+}) {
   const formTitleId = useId();
   const introTitleId = useId();
   const rosterTitleId = useId();
+  const settingsTitleId = useId();
   const formSectionRef = useRef<HTMLElement>(null);
   const nextGuestId = useRef(1);
   const enrollHouseholdFn = useServerFn(enrollHousehold);
   const updateHouseholdFn = useServerFn(updateHousehold);
   const deleteHouseholdFn = useServerFn(deleteHousehold);
+  const updateRsvpSettingsFn = useServerFn(updateRsvpSettings);
   const [dashboard, setDashboard] = useState(initialDashboard);
+  const [settings, setSettings] = useState(initialSettings);
+  const [settingsDraft, setSettingsDraft] = useState({
+    deadline: initialSettings.deadline,
+    isOpen: initialSettings.isOpen,
+  });
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [editingHouseholdId, setEditingHouseholdId] = useState<string | null>(null);
   const [householdDetails, setHouseholdDetails] =
     useState<HouseholdDetailsDraft>(emptyHouseholdDetails);
@@ -100,6 +122,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
   const [success, setSuccess] = useState<string | null>(null);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [settingsPending, startSettingsTransition] = useTransition();
   const openGuestCount = guestDrafts.filter((guest) => guest.plusOneAllowed).length;
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
   const visibleHouseholds = dashboard.households.filter(
@@ -301,6 +324,26 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
   };
 
+  const handleSettingsSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSettingsError(null);
+    setSettingsMessage(null);
+
+    startSettingsTransition(async () => {
+      try {
+        const savedSettings = await updateRsvpSettingsFn({ data: settingsDraft });
+        setSettings(savedSettings);
+        setSettingsDraft({
+          deadline: savedSettings.deadline,
+          isOpen: savedSettings.isOpen,
+        });
+        setSettingsMessage("RSVP settings saved.");
+      } catch {
+        setSettingsError("The RSVP settings could not be saved. Please try again.");
+      }
+    });
+  };
+
   return (
     <main aria-label="Wedding administration" className="admin-page">
       <BotanicalStamp className="admin-botanical admin-botanical-left" />
@@ -349,6 +392,73 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
             value={dashboard.responseSummary.rehearsalDinnerAttendingCount}
           />
         </dl>
+
+        <section aria-labelledby={settingsTitleId} className="admin-rsvp-settings">
+          <div className="admin-section-heading">
+            <p className="eyebrow">Guest response window</p>
+            <h2 id={settingsTitleId}>RSVP settings</h2>
+            <p>
+              Full edits close after the deadline. Late cancellations remain available so the guest
+              count stays accurate.
+            </p>
+          </div>
+          <form onSubmit={handleSettingsSubmit}>
+            <label className="admin-field">
+              <span>RSVP deadline</span>
+              <input
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    deadline: event.target.value,
+                  }))
+                }
+                required
+                type="date"
+                value={settingsDraft.deadline}
+              />
+            </label>
+            <label className="admin-rsvp-open-toggle">
+              <input
+                checked={settingsDraft.isOpen}
+                onChange={(event) =>
+                  setSettingsDraft((current) => ({
+                    ...current,
+                    isOpen: event.target.checked,
+                  }))
+                }
+                type="checkbox"
+              />
+              <span>
+                Accept full RSVP changes
+                <small>Turn this off to allow cancellations only before the deadline.</small>
+              </span>
+            </label>
+            <div className="admin-rsvp-settings-action">
+              <button
+                className="button button-primary admin-rsvp-settings-button"
+                disabled={settingsPending}
+                type="submit"
+              >
+                {settingsPending ? "Saving…" : "Save RSVP settings"}
+              </button>
+              <span
+                className={`admin-rsvp-status ${settings.fullEditingAllowed ? "" : "admin-rsvp-pending"}`}
+              >
+                {settings.fullEditingAllowed ? "Full editing open" : "Cancellations only"}
+              </span>
+            </div>
+            <div aria-live="polite" className="admin-form-message admin-rsvp-settings-message">
+              {settingsError === null ? null : (
+                <p className="admin-auth-error" role="alert">
+                  {settingsError}
+                </p>
+              )}
+              {settingsMessage === null ? null : (
+                <p className="admin-form-success">{settingsMessage}</p>
+              )}
+            </div>
+          </form>
+        </section>
 
         <div className="admin-workspace">
           <section

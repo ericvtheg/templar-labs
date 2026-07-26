@@ -43,6 +43,13 @@
       "when": 1785097686672,
       "tag": "0005_milky_mikhail_rasputin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785098534992,
+      "tag": "0006_opposite_meteorite",
+      "breakpoints": true
     }
   ]
 }

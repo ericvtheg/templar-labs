@@ -19,6 +19,13 @@ export const households = sqliteTable(
   (table) => [index("households_created_at_idx").on(table.createdAt)],
 );
 
+export const rsvpSettings = sqliteTable("rsvp_settings", {
+  id: text("id").primaryKey(),
+  deadline: text("deadline").notNull(),
+  isOpen: integer("is_open", { mode: "boolean" }).notNull().default(true),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const guests = sqliteTable(
   "guests",
   {

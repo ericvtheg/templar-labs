@@ -17,17 +17,21 @@ import { isWeddingEventId, rsvpEvents, type WeddingEventId } from "../content/rs
 import { getWeddingDatabase, type WeddingDatabase } from "./database.server.ts";
 import { normalizeGuestName } from "./guest-name.ts";
 import {
+  collectLateRsvpCancellations,
   type HouseholdRsvpInput,
   householdRsvpInput,
   type InvitedGuest,
+  type LateRsvpCancellation,
   type RsvpHousehold,
   type RsvpLookupResult,
   type RsvpSubmissionResult,
   rsvpLookupInput,
   validateCompleteRsvp,
+  validateLateRsvpChange,
 } from "./rsvp.ts";
 import { createRsvpAccessToken, householdIdFromAccessToken } from "./rsvp-access.server.ts";
-import { buildRsvpConfirmationEmail } from "./rsvp-email.ts";
+import { buildLateCancellationEmail, buildRsvpConfirmationEmail } from "./rsvp-email.ts";
+import { readRsvpSettings } from "./rsvp-settings-server-functions.ts";
 
 type RsvpBindings = {
   readonly APP_ENV: "local" | "prod";
@@ -89,11 +93,29 @@ export const submitHouseholdRsvp = createServerFn({ method: "POST" })
     }
 
     const database = await getWeddingDatabase();
-    const invitedGuests = await readInvitedGuests(database, householdId);
+    const [invitedGuests, settings, existingHousehold] = await Promise.all([
+      readInvitedGuests(database, householdId),
+      readRsvpSettings(database),
+      readRsvpHousehold(database, householdId, context.data.accessToken),
+    ]);
     const validationError = validateCompleteRsvp(context.data, invitedGuests);
 
     if (validationError !== null) {
       throw new Error(validationError);
+    }
+
+    let lateCancellations: readonly LateRsvpCancellation[] = [];
+    if (!settings.fullEditingAllowed) {
+      const lateChangeError = validateLateRsvpChange(context.data, existingHousehold);
+
+      if (lateChangeError !== null || existingHousehold === null) {
+        throw new Error(
+          lateChangeError ??
+            "The RSVP deadline has passed. Please contact Emma or Eric so they can help with your response.",
+        );
+      }
+
+      lateCancellations = collectLateRsvpCancellations(context.data, existingHousehold);
     }
 
     await persistRsvp(database, householdId, context.data, invitedGuests);
@@ -104,10 +126,14 @@ export const submitHouseholdRsvp = createServerFn({ method: "POST" })
       throw new Error("The saved RSVP could not be loaded.");
     }
 
-    return {
-      household,
-      emailStatus: await sendConfirmationEmail(bindings, household),
-    };
+    const [emailStatus] = await Promise.all([
+      sendConfirmationEmail(bindings, household),
+      lateCancellations.length === 0
+        ? Promise.resolve()
+        : sendLateCancellationNotification(bindings, household, lateCancellations),
+    ]);
+
+    return { household, emailStatus };
   });
 
 async function persistRsvp(
@@ -341,11 +367,7 @@ async function sendConfirmationEmail(
   }
 
   const message = buildRsvpConfirmationEmail(household);
-  const email = makeEmail(bindings.EMAIL, {
-    app: "emma-eric-wedding",
-    environment: bindings.APP_ENV,
-    defaultFrom: { email: "rsvp@ericventor.com", name: "Emma & Eric" },
-  });
+  const email = weddingEmail(bindings);
 
   try {
     const result = await Effect.runPromise(
@@ -365,6 +387,39 @@ async function sendConfirmationEmail(
     });
     return "failed";
   }
+}
+
+async function sendLateCancellationNotification(
+  bindings: RsvpBindings,
+  household: RsvpHousehold,
+  cancellations: readonly LateRsvpCancellation[],
+) {
+  const message = buildLateCancellationEmail(household, cancellations);
+
+  try {
+    await Effect.runPromise(
+      weddingEmail(bindings).send({
+        to: "rsvp@ericventor.com",
+        replyTo: household.contactEmail,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      }),
+    );
+  } catch (error) {
+    console.error("Late RSVP cancellation notification failed", {
+      household: household.name,
+      error,
+    });
+  }
+}
+
+function weddingEmail(bindings: RsvpBindings) {
+  return makeEmail(bindings.EMAIL, {
+    app: "emma-eric-wedding",
+    environment: bindings.APP_ENV,
+    defaultFrom: { email: "rsvp@ericventor.com", name: "Emma & Eric" },
+  });
 }
 
 async function getBindings(): Promise<RsvpBindings> {

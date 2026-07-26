@@ -18,6 +18,13 @@ Guests can also leave one optional household message for Emma and Eric; it is
 preserved with RSVP revisions and shown in the admin, confirmation email, and
 CSV export.
 
+The RSVP deadline defaults to August 15, 2027 and is shown on the guest page.
+Administration can change the date or close full editing early. The deadline is
+evaluated in Wichita time and remains open through the end of the displayed day.
+After full editing closes, submitted households can still cancel attendance,
+but late acceptances, meal changes, and other edits require Emma or Eric. Late
+cancellations send a best-effort notification to `rsvp@ericventor.com`.
+
 ```sh
 pnpm --filter emma-eric-wedding dev
 ```

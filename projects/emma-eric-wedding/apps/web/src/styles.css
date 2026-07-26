@@ -286,6 +286,79 @@ a {
   line-height: 1;
 }
 
+.admin-rsvp-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(420px, 1.15fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: clamp(1.7rem, 4vw, 3rem);
+  border: 1px solid var(--hairline);
+  border-radius: 2rem;
+  background: rgb(255 255 255 / 48%);
+  box-shadow: 0 20px 70px rgb(68 71 47 / 6%);
+}
+
+.admin-rsvp-settings form {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1.3fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.admin-rsvp-open-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 50px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.9rem;
+  background: rgb(251 246 238 / 72%);
+  cursor: pointer;
+}
+
+.admin-rsvp-open-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--poppy);
+}
+
+.admin-rsvp-open-toggle > span {
+  font-size: 0.76rem;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.admin-rsvp-open-toggle small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--olive-muted);
+  font-size: 0.64rem;
+  font-weight: 500;
+}
+
+.admin-rsvp-settings-action {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-rsvp-settings-button {
+  cursor: pointer;
+}
+
+.admin-rsvp-settings-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.admin-rsvp-settings-message {
+  grid-column: 1 / -1;
+}
+
 .admin-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1736,6 +1809,23 @@ a {
   stroke-width: 2;
 }
 
+.rsvp-title .rsvp-deadline {
+  width: fit-content;
+  margin: 1.5rem auto 0;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgb(239 83 81 / 22%);
+  border-radius: 999px;
+  color: var(--olive-muted);
+  background: rgb(251 237 232 / 72%);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.rsvp-title .rsvp-deadline strong {
+  color: var(--olive);
+}
+
 .rsvp-message {
   outline: none;
 }
@@ -1832,6 +1922,37 @@ a {
 
 .rsvp-invitation-overview {
   margin-top: 4.5rem;
+}
+
+.rsvp-late-notice {
+  width: min(100%, 760px);
+  margin: 3rem auto 0;
+  padding: clamp(1.5rem, 4vw, 2.4rem);
+  border: 1px solid rgb(239 83 81 / 22%);
+  border-radius: 2rem;
+  background: rgb(251 237 232 / 72%);
+  text-align: center;
+}
+
+.rsvp-late-notice h2 {
+  margin: 0;
+  font-family: "Fraunces Variable", serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.rsvp-late-notice > p:not(.eyebrow) {
+  max-width: 600px;
+  margin: 0.9rem auto 0;
+  color: var(--olive-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.rsvp-late-start-over {
+  margin-top: 1.2rem;
+  cursor: pointer;
 }
 
 .rsvp-overview-heading {
@@ -2027,6 +2148,16 @@ a {
   box-shadow: 0 8px 24px rgb(239 83 81 / 8%);
 }
 
+.rsvp-choice:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
+.rsvp-choice:has(input:checked:disabled) {
+  opacity: 0.8;
+}
+
 .rsvp-choice input {
   width: 1.05rem;
   height: 1.05rem;
@@ -2181,6 +2312,21 @@ a {
 .rsvp-dietary-field > small {
   color: var(--olive-muted);
   font-size: 0.68rem;
+}
+
+.rsvp-meal-choice:has(input:disabled),
+.rsvp-plus-one-name:has(input:disabled),
+.rsvp-dietary-field:has(textarea:disabled),
+.rsvp-household-message-card label:has(textarea:disabled),
+.rsvp-email-card label:has(input:disabled) {
+  opacity: 0.7;
+}
+
+.rsvp-plus-one-name input:disabled,
+.rsvp-dietary-field textarea:disabled,
+.rsvp-household-message-card textarea:disabled,
+.rsvp-email-card input:disabled {
+  cursor: not-allowed;
 }
 
 .rsvp-household-message-card,
@@ -2889,6 +3035,10 @@ a {
 }
 
 @media (max-width: 1000px) {
+  .admin-rsvp-settings {
+    grid-template-columns: 1fr;
+  }
+
   .admin-workspace {
     grid-template-columns: 1fr;
   }
@@ -3006,6 +3156,25 @@ a {
 
   .admin-summary > div:nth-child(n + 3) {
     border-top: 1px solid var(--hairline);
+  }
+
+  .admin-rsvp-settings {
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .admin-rsvp-settings form {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-rsvp-settings-action {
+    grid-column: auto;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-rsvp-settings-message {
+    grid-column: auto;
   }
 
   .admin-enrollment-card,

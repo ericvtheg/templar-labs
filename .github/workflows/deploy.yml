@@ -8,7 +8,7 @@ on:
 
 concurrency:
   group: deploy-main
-  cancel-in-progress: false
+  queue: max
 
 jobs:
   deploy:

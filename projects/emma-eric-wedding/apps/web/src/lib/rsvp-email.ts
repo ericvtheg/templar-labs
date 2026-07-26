@@ -51,6 +51,7 @@ export function buildRsvpConfirmationEmail(household: RsvpHousehold): RsvpEmail 
     `Emma & Eric · September 25, 2027`,
     "",
     ...guestText,
+    ...(household.message.length === 0 ? [] : ["Your note to Emma & Eric", household.message, ""]),
     "You can return to the wedding website and enter a full name from your invitation to update this response.",
   ].join("\n");
 
@@ -102,11 +103,15 @@ export function buildRsvpConfirmationEmail(household: RsvpHousehold): RsvpEmail 
       return `<section style="margin:24px 0"><h2 style="font:600 24px Georgia,serif;margin:0 0 10px">${escapeHtml(guest.name)}</h2><ul style="line-height:1.7;margin:0;padding-left:20px">${responses}</ul>${dietaryRestrictions}${plusOne}</section>`;
     })
     .join("");
+  const householdMessageHtml =
+    household.message.length === 0
+      ? ""
+      : `<section style="background:#fbf6ee;border-radius:16px;margin:24px 0;padding:20px"><p style="color:#6f7353;font-size:12px;font-weight:700;letter-spacing:.08em;margin:0 0 8px;text-transform:uppercase">Your note to Emma &amp; Eric</p><p style="line-height:1.7;margin:0;white-space:pre-wrap">${escapeHtml(household.message)}</p></section>`;
 
   return {
     subject: "Your RSVP for Emma & Eric",
     text,
-    html: `<div style="background:#fbf6ee;color:#44472f;font:16px Arial,sans-serif;padding:32px"><div style="background:#fffdf8;border:1px solid #e8dfd3;border-radius:24px;margin:auto;max-width:620px;padding:32px"><p style="color:#ef5351;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase">September 25, 2027</p><h1 style="font:500 42px Georgia,serif;margin:0">Your RSVP is confirmed.</h1><p style="line-height:1.7">Here is the complete response for ${escapeHtml(household.name)}.</p>${guestHtml}<p style="border-top:1px solid #e8dfd3;line-height:1.7;margin-top:28px;padding-top:22px">You can return to the wedding website and enter a full name from your invitation to update this response.</p></div></div>`,
+    html: `<div style="background:#fbf6ee;color:#44472f;font:16px Arial,sans-serif;padding:32px"><div style="background:#fffdf8;border:1px solid #e8dfd3;border-radius:24px;margin:auto;max-width:620px;padding:32px"><p style="color:#ef5351;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase">September 25, 2027</p><h1 style="font:500 42px Georgia,serif;margin:0">Your RSVP is confirmed.</h1><p style="line-height:1.7">Here is the complete response for ${escapeHtml(household.name)}.</p>${guestHtml}${householdMessageHtml}<p style="border-top:1px solid #e8dfd3;line-height:1.7;margin-top:28px;padding-top:22px">You can return to the wedding website and enter a full name from your invitation to update this response.</p></div></div>`,
   };
 }
 

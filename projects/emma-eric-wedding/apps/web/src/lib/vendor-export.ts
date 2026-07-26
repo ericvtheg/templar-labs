@@ -12,6 +12,7 @@ const vendorExportHeaders = [
       : [event.shortTitle, `${event.shortTitle} meal`],
   ),
   "Dietary restrictions",
+  "Message to Emma & Eric",
 ] as const;
 
 type VendorExportRow = {
@@ -21,13 +22,16 @@ type VendorExportRow = {
   readonly guestOf: string;
   readonly eventCells: readonly string[];
   readonly dietaryRestrictions: string;
+  readonly message: string;
 };
 
 export function buildVendorCsv(dashboard: EnrollmentDashboard): string {
   const rows = dashboard.households
     .toSorted((left, right) => left.name.localeCompare(right.name, "en", { sensitivity: "base" }))
     .flatMap((household) =>
-      household.guests.flatMap((guest) => vendorRowsForGuest(household.name, guest)),
+      household.guests.flatMap((guest) =>
+        vendorRowsForGuest(household.name, household.message, guest),
+      ),
     );
 
   return `\uFEFF${[vendorExportHeaders, ...rows.map(rowValues)].map(serializeRow).join("\r\n")}\r\n`;
@@ -41,7 +45,11 @@ export function vendorExportFilename(date: Date): string {
   return `emma-eric-vendor-guest-list-${year}-${month}-${day}.csv`;
 }
 
-function vendorRowsForGuest(household: string, guest: EnrolledGuest): readonly VendorExportRow[] {
+function vendorRowsForGuest(
+  household: string,
+  message: string,
+  guest: EnrolledGuest,
+): readonly VendorExportRow[] {
   const namedGuestRow: VendorExportRow = {
     name: guest.name,
     household,
@@ -53,6 +61,7 @@ function vendorRowsForGuest(household: string, guest: EnrolledGuest): readonly V
         : [eventStatus(guest, event.id), namedGuestMeal(guest, event.id)],
     ),
     dietaryRestrictions: guest.dietaryRestrictions,
+    message,
   };
 
   if (guest.plusOneName.length === 0) {
@@ -72,6 +81,7 @@ function vendorRowsForGuest(household: string, guest: EnrolledGuest): readonly V
           : [plusOneEventStatus(guest, event.id), plusOneMeal(guest, event.id)],
       ),
       dietaryRestrictions: guest.plusOneDietaryRestrictions,
+      message,
     },
   ];
 }
@@ -128,6 +138,7 @@ function rowValues(row: VendorExportRow): readonly string[] {
     row.guestOf,
     ...row.eventCells,
     row.dietaryRestrictions,
+    row.message,
   ];
 }
 

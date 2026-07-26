@@ -117,6 +117,20 @@ test("trims and limits dietary restrictions for every person", () => {
   );
 });
 
+test("trims and limits the optional household message", () => {
+  const response = completeResponse();
+  const parsed = householdRsvpInput.parse({
+    ...response,
+    message: "  We can’t wait to celebrate with you!  ",
+  });
+
+  assert.equal(parsed.message, "We can’t wait to celebrate with you!");
+  assert.equal(
+    householdRsvpInput.safeParse({ ...response, message: "x".repeat(2_001) }).success,
+    false,
+  );
+});
+
 test("signs, verifies, and expires household access tokens", async () => {
   const token = await createRsvpAccessToken("household-1", "test-secret", 1_000);
 
@@ -135,15 +149,18 @@ test("renders every guest and event in the confirmation email", () => {
   assert.match(email.text, /Wedding: Attending/);
   assert.match(email.text, /Rehearsal dinner: Attending/);
   assert.match(email.text, /Taylor Bloom/);
+  assert.match(email.text, /We can’t wait to celebrate with you!/);
   assert.match(email.text, /Peanut allergy/);
   assert.match(email.html, /Gluten-free/);
   assert.match(email.html, /Wild mushroom risotto/);
+  assert.match(email.html, /Your note to Emma &amp; Eric/);
 });
 
 function completeResponse(): HouseholdRsvpInput {
   return {
     accessToken: "signed-token",
     contactEmail: "garden@example.com",
+    message: "We can’t wait to celebrate with you!",
     guests: [
       {
         guestId: "guest-1",
@@ -190,6 +207,7 @@ function confirmationHousehold(): RsvpHousehold {
     accessToken: "signed-token",
     name: "The Garden household",
     contactEmail: "garden@example.com",
+    message: response.message,
     submitted: true,
     events: [],
     guests: [

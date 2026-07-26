@@ -55,6 +55,7 @@ export const householdRsvps = sqliteTable("household_rsvps", {
     .primaryKey()
     .references(() => households.id, { onDelete: "cascade" }),
   contactEmail: text("contact_email"),
+  message: text("message").notNull().default(""),
   submittedAt: integer("submitted_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });

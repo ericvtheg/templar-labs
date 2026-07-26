@@ -15,6 +15,7 @@ every item.
 - Named plus-ones with their own meal choices; they attend the same selected events as their host.
 - Existing responses can be reviewed and updated through the same lookup flow.
 - A required confirmation email address and one best-effort send after each successful save.
+- One optional household message to Emma and Eric.
 - Admin event assignment, RSVP status, event headcounts, responses, meals, and plus-one names.
 - Vendor-ready CSV export with event responses, meal selections, and dietary needs.
 - Server validation, signed household access, rate-limited name lookup, and response history.

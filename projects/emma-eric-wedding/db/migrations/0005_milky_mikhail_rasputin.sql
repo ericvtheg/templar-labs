@@ -1,0 +1,1 @@
+ALTER TABLE `household_rsvps` ADD `message` text DEFAULT '' NOT NULL;

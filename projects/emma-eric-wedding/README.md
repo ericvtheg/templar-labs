@@ -14,6 +14,9 @@ The admin stores household contact and mailing details, named invitees,
 per-person event invitations, and explicit plus-one permissions. It also shows
 which households have responded, event headcounts, attendance choices, meal
 choices, per-person dietary restrictions, and plus-one names.
+Guests can also leave one optional household message for Emma and Eric; it is
+preserved with RSVP revisions and shown in the admin, confirmation email, and
+CSV export.
 
 ```sh
 pnpm --filter emma-eric-wedding dev

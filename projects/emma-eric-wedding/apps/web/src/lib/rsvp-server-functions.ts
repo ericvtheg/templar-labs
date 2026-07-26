@@ -161,6 +161,7 @@ async function persistRsvp(
     .values({
       householdId,
       contactEmail: input.contactEmail.length === 0 ? null : input.contactEmail,
+      message: input.message,
       submittedAt: existingRsvp[0]?.submittedAt ?? now,
       updatedAt: now,
     })
@@ -168,6 +169,7 @@ async function persistRsvp(
       target: householdRsvps.householdId,
       set: {
         contactEmail: input.contactEmail.length === 0 ? null : input.contactEmail,
+        message: input.message,
         updatedAt: now,
       },
     });
@@ -177,7 +179,11 @@ async function persistRsvp(
     database.db.insert(rsvpRevisions).values({
       id: crypto.randomUUID(),
       householdId,
-      responseJson: JSON.stringify({ contactEmail: input.contactEmail, guests: input.guests }),
+      responseJson: JSON.stringify({
+        contactEmail: input.contactEmail,
+        message: input.message,
+        guests: input.guests,
+      }),
       createdAt: now,
     }),
     ...invitedGuests.map((guest) =>
@@ -271,6 +277,7 @@ async function readRsvpHousehold(
     accessToken,
     name: household.name,
     contactEmail: householdRsvpRows[0]?.contactEmail ?? household.contactEmail ?? "",
+    message: householdRsvpRows[0]?.message ?? "",
     submitted: householdRsvpRows[0] !== undefined,
     events: rsvpEvents.filter((event) => householdEventIds.has(event.id)),
     guests: guestRows

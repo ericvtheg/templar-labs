@@ -210,7 +210,13 @@ test("summarizes submitted responses and attending guests", () => {
       { guestId: "guest-1", eventId: "rehearsal-dinner" },
       { guestId: "guest-2", eventId: "wedding" },
     ],
-    [{ householdId: "household-1", updatedAt: new Date("2026-08-01T12:00:00.000Z") }],
+    [
+      {
+        householdId: "household-1",
+        message: "We can’t wait to celebrate with you!",
+        updatedAt: new Date("2026-08-01T12:00:00.000Z"),
+      },
+    ],
     [
       {
         guestId: "guest-1",
@@ -255,6 +261,7 @@ test("summarizes submitted responses and attending guests", () => {
     rehearsalDinnerAttendingCount: 2,
   });
   assert.equal(dashboard.households[0]?.guests[0]?.plusOneName, "Taylor Bloom");
+  assert.equal(dashboard.households[0]?.message, "We can’t wait to celebrate with you!");
   assert.equal(dashboard.households[0]?.guests[0]?.dietaryRestrictions, "Peanut allergy");
   assert.equal(dashboard.households[0]?.guests[0]?.plusOneDietaryRestrictions, "Gluten-free");
   assert.deepEqual(dashboard.households[0]?.guests[0]?.plusOneMealSelections, [

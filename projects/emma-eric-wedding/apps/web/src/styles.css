@@ -786,6 +786,29 @@ a {
   font-style: normal;
 }
 
+.admin-household-message {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid rgb(110 152 44 / 42%);
+  border-radius: 0 0.8rem 0.8rem 0;
+  background: rgb(168 199 68 / 8%);
+}
+
+.admin-household-message span {
+  color: var(--olive-muted);
+  font-size: 0.6rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-household-message p {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 .admin-seat-count,
 .admin-rsvp-status,
 .admin-named-guests small {
@@ -1746,6 +1769,7 @@ a {
 .rsvp-lookup-card label,
 .rsvp-plus-one-name,
 .rsvp-dietary-field,
+.rsvp-household-message-card label,
 .rsvp-email-card label {
   display: grid;
   gap: 0.55rem;
@@ -1754,6 +1778,7 @@ a {
 .rsvp-lookup-card label > span,
 .rsvp-plus-one-name > span,
 .rsvp-dietary-field > span,
+.rsvp-household-message-card label > span,
 .rsvp-email-card label > span {
   font-size: 0.67rem;
   font-weight: 780;
@@ -1764,6 +1789,7 @@ a {
 .rsvp-lookup-card input,
 .rsvp-plus-one-name input,
 .rsvp-dietary-field textarea,
+.rsvp-household-message-card textarea,
 .rsvp-email-card input {
   width: 100%;
   min-height: 56px;
@@ -1779,6 +1805,7 @@ a {
 .rsvp-lookup-card input:focus,
 .rsvp-plus-one-name input:focus,
 .rsvp-dietary-field textarea:focus,
+.rsvp-household-message-card textarea:focus,
 .rsvp-email-card input:focus {
   border-color: rgb(239 83 81 / 65%);
   box-shadow: 0 0 0 3px rgb(239 83 81 / 10%);
@@ -2156,6 +2183,7 @@ a {
   font-size: 0.68rem;
 }
 
+.rsvp-household-message-card,
 .rsvp-email-card {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
@@ -2168,15 +2196,33 @@ a {
   background: rgb(251 237 232 / 66%);
 }
 
+.rsvp-household-message-card {
+  background: rgb(168 199 68 / 9%);
+}
+
+.rsvp-household-message-card h2,
 .rsvp-email-card h2 {
   font-size: clamp(2rem, 4vw, 3.2rem);
 }
 
+.rsvp-household-message-card > div > p:last-child,
 .rsvp-email-card > div > p:last-child {
   margin: 0.8rem 0 0;
   color: var(--olive-muted);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.rsvp-household-message-card textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.rsvp-household-message-card label > small {
+  color: var(--olive-muted);
+  font-size: 0.68rem;
+  text-align: right;
 }
 
 .rsvp-page-actions {
@@ -2312,6 +2358,26 @@ a {
 .rsvp-summary-dietary strong {
   color: var(--olive);
   font-weight: 600;
+  white-space: pre-wrap;
+}
+
+.rsvp-household-message-summary {
+  margin-top: 1.5rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 1rem;
+  background: rgb(168 199 68 / 9%);
+}
+
+.rsvp-household-message-summary span {
+  font-size: 0.62rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rsvp-household-message-summary p {
+  margin: 0.55rem 0 0;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
@@ -2841,6 +2907,7 @@ a {
     border-radius: 2rem;
   }
 
+  .rsvp-household-message-card,
   .rsvp-email-card {
     grid-template-columns: 1fr;
     align-items: stretch;
@@ -3058,6 +3125,7 @@ a {
   }
 
   .rsvp-guest-card,
+  .rsvp-household-message-card,
   .rsvp-email-card,
   .rsvp-review {
     padding: 1.4rem;

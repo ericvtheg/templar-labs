@@ -87,6 +87,7 @@ export type EnrollmentEventInvitationRow = {
 
 export type EnrollmentHouseholdRsvpRow = {
   readonly householdId: string;
+  readonly message: string;
   readonly updatedAt: Date;
 };
 
@@ -143,6 +144,7 @@ export type EnrolledHousehold = {
   readonly region: string;
   readonly postalCode: string;
   readonly country: string;
+  readonly message: string;
   readonly guests: readonly EnrolledGuest[];
   readonly namedGuestCount: number;
   readonly plusOneCount: number;
@@ -237,6 +239,8 @@ export function buildEnrollmentDashboard(
     const rsvpUpdatedAt = householdRsvpRows.find(
       (response) => response.householdId === household.id,
     )?.updatedAt;
+    const message =
+      householdRsvpRows.find((response) => response.householdId === household.id)?.message ?? "";
     const responseIsComplete = guests.every((guest) =>
       guest.eventIds.every((eventId) =>
         guest.eventResponses.some((response) => response.eventId === eventId),
@@ -253,6 +257,7 @@ export function buildEnrollmentDashboard(
       region: household.region ?? "",
       postalCode: household.postalCode ?? "",
       country: household.country ?? "",
+      message,
       guests,
       namedGuestCount: guests.length,
       plusOneCount,

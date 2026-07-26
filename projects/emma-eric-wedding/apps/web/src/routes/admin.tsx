@@ -113,6 +113,7 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
       household.region.toLocaleLowerCase().includes(normalizedSearch) ||
       household.postalCode.toLocaleLowerCase().includes(normalizedSearch) ||
       household.country.toLocaleLowerCase().includes(normalizedSearch) ||
+      household.message.toLocaleLowerCase().includes(normalizedSearch) ||
       household.guests.some((guest) => guest.name.toLocaleLowerCase().includes(normalizedSearch)),
   );
 
@@ -688,6 +689,12 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                         )}
                       </div>
                     ) : null}
+                    {household.message.length === 0 ? null : (
+                      <blockquote className="admin-household-message">
+                        <span>Message to Emma &amp; Eric</span>
+                        <p>{household.message}</p>
+                      </blockquote>
+                    )}
                     <ul className="admin-named-guests">
                       {household.guests.map((guest) => (
                         <li key={guest.id}>

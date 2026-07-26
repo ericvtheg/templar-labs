@@ -39,6 +39,7 @@ const plusOneInput = z.object({
 export const householdRsvpInput = z.object({
   accessToken: z.string().min(1),
   contactEmail: confirmationEmailInput,
+  message: z.string().trim().max(2_000, "Keep your message under 2,000 characters."),
   guests: z
     .array(
       z.object({
@@ -82,6 +83,7 @@ export type RsvpHousehold = {
   readonly accessToken: string;
   readonly name: string;
   readonly contactEmail: string;
+  readonly message: string;
   readonly submitted: boolean;
   readonly events: readonly RsvpEvent[];
   readonly guests: readonly RsvpGuest[];

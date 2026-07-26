@@ -9,17 +9,20 @@ test("exports named guests and plus-ones with vendor details", () => {
 
   assert.equal(
     lines[0],
-    "Name,Household,Guest type,Guest of,Wedding,Wedding meal,Rehearsal dinner,Dietary restrictions",
+    "Name,Household,Guest type,Guest of,Wedding,Wedding meal,Rehearsal dinner,Dietary restrictions,Message to Emma & Eric",
   );
   assert.equal(
     lines[1],
-    'Alex Garden,"The Garden, household",Named guest,,Attending,Herb-roasted chicken,Attending,Peanut allergy',
+    'Alex Garden,"The Garden, household",Named guest,,Attending,Herb-roasted chicken,Attending,Peanut allergy,"We’re delighted, thank you!"',
   );
   assert.equal(
     lines[2],
-    'Taylor Bloom,"The Garden, household",Plus-one,Alex Garden,Attending,Wild mushroom risotto,Attending,Gluten-free',
+    'Taylor Bloom,"The Garden, household",Plus-one,Alex Garden,Attending,Wild mushroom risotto,Attending,Gluten-free,"We’re delighted, thank you!"',
   );
-  assert.equal(lines[3], 'Sam Garden,"The Garden, household",Named guest,,Declined,,Not invited,');
+  assert.equal(
+    lines[3],
+    'Sam Garden,"The Garden, household",Named guest,,Declined,,Not invited,,"We’re delighted, thank you!"',
+  );
 });
 
 test("marks pending responses and protects spreadsheet cells from formulas", () => {
@@ -71,6 +74,7 @@ function dashboardFixture(): EnrollmentDashboard {
         region: "Kansas",
         postalCode: "67203",
         country: "United States",
+        message: "We’re delighted, thank you!",
         guests: [
           {
             id: "guest-1",

@@ -112,6 +112,7 @@ function RsvpPage() {
           data: {
             accessToken: household.accessToken,
             contactEmail: household.contactEmail,
+            message: household.message,
             guests: household.guests.map((guest) => ({
               guestId: guest.id,
               dietaryRestrictions: guest.dietaryRestrictions,
@@ -197,6 +198,12 @@ function RsvpPage() {
                 />
               ))}
             </section>
+            <HouseholdMessageField
+              message={household.message}
+              onChange={(message) =>
+                setHousehold((current) => (current === null ? null : { ...current, message }))
+              }
+            />
             <ConfirmationEmailField
               email={household.contactEmail}
               onChange={(contactEmail) =>
@@ -679,6 +686,35 @@ function ConfirmationEmailField({
   );
 }
 
+function HouseholdMessageField({
+  message,
+  onChange,
+}: {
+  readonly message: string;
+  readonly onChange: (message: string) => void;
+}) {
+  return (
+    <section className="rsvp-household-message-card">
+      <div>
+        <p className="eyebrow">A note for us</p>
+        <h2>Anything you’d like to share?</h2>
+        <p>Leave Emma and Eric a note, a favorite memory, or anything else on your mind.</p>
+      </div>
+      <label>
+        <span>Message to Emma &amp; Eric</span>
+        <textarea
+          maxLength={2_000}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="We can’t wait to celebrate with you!"
+          rows={5}
+          value={message}
+        />
+        <small>Optional · {message.length.toLocaleString()} / 2,000</small>
+      </label>
+    </section>
+  );
+}
+
 function ReviewResponse({ household }: { readonly household: RsvpHousehold }) {
   return (
     <section className="rsvp-review">
@@ -688,6 +724,7 @@ function ReviewResponse({ household }: { readonly household: RsvpHousehold }) {
         <p>Review every person, event, and meal before confirming.</p>
       </header>
       <ResponseSummary household={household} />
+      <HouseholdMessageSummary message={household.message} />
       {household.contactEmail.length === 0 ? null : (
         <p className="rsvp-review-email">
           Confirmation copy: <strong>{household.contactEmail}</strong>
@@ -716,6 +753,7 @@ function Confirmation({
         Thank you. This is the complete response for every event on your invitation.
       </p>
       <ResponseSummary household={household} />
+      <HouseholdMessageSummary message={household.message} />
       {emailStatus === "sent" ? (
         <p className="rsvp-confirmation-email">
           A copy is on its way to <strong>{household.contactEmail}</strong>.
@@ -727,6 +765,15 @@ function Confirmation({
         </Link>
       </div>
     </section>
+  );
+}
+
+function HouseholdMessageSummary({ message }: { readonly message: string }) {
+  return message.length === 0 ? null : (
+    <div className="rsvp-household-message-summary">
+      <span>Your note to Emma &amp; Eric</span>
+      <p>{message}</p>
+    </div>
   );
 }
 

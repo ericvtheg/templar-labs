@@ -7,6 +7,7 @@ import {
   guests,
   householdRsvps,
   households,
+  plusOneMealSelections,
   plusOneResponses,
 } from "../../../../db/schema.ts";
 import type { AdminAccess } from "./admin-auth.ts";
@@ -255,6 +256,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     eventResponseRows,
     plusOneResponseRows,
     guestRsvpDetailRows,
+    plusOneMealSelectionRows,
   ] = await Promise.all([
     database.db.select().from(households).orderBy(desc(households.createdAt)),
     database.db.select().from(guests),
@@ -263,6 +265,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     database.db.select().from(guestEventResponses),
     database.db.select().from(plusOneResponses),
     database.db.select().from(guestRsvpDetails),
+    database.db.select().from(plusOneMealSelections),
   ]);
 
   return buildEnrollmentDashboard(
@@ -273,6 +276,7 @@ async function readEnrollmentDashboard(database: WeddingDatabase): Promise<Enrol
     eventResponseRows,
     plusOneResponseRows,
     guestRsvpDetailRows,
+    plusOneMealSelectionRows,
   );
 }
 

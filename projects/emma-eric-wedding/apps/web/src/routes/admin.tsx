@@ -17,6 +17,7 @@ import {
   updateHousehold,
 } from "../lib/enrollment-server-functions.ts";
 import { normalizeGuestName } from "../lib/guest-name.ts";
+import { buildVendorCsv, vendorExportFilename } from "../lib/vendor-export.ts";
 
 type AdminSearch = {
   readonly error?: string;
@@ -286,6 +287,17 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
         setError("That household could not be removed. Please try again.");
       }
     });
+  };
+
+  const handleVendorExport = () => {
+    const downloadUrl = URL.createObjectURL(
+      new Blob([buildVendorCsv(dashboard)], { type: "text/csv;charset=utf-8" }),
+    );
+    const downloadLink = document.createElement("a");
+    downloadLink.href = downloadUrl;
+    downloadLink.download = vendorExportFilename(new Date());
+    downloadLink.click();
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
   };
 
   return (
@@ -599,17 +611,27 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
               <div className="admin-section-heading">
                 <p className="eyebrow">Enrolled so far</p>
                 <h2 id={rosterTitleId}>Households</h2>
+                <p>Export a vendor-ready roster with event responses, meals, and dietary needs.</p>
               </div>
               {dashboard.households.length > 0 ? (
-                <label className="admin-search">
-                  <span className="sr-only">Search households and guests</span>
-                  <input
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search the guest list"
-                    type="search"
-                    value={searchQuery}
-                  />
-                </label>
+                <div className="admin-roster-tools">
+                  <button
+                    className="admin-export-button"
+                    onClick={handleVendorExport}
+                    type="button"
+                  >
+                    Export vendor CSV
+                  </button>
+                  <label className="admin-search">
+                    <span className="sr-only">Search households and guests</span>
+                    <input
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search the guest list"
+                      type="search"
+                      value={searchQuery}
+                    />
+                  </label>
+                </div>
               ) : null}
             </div>
 

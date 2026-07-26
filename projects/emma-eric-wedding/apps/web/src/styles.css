@@ -664,6 +664,36 @@ a {
   gap: 1.5rem;
 }
 
+.admin-roster-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-export-button {
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgb(169 62 60 / 28%);
+  border-radius: 999px;
+  color: var(--paper);
+  background: #a93e3c;
+  font-size: 0.62rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-export-button:hover,
+.admin-export-button:focus-visible {
+  background: #893331;
+  transform: translateY(-1px);
+}
+
 .admin-search {
   width: min(100%, 220px);
 }
@@ -2797,6 +2827,15 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .admin-roster-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-roster-tools {
+    justify-content: space-between;
+  }
+
   .admin-enrollment-card,
   .admin-roster-card {
     border-radius: 2rem;
@@ -2929,7 +2968,8 @@ a {
   }
 
   .admin-seat-preview,
-  .admin-roster-header {
+  .admin-roster-header,
+  .admin-roster-tools {
     align-items: stretch;
     flex-direction: column;
   }
@@ -2939,6 +2979,10 @@ a {
   }
 
   .admin-search {
+    width: 100%;
+  }
+
+  .admin-export-button {
     width: 100%;
   }
 

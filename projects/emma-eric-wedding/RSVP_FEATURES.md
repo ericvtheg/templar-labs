@@ -16,6 +16,7 @@ every item.
 - Existing responses can be reviewed and updated through the same lookup flow.
 - A required confirmation email address and one best-effort send after each successful save.
 - Admin event assignment, RSVP status, event headcounts, responses, meals, and plus-one names.
+- Vendor-ready CSV export with event responses, meal selections, and dietary needs.
 - Server validation, signed household access, rate-limited name lookup, and response history.
 
 ## Suggested First Release
@@ -110,7 +111,6 @@ every item.
 - Preserve response history or an audit trail.
 - Import a guest list from CSV.
 - Export guest and response data to CSV.
-- Produce vendor-friendly exports for the caterer and venue.
 - Download a backup of the guest and RSVP data.
 - Configure the RSVP deadline.
 - Open and close the RSVP flow.

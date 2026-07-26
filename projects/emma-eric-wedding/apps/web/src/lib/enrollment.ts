@@ -108,6 +108,12 @@ export type EnrollmentPlusOneResponseRow = {
   readonly dietaryRestrictions: string;
 };
 
+export type EnrollmentPlusOneMealSelectionRow = {
+  readonly guestId: string;
+  readonly eventId: string;
+  readonly mealOptionId: string;
+};
+
 export type EnrolledGuest = {
   readonly id: string;
   readonly name: string;
@@ -121,6 +127,10 @@ export type EnrolledGuest = {
   readonly dietaryRestrictions: string;
   readonly plusOneName: string;
   readonly plusOneDietaryRestrictions: string;
+  readonly plusOneMealSelections: readonly {
+    readonly eventId: WeddingEventId;
+    readonly mealOptionId: string;
+  }[];
 };
 
 export type EnrolledHousehold = {
@@ -165,6 +175,7 @@ export function buildEnrollmentDashboard(
   eventResponseRows: readonly EnrollmentEventResponseRow[] = [],
   plusOneResponseRows: readonly EnrollmentPlusOneResponseRow[] = [],
   guestRsvpDetailRows: readonly EnrollmentGuestRsvpDetailRow[] = [],
+  plusOneMealSelectionRows: readonly EnrollmentPlusOneMealSelectionRow[] = [],
 ): EnrollmentDashboard {
   const guestsByHousehold = new Map<string, EnrollmentGuestRow[]>();
   const eventIdsByGuest = new Map<string, WeddingEventId[]>();
@@ -211,6 +222,16 @@ export function buildEnrollmentDashboard(
         plusOneDietaryRestrictions:
           plusOneResponseRows.find((response) => response.guestId === id)?.dietaryRestrictions ??
           "",
+        plusOneMealSelections: plusOneMealSelectionRows
+          .filter(
+            (selection) =>
+              selection.guestId === id &&
+              (selection.eventId === "wedding" || selection.eventId === "rehearsal-dinner"),
+          )
+          .map((selection) => ({
+            eventId: selection.eventId as WeddingEventId,
+            mealOptionId: selection.mealOptionId,
+          })),
       }));
     const plusOneCount = guests.filter((guest) => guest.plusOneAllowed).length;
     const rsvpUpdatedAt = householdRsvpRows.find(

@@ -3,7 +3,8 @@
 Wedding website and RSVP system for Emma and Eric.
 
 The site includes a responsive homepage, an interactive style board at `/style`,
-a guest RSVP at `/rsvp`, and Google-protected household management at `/admin`.
+a guest RSVP at `/rsvp`, and Google-protected household management and vendor CSV exports at
+`/admin`.
 Guests find their invitation with a full name and submit one complete household
 response covering every named person and invited event. Wedding meal choices
 are currently mock options; the rehearsal dinner is wired as a second event

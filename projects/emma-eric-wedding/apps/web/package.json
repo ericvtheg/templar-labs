@@ -21,12 +21,14 @@
     "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource-variable/fraunces": "^5.2.9",
     "@templar/auth": "workspace:*",
+    "@templar/db": "workspace:*",
     "@templar/dev-ports": "workspace:*",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-start": "^1.132.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "effect": "^3.21.2"
+    "effect": "^3.21.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.11.6",

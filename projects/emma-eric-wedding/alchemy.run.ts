@@ -1,5 +1,5 @@
 import { deployApp } from "@templar/deploy";
-import { tanstackStartApp } from "@templar/deploy/cloudflare";
+import { d1Database, tanstackStartApp } from "@templar/deploy/cloudflare";
 import { devPort } from "@templar/dev-ports";
 import alchemy from "alchemy";
 
@@ -14,6 +14,12 @@ const authIssuer = app.local
   ? `http://localhost:${devPort("templar-auth-web")}`
   : "https://auth.breli.app";
 
+const db = await d1Database("db", {
+  project,
+  adopt: true,
+  migrationsDir: "./db/migrations",
+});
+
 export const website = await tanstackStartApp("website", {
   project,
   adopt: true,
@@ -22,6 +28,7 @@ export const website = await tanstackStartApp("website", {
     AUTH_BASE_URL: authBaseUrl,
     AUTH_ISSUER: authIssuer,
     AUTH_SECRET: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
+    DB: db,
   },
   domains: [
     {

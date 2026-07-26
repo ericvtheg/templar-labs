@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@templar/auth": "workspace:*",
+    "@templar/db": "workspace:*",
     "@templar/deploy": "workspace:*",
     "@templar/dev-ports": "workspace:*"
   },
   "devDependencies": {
     "alchemy": "^0.93.7",
+    "drizzle-kit": "^0.31.10",
     "typescript": "6.0.3"
   }
 }

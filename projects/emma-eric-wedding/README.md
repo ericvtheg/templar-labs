@@ -3,9 +3,10 @@
 Draft wedding website and design system for Emma and Eric.
 
 The current milestone includes a responsive homepage shell, an interactive
-style board at `/style`, and a Google-protected administration shell at
-`/admin`. It intentionally does not include guest data, RSVP persistence, or
-invented personal content.
+style board at `/style`, and Google-protected household enrollment at `/admin`.
+The admin stores named invitees and explicit per-person plus-one permissions.
+It does not yet include guest-facing RSVP responses or invented personal
+content.
 
 ```sh
 pnpm --filter emma-eric-wedding dev

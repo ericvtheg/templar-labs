@@ -2200,16 +2200,14 @@ a {
   }
 
   .hero-art {
-    align-self: stretch;
     flex: 1 1 auto;
     min-height: 365px;
     margin: -1rem -18px 0;
   }
 
   .sun-shape {
-    top: auto;
-    bottom: calc(min(112vw, 500px) - 52px);
-    left: calc(50% - 125px);
+    top: 16%;
+    left: 52%;
     width: 180px;
   }
 

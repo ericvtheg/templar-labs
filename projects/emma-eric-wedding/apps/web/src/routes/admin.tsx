@@ -302,8 +302,9 @@ function EnrollmentAdmin({ initialDashboard }: { readonly initialDashboard: Enro
                       <div>
                         <h3>{household.name}</h3>
                         <p>
-                          {household.namedGuestCount} named · {household.plusOneCount} open +1 ·{" "}
-                          {household.invitedSeatCount} total
+                          {household.namedGuestCount} named
+                          {household.plusOneCount > 0 ? ` · ${household.plusOneCount} open +1` : ""}{" "}
+                          · {household.invitedSeatCount} total
                         </p>
                       </div>
                       <span className="admin-seat-count">

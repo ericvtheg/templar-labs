@@ -9,7 +9,7 @@ function HomePage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="font-mono text-2xl font-semibold tracking-tight">templar/utils</h1>
+        <h1 className="font-mono text-2xl font-semibold tracking-tight">Breli App Utils</h1>
         <p className="text-sm text-muted-foreground">
           Client-side developer utilities. No accounts, no ads, no storage.
         </p>

@@ -6,8 +6,8 @@ EricVentor.com is a career-first personal site for Eric Ventor: a strong senior
 full-stack/backend engineer building AI-native products, agent workflows, and
 useful side projects.
 
-The site should introduce Eric first, then Templar Labs as his product lab and
-reusable launch system. Templar Labs is not the main identity; it is proof that
+The site should introduce Eric first, then Breli App as his product lab and
+reusable launch system. Breli App is not the main identity; it is proof that
 Eric builds systems that help him ship.
 
 ## Audience
@@ -40,7 +40,7 @@ Core positioning line:
 
 Supporting line direction:
 
-> I am Eric Ventor, a senior engineer at Metropolis and founder of Templar Labs,
+> I am Eric Ventor, a senior engineer at Metropolis and creator of Breli App,
 > where I build useful software, write about what I learn, and turn ideas into
 > shipped projects.
 
@@ -171,7 +171,7 @@ The hero should include:
 - Primary CTAs: `View projects`, `Read writing`
 - Secondary/global links: GitHub, LinkedIn, Twitter/X, Resume
 
-The homepage should not open as a resume page or a Templar Labs landing page.
+The homepage should not open as a resume page or a Breli App landing page.
 Eric comes first.
 
 ### Live Pulse
@@ -215,7 +215,7 @@ Items:
 Featured projects should be equally weighted:
 
 - MAKID
-- Templar Labs
+- Breli App
 - Tubs
 - Cardiff Split
 
@@ -251,9 +251,9 @@ Emphasize:
 Technical architecture can appear, but it is secondary to the product and
 business story.
 
-### Templar Labs
+### Breli App
 
-Templar Labs is the strongest technical case study.
+Breli App is the strongest technical case study.
 
 Emphasize:
 
@@ -548,13 +548,13 @@ Likely shared packages:
 
 ## Acceptance Criteria
 
-- Site is career-first and clearly about Eric, not primarily Templar Labs
+- Site is career-first and clearly about Eric, not primarily Breli App
 - Homepage communicates what Eric does within 30 seconds
 - Site makes Eric feel capable, hirable, passionate, and personal
 - Live Pulse makes the site feel current without leaking private infrastructure
 - Homepage business metrics represent Eric's overall product portfolio rather
   than centering a single project
-- MAKID, Templar Labs, Tubs, and Cardiff Split are equally represented as
+- MAKID, Breli App, Tubs, and Cardiff Split are equally represented as
   featured projects
 - Blog content is migrated as-is with modern presentation
 - Newsletter signup works with reusable subscriber infrastructure

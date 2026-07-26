@@ -112,10 +112,10 @@ function Home() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl space-y-3">
                 <Badge className="w-fit" variant="secondary">
-                  @templar/ui
+                  Breli App
                 </Badge>
                 <h1 className="text-4xl font-semibold tracking-normal md:text-5xl">
-                  Templar UI Showcase
+                  Breli App UI Showcase
                 </h1>
                 <p className="text-base text-muted-foreground">
                   Shared shadcn components rendered from the monorepo UI package.
@@ -131,7 +131,7 @@ function Home() {
                     <DialogHeader>
                       <DialogTitle>Shared component import</DialogTitle>
                       <DialogDescription>
-                        This dialog is imported from @templar/ui/components/dialog.
+                        This dialog comes from Breli App&apos;s shared component library.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="rounded-lg border bg-muted/40 p-3 text-sm">
@@ -167,7 +167,7 @@ function Home() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="grid gap-2">
                         <Label htmlFor={nameId}>Name</Label>
-                        <Input id={nameId} defaultValue="Templar Labs" />
+                        <Input id={nameId} defaultValue="Breli App" />
                       </div>
                       <div className="grid gap-2">
                         <Label>Theme</Label>
@@ -225,7 +225,7 @@ function Home() {
               <CardHeader>
                 <CardTitle>Component Inventory</CardTitle>
                 <CardDescription>
-                  Representative components available through @templar/ui.
+                  Representative components available through Breli App UI.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -285,13 +285,13 @@ function Home() {
                   <AccordionItem value="imports">
                     <AccordionTrigger>Import paths</AccordionTrigger>
                     <AccordionContent>
-                      Components are consumed from @templar/ui/components/* subpaths.
+                      Components are consumed from shared package subpaths.
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="styles">
                     <AccordionTrigger>Styles</AccordionTrigger>
                     <AccordionContent>
-                      The app stylesheet imports @templar/ui/globals.css.
+                      The app stylesheet loads the shared Breli App design system.
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -301,7 +301,7 @@ function Home() {
                   <TooltipTrigger asChild>
                     <Button variant="outline">Hover me</Button>
                   </TooltipTrigger>
-                  <TooltipContent>Tooltip from @templar/ui</TooltipContent>
+                  <TooltipContent>Tooltip from Breli App</TooltipContent>
                 </Tooltip>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

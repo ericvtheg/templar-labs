@@ -24,6 +24,7 @@ test("normalizes project auth defaults", () => {
 
   assert.equal(config.project, "Hello World");
   assert.equal(config.app, "Web");
+  assert.equal(config.appName, "Breli App");
   assert.equal(config.baseURL, "https://example.com");
   assert.equal(config.cookiePrefix, "templar.hello-world.web.auth");
   assert.deepEqual(config.oauth, {});

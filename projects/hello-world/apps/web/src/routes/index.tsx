@@ -387,10 +387,9 @@ function Home() {
             <Badge className="w-fit" variant="secondary">
               Shared UI package
             </Badge>
-            <CardTitle className="max-w-xl text-4xl">Hello from Templar Labs.</CardTitle>
+            <CardTitle className="max-w-xl text-4xl">Hello from Breli App.</CardTitle>
             <CardDescription className="max-w-2xl text-base">
-              This screen is rendered with shadcn components from the new @templar/ui workspace
-              package.
+              This screen is rendered with shadcn components from the shared UI workspace package.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -445,7 +444,7 @@ function Home() {
           <CardHeader>
             <CardTitle>Auth session</CardTitle>
             <CardDescription>
-              Central SSO plus a local app_users row through @templar/users.
+              Central SSO plus a local app_users row through the shared users service.
             </CardDescription>
             <CardAction>
               <Badge variant={currentUser === null ? "outline" : "default"}>
@@ -458,7 +457,7 @@ function Home() {
               <p className="text-sm text-muted-foreground">Current user</p>
               <p className="mt-2 font-medium">{currentUser?.name ?? "No active session"}</p>
               <p className="text-sm text-muted-foreground">
-                {currentUser?.email ?? "Sign in through Templar Auth"}
+                {currentUser?.email ?? "Sign in through Breli App"}
               </p>
             </div>
           </CardContent>
@@ -482,8 +481,8 @@ function Home() {
           <CardHeader>
             <CardTitle>D1 reads and writes</CardTitle>
             <CardDescription>
-              Server functions write rows with Drizzle, then read the latest rows through
-              @templar/db.
+              Server functions write rows with Drizzle, then read the latest rows through the shared
+              database package.
             </CardDescription>
             <CardAction>
               <Badge variant={dbEvents.length === 0 ? "outline" : "default"}>

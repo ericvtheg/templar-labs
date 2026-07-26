@@ -6,8 +6,8 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Templar Auth" },
-      { name: "description", content: "Secure sign-in for Templar Labs websites." },
+      { title: "Breli App" },
+      { name: "description", content: "Secure sign-in for applications powered by Breli App." },
       { name: "robots", content: "noindex, nofollow, noarchive" },
       { name: "theme-color", content: "#171713" },
     ],

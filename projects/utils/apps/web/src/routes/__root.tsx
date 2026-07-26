@@ -16,7 +16,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Templar Utils",
+        title: "Breli App Utils",
       },
       {
         name: "description",
@@ -44,7 +44,7 @@ function AppShell() {
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-2">
           <Link className="font-mono text-sm font-semibold tracking-tight" to="/">
-            templar/utils
+            Breli App Utils
           </Link>
           <span className="text-muted-foreground" aria-hidden="true">
             /

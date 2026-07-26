@@ -14,7 +14,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Templar UI Showcase",
+        title: "Breli App UI Showcase",
       },
     ],
     links: [

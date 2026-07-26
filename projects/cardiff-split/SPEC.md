@@ -29,7 +29,7 @@ Split trip expenses in seconds with no accounts, no ads, and no premium lockouts
 
 Working product name: Cardiff Split.
 
-The name should be used as a standalone product brand, not as a Templar Labs-branded subfeature. Templar Labs can remain in the footer, legal, or about surface.
+The name should be used as a standalone product brand, not as a Breli App-branded subfeature. Breli App can remain in the footer, legal, or about surface.
 
 ## Branding
 

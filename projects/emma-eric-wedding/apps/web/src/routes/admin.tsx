@@ -54,7 +54,7 @@ function AdminSignIn({
       <section aria-labelledby={titleId} className="admin-auth-card">
         <p className="eyebrow">Private administration</p>
         <h1 id={titleId}>Emma & Eric</h1>
-        <p className="admin-auth-copy">Continue through Templar Auth.</p>
+        <p className="admin-auth-copy">Continue through Breli App.</p>
         {hasError ? (
           <p className="admin-auth-error" role="alert">
             {access === "forbidden"

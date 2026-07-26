@@ -67,7 +67,7 @@ export function normalizeTemplarAuthConfig<TSchema extends AuthDatabaseSchema>(
     oauth: config.oauth ?? {},
     trustedOrigins: config.trustedOrigins ?? [],
     cookiePrefix: templarAuthCookiePrefix(project, app),
-    appName: `Templar ${project}/${app}`,
+    appName: "Breli App",
   };
 }
 

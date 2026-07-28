@@ -1,7 +1,7 @@
 export type WeddingStatus = "draft" | "published";
 
 export type WeddingSection = {
-  readonly id: "weekend" | "story" | "travel" | "faq" | "registry";
+  readonly id: "weekend" | "story" | "travel" | "stay" | "faq" | "registry";
   readonly eyebrow: string;
   readonly title: string;
   readonly placeholder: string;
@@ -51,6 +51,14 @@ export const wedding = {
       title: "Getting to Wichita",
       placeholder:
         "Confirmed hotel, transportation, parking, and local recommendations will be added here.",
+      published: false,
+    },
+    {
+      id: "stay",
+      eyebrow: "While you’re here",
+      title: "Make the most of your stay",
+      placeholder:
+        "A few of Emma and Eric’s favorite Wichita activities, places to explore, and things to eat and drink will be added here.",
       published: false,
     },
     {

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { type SyntheticEvent, useId, useRef, useState, useTransition } from "react";
+import { type SyntheticEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
 import { eventById, mealOptionById, type WeddingEventId } from "../content/rsvp.ts";
 import type {
@@ -16,6 +16,8 @@ import { loadRsvpSettings } from "../lib/rsvp-settings-server-functions.ts";
 type RsvpStep = "lookup" | "respond" | "review" | "confirmed";
 type OverallAttendance = "all" | "wedding-only" | "none" | null;
 
+const matchFoundAnimationDurationMs = 1_200;
+
 export const Route = createFileRoute("/rsvp")({
   loader: () => loadRsvpSettings(),
   component: RsvpPage,
@@ -25,6 +27,7 @@ function RsvpPage() {
   const settings = Route.useLoaderData();
   const titleId = useId();
   const messageRef = useRef<HTMLDivElement>(null);
+  const matchFoundTimerRef = useRef<number | null>(null);
   const findHousehold = useServerFn(findRsvpHousehold);
   const submitRsvp = useServerFn(submitHouseholdRsvp);
   const [step, setStep] = useState<RsvpStep>("lookup");
@@ -33,7 +36,18 @@ function RsvpPage() {
   const [originalHousehold, setOriginalHousehold] = useState<RsvpHousehold | null>(null);
   const [emailStatus, setEmailStatus] = useState<RsvpSubmissionResult["emailStatus"]>("skipped");
   const [error, setError] = useState<string | null>(null);
+  const [matchFound, setMatchFound] = useState(false);
+  const [revealInvitation, setRevealInvitation] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(
+    () => () => {
+      if (matchFoundTimerRef.current !== null) {
+        window.clearTimeout(matchFoundTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const announceError = (message: string) => {
     setError(message);
@@ -43,6 +57,7 @@ function RsvpPage() {
   const handleLookup = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setMatchFound(false);
 
     startTransition(async () => {
       try {
@@ -62,8 +77,19 @@ function RsvpPage() {
 
         setHousehold(result.household);
         setOriginalHousehold(result.household);
-        setStep("respond");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        setMatchFound(true);
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        matchFoundTimerRef.current = window.setTimeout(
+          () => {
+            setRevealInvitation(true);
+            setStep("respond");
+            setMatchFound(false);
+            window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+            matchFoundTimerRef.current = null;
+          },
+          reduceMotion ? 0 : matchFoundAnimationDurationMs,
+        );
       } catch {
         announceError("We couldn’t look up the invitation. Please try again.");
       }
@@ -186,7 +212,9 @@ function RsvpPage() {
         <header className="rsvp-title">
           <p className="eyebrow">September 25, 2027</p>
           <h1 id={titleId}>{stepTitle(step, household?.submitted ?? false)}</h1>
-          <LineFlourish className="rsvp-title-flourish" />
+          <LineFlourish
+            className={`rsvp-title-flourish ${matchFound ? "rsvp-title-flourish-found" : ""}`}
+          />
           <p className="rsvp-deadline">
             Please RSVP by: <strong>{settings.deadlineDisplay}</strong>
           </p>
@@ -201,6 +229,7 @@ function RsvpPage() {
           <LookupForm
             fullName={fullName}
             isPending={isPending}
+            matchFound={matchFound}
             onChange={setFullName}
             onSubmit={handleLookup}
           />
@@ -213,6 +242,7 @@ function RsvpPage() {
               setOriginalHousehold(null);
               setStep("lookup");
               setError(null);
+              setRevealInvitation(false);
             }}
             submitted={household.submitted}
           />
@@ -222,7 +252,11 @@ function RsvpPage() {
         household !== null &&
         (settings.fullEditingAllowed || household.submitted) ? (
           <>
-            <InvitationOverview household={household} />
+            <InvitationOverview
+              household={household}
+              onRevealComplete={() => setRevealInvitation(false)}
+              reveal={revealInvitation}
+            />
             <section aria-label="Household responses" className="rsvp-guest-list">
               {household.guests.map((guest, index) => (
                 <GuestResponseCard
@@ -262,6 +296,7 @@ function RsvpPage() {
                   setOriginalHousehold(null);
                   setStep("lookup");
                   setError(null);
+                  setRevealInvitation(false);
                 }}
                 type="button"
               >
@@ -312,16 +347,25 @@ function RsvpPage() {
 function LookupForm({
   fullName,
   isPending,
+  matchFound,
   onChange,
   onSubmit,
 }: {
   readonly fullName: string;
   readonly isPending: boolean;
+  readonly matchFound: boolean;
   readonly onChange: (name: string) => void;
   readonly onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form className="rsvp-lookup-card" onSubmit={onSubmit}>
+    <form
+      aria-busy={isPending}
+      className="rsvp-lookup-card"
+      data-status={matchFound ? "found" : isPending ? "pending" : "idle"}
+      onSubmit={onSubmit}
+    >
+      <BotanicalStamp className="rsvp-lookup-sprig rsvp-lookup-sprig-left" />
+      <BotanicalStamp className="rsvp-lookup-sprig rsvp-lookup-sprig-right" />
       <label>
         <span>Full name</span>
         <input
@@ -334,17 +378,49 @@ function LookupForm({
           value={fullName}
         />
       </label>
-      <button className="button button-primary" disabled={isPending} type="submit">
-        {isPending ? "Finding your invitation…" : "Find my invitation"}
+      <button
+        aria-live="polite"
+        className="button button-primary"
+        disabled={isPending || matchFound}
+        type="submit"
+      >
+        {matchFound ? (
+          <svg aria-hidden="true" className="rsvp-lookup-success-mark" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <path d="m7.5 12.25 3 3 6.25-7" />
+          </svg>
+        ) : null}
+        <span>
+          {matchFound
+            ? "Invitation found"
+            : isPending
+              ? "Finding your invitation…"
+              : "Find my invitation"}
+        </span>
       </button>
       <small>Any person named on the invitation can respond for the complete household.</small>
     </form>
   );
 }
 
-function InvitationOverview({ household }: { readonly household: RsvpHousehold }) {
+function InvitationOverview({
+  household,
+  onRevealComplete,
+  reveal,
+}: {
+  readonly household: RsvpHousehold;
+  readonly onRevealComplete: () => void;
+  readonly reveal: boolean;
+}) {
   return (
-    <section className="rsvp-invitation-overview">
+    <section
+      className={`rsvp-invitation-overview ${reveal ? "rsvp-invitation-overview-reveal" : ""}`}
+      onAnimationEnd={(event) => {
+        if (event.target === event.currentTarget) {
+          onRevealComplete();
+        }
+      }}
+    >
       <div className="rsvp-overview-heading">
         <p className="eyebrow">Your invitation</p>
         <h2>

@@ -1815,6 +1815,12 @@ a {
   stroke-width: 2;
 }
 
+.rsvp-title-flourish-found path {
+  animation: rsvp-flourish-found 950ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
 .rsvp-title .rsvp-deadline {
   width: fit-content;
   margin: 1.5rem auto 0;
@@ -1851,15 +1857,83 @@ a {
 }
 
 .rsvp-lookup-card {
+  position: relative;
   display: grid;
   gap: 1rem;
   width: min(100%, 570px);
   margin: 3rem auto 0;
   padding: clamp(1.6rem, 5vw, 3rem);
+  overflow: hidden;
   border: 1px solid var(--hairline);
   border-radius: 2rem 4rem 2rem 4rem;
   background: rgb(255 255 255 / 56%);
   box-shadow: 0 25px 80px rgb(68 71 47 / 8%);
+  isolation: isolate;
+  transition:
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.rsvp-lookup-card::before {
+  position: absolute;
+  z-index: 0;
+  inset: -55%;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  background: radial-gradient(circle, rgb(168 199 68 / 20%) 0, rgb(251 246 238 / 0%) 58%);
+  transform: scale(0.45);
+}
+
+.rsvp-lookup-card > :not(.rsvp-lookup-sprig) {
+  position: relative;
+  z-index: 1;
+}
+
+.rsvp-lookup-card[data-status="found"] {
+  border-color: rgb(110 152 44 / 48%);
+  box-shadow:
+    0 28px 90px rgb(68 71 47 / 12%),
+    0 0 0 5px rgb(168 199 68 / 10%);
+  animation: rsvp-lookup-card-found 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rsvp-lookup-card[data-status="found"]::before {
+  animation: rsvp-lookup-success-wash 1200ms ease-out both;
+}
+
+.rsvp-lookup-sprig {
+  position: absolute;
+  z-index: 0;
+  bottom: -3.4rem;
+  width: 9rem;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: 50% 100%;
+}
+
+.rsvp-lookup-sprig path {
+  fill: rgb(168 199 68 / 10%);
+  stroke: var(--leaf);
+  stroke-width: 2;
+}
+
+.rsvp-lookup-sprig-left {
+  left: -3.1rem;
+  transform: rotate(18deg) scale(0.65);
+}
+
+.rsvp-lookup-sprig-right {
+  right: -3.1rem;
+  transform: scaleX(-1) rotate(18deg) scale(0.65);
+}
+
+.rsvp-lookup-card[data-status="found"] .rsvp-lookup-sprig-left {
+  animation: rsvp-lookup-sprig-left 950ms 100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rsvp-lookup-card[data-status="found"] .rsvp-lookup-sprig-right {
+  animation: rsvp-lookup-sprig-right 950ms 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .rsvp-lookup-card label,
@@ -1919,6 +1993,37 @@ a {
   opacity: 0.65;
 }
 
+.rsvp-lookup-card[data-status="found"] button:disabled {
+  color: var(--paper);
+  background: var(--leaf);
+  box-shadow: 0 10px 30px rgb(110 152 44 / 24%);
+  cursor: default;
+  opacity: 1;
+}
+
+.rsvp-lookup-success-mark {
+  width: 1.3rem;
+  margin-right: 0.55rem;
+  overflow: visible;
+  fill: rgb(255 255 255 / 12%);
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.rsvp-lookup-success-mark circle {
+  animation: rsvp-lookup-mark-circle 420ms 80ms ease-out both;
+  stroke-dasharray: 64;
+  stroke-dashoffset: 64;
+}
+
+.rsvp-lookup-success-mark path {
+  animation: rsvp-lookup-mark-check 280ms 290ms ease-out both;
+  stroke-dasharray: 15;
+  stroke-dashoffset: 15;
+}
+
 .rsvp-lookup-card > small {
   color: var(--olive-muted);
   font-size: 0.72rem;
@@ -1928,6 +2033,10 @@ a {
 
 .rsvp-invitation-overview {
   margin-top: 4.5rem;
+}
+
+.rsvp-invitation-overview-reveal {
+  animation: rsvp-invitation-reveal 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .rsvp-late-notice {
@@ -3016,6 +3125,96 @@ a {
   }
 }
 
+@keyframes rsvp-flourish-found {
+  from {
+    opacity: 0.35;
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rsvp-lookup-card-found {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  38% {
+    transform: translateY(-7px) scale(1.012);
+  }
+
+  100% {
+    transform: translateY(-3px) scale(1);
+  }
+}
+
+@keyframes rsvp-lookup-success-wash {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+
+  48% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+@keyframes rsvp-lookup-sprig-left {
+  from {
+    opacity: 0;
+    transform: translate(-1.5rem, 2rem) rotate(26deg) scale(0.5);
+  }
+
+  to {
+    opacity: 0.38;
+    transform: translate(0) rotate(18deg) scale(1);
+  }
+}
+
+@keyframes rsvp-lookup-sprig-right {
+  from {
+    opacity: 0;
+    transform: translate(1.5rem, 2rem) scaleX(-1) rotate(26deg) scale(0.5);
+  }
+
+  to {
+    opacity: 0.38;
+    transform: translate(0) scaleX(-1) rotate(18deg) scale(1);
+  }
+}
+
+@keyframes rsvp-lookup-mark-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rsvp-lookup-mark-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rsvp-invitation-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes garden-in {
   from {
     opacity: 0;
@@ -3604,7 +3803,15 @@ a {
   .hero-eyebrow,
   .hero h1,
   .garden-artwork,
-  .sun-shape {
+  .sun-shape,
+  .rsvp-title-flourish-found path,
+  .rsvp-lookup-card[data-status="found"],
+  .rsvp-lookup-card[data-status="found"]::before,
+  .rsvp-lookup-card[data-status="found"] .rsvp-lookup-sprig-left,
+  .rsvp-lookup-card[data-status="found"] .rsvp-lookup-sprig-right,
+  .rsvp-lookup-success-mark circle,
+  .rsvp-lookup-success-mark path,
+  .rsvp-invitation-overview-reveal {
     animation: none;
   }
 

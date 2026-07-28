@@ -1640,7 +1640,13 @@ a {
   z-index: 2;
   color: var(--paper);
   background: var(--olive);
-  cursor: not-allowed;
+  cursor: pointer;
+}
+
+.button-dark:hover,
+.button-dark:focus-visible {
+  background: #303322;
+  transform: translateY(-2px);
 }
 
 .rsvp-stamp {

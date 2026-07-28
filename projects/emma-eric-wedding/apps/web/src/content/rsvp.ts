@@ -18,6 +18,15 @@ export type RsvpEvent = {
 
 export const rsvpEvents = [
   {
+    id: "rehearsal-dinner",
+    title: "Rehearsal dinner",
+    shortTitle: "Rehearsal dinner",
+    date: null,
+    location: null,
+    detail: "Details will be shared when they are confirmed.",
+    mealOptions: [],
+  },
+  {
     id: "wedding",
     title: "Wedding celebration",
     shortTitle: "Wedding",
@@ -46,15 +55,6 @@ export const rsvpEvents = [
         description: "Mock menu selection",
       },
     ],
-  },
-  {
-    id: "rehearsal-dinner",
-    title: "Rehearsal dinner",
-    shortTitle: "Rehearsal dinner",
-    date: null,
-    location: null,
-    detail: "Details will be shared when they are confirmed.",
-    mealOptions: [],
   },
 ] as const satisfies readonly RsvpEvent[];
 

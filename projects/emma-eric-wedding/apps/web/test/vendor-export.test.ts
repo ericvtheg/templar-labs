@@ -9,19 +9,19 @@ test("exports named guests and plus-ones with vendor details", () => {
 
   assert.equal(
     lines[0],
-    "Name,Household,Guest type,Guest of,Wedding,Wedding meal,Rehearsal dinner,Dietary restrictions,Message to Emma & Eric",
+    "Name,Household,Guest type,Guest of,Rehearsal dinner,Wedding,Wedding meal,Dietary restrictions,Message to Emma & Eric",
   );
   assert.equal(
     lines[1],
-    'Alex Garden,"The Garden, household",Named guest,,Attending,Herb-roasted chicken,Attending,Peanut allergy,"We’re delighted, thank you!"',
+    'Alex Garden,"The Garden, household",Named guest,,Attending,Attending,Herb-roasted chicken,Peanut allergy,"We’re delighted, thank you!"',
   );
   assert.equal(
     lines[2],
-    'Taylor Bloom,"The Garden, household",Plus-one,Alex Garden,Attending,Wild mushroom risotto,Attending,Gluten-free,"We’re delighted, thank you!"',
+    'Taylor Bloom,"The Garden, household",Plus-one,Alex Garden,Attending,Attending,Wild mushroom risotto,Gluten-free,"We’re delighted, thank you!"',
   );
   assert.equal(
     lines[3],
-    'Sam Garden,"The Garden, household",Named guest,,Declined,,Not invited,,"We’re delighted, thank you!"',
+    'Sam Garden,"The Garden, household",Named guest,,Not invited,Declined,,,"We’re delighted, thank you!"',
   );
 });
 

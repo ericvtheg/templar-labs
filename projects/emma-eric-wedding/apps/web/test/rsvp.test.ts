@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { rsvpEvents } from "../src/content/rsvp.ts";
 import { normalizeGuestName } from "../src/lib/guest-name.ts";
 import {
   collectLateRsvpCancellations,
@@ -34,6 +35,13 @@ const invitedGuests = [
     eventIds: ["wedding"],
   },
 ] as const;
+
+test("orders the rehearsal dinner before the wedding celebration", () => {
+  assert.deepEqual(
+    rsvpEvents.map((event) => event.id),
+    ["rehearsal-dinner", "wedding"],
+  );
+});
 
 test("normalizes a full guest name without fuzzy matching", () => {
   assert.equal(normalizeGuestName("  ALEX   Garden "), "alex garden");

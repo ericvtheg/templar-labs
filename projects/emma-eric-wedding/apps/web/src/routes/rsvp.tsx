@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type SyntheticEvent, useEffect, useId, useRef, useState, useTransition } from "react";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
+import { WeddingMonogram } from "../components/wedding-monogram.tsx";
 import { eventById, mealOptionById, type WeddingEventId } from "../content/rsvp.ts";
 import type {
   RsvpEventResponse,
@@ -199,11 +200,9 @@ function RsvpPage() {
       <BotanicalStamp className="rsvp-page-botanical rsvp-page-botanical-left" />
       <BotanicalStamp className="rsvp-page-botanical rsvp-page-botanical-right" />
       <header className="rsvp-header">
-        <Link aria-label="Emma and Eric wedding home" className="admin-monogram" to="/">
-          E <span>&</span> E
-        </Link>
+        <WeddingMonogram className="admin-monogram" />
         <p>{stepLabel(step)}</p>
-        <Link className="admin-text-link" to="/">
+        <Link className="admin-text-link" to="/" viewTransition>
           Wedding website
         </Link>
       </header>
@@ -974,9 +973,15 @@ function Confirmation({
 }) {
   return (
     <section className="rsvp-confirmation">
+      <p className="sr-only" role="status">
+        Your RSVP is confirmed.
+      </p>
       <BotanicalStamp className="rsvp-confirmation-stamp" />
       <span className="rsvp-confirmation-mark" aria-hidden="true">
-        ✓
+        <svg aria-hidden="true" viewBox="0 0 32 32">
+          <circle cx="16" cy="16" r="14" />
+          <path d="m9.5 16.25 4.25 4.25 8.75-10" />
+        </svg>
       </span>
       <p className="eyebrow">All together</p>
       <h2>Your RSVP is confirmed.</h2>
@@ -991,7 +996,7 @@ function Confirmation({
         </p>
       ) : null}
       <div className="rsvp-page-actions">
-        <Link className="button button-primary" to="/">
+        <Link className="button button-primary" to="/" viewTransition>
           Return to the wedding website
         </Link>
       </div>

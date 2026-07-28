@@ -18,6 +18,8 @@
   --olive: #44472f;
   --olive-muted: #6f715b;
   --hairline: rgb(68 71 47 / 18%);
+  --motion-bloom: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-draw: cubic-bezier(0.2, 0.8, 0.2, 1);
   color: var(--olive);
   background: var(--paper);
   font-family: "DM Sans Variable", sans-serif;
@@ -43,6 +45,14 @@ body {
   color: var(--olive);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::view-transition-old(root) {
+  animation: wedding-page-out 260ms ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: wedding-page-in 620ms var(--motion-bloom) both;
 }
 
 button,
@@ -128,10 +138,76 @@ a {
   text-decoration: none;
 }
 
-.admin-monogram span {
+.admin-monogram .monogram-ampersand {
   color: var(--poppy);
   font-family: "Borel", cursive;
   font-size: 0.9em;
+}
+
+.wedding-monogram {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  isolation: isolate;
+}
+
+.wedding-monogram .monogram-letter,
+.wedding-monogram .monogram-ampersand {
+  display: inline-block;
+  transition: transform 360ms var(--motion-bloom);
+}
+
+.wedding-monogram .monogram-ampersand {
+  transform-origin: 50% 70%;
+}
+
+.monogram-flourish {
+  position: absolute;
+  right: -0.15rem;
+  bottom: -0.55rem;
+  left: -0.15rem;
+  width: calc(100% + 0.3rem);
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transform: scaleX(0.3) translateY(2px);
+  transform-origin: center;
+  transition:
+    opacity 220ms ease,
+    transform 420ms var(--motion-bloom);
+}
+
+.monogram-flourish path {
+  fill: none;
+  stroke: var(--poppy);
+  stroke-linecap: round;
+  stroke-width: 1.35;
+}
+
+.monogram-flourish circle {
+  fill: var(--poppy);
+}
+
+.wedding-monogram:hover .monogram-letter:first-child,
+.wedding-monogram:focus-visible .monogram-letter:first-child {
+  transform: translateY(-1px) rotate(-2deg);
+}
+
+.wedding-monogram:hover .monogram-letter:nth-of-type(3),
+.wedding-monogram:focus-visible .monogram-letter:nth-of-type(3) {
+  transform: translateY(-1px) rotate(2deg);
+}
+
+.wedding-monogram:hover .monogram-ampersand,
+.wedding-monogram:focus-visible .monogram-ampersand {
+  transform: translateY(1px) rotate(-10deg) scale(1.08);
+}
+
+.wedding-monogram:hover .monogram-flourish,
+.wedding-monogram:focus-visible .monogram-flourish {
+  opacity: 1;
+  transform: scaleX(1) translateY(0);
 }
 
 .admin-header-title {
@@ -1082,7 +1158,7 @@ a {
   text-decoration: none;
 }
 
-.site-wordmark span {
+.site-wordmark .monogram-ampersand {
   color: var(--coral);
   font-family: Borel, cursive;
   font-weight: 400;
@@ -1246,6 +1322,12 @@ a {
   stroke-linejoin: round;
 }
 
+.hero-flourish path {
+  animation: wedding-line-draw 900ms 420ms var(--motion-draw) both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
 .hero-details {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1.2fr);
@@ -1260,15 +1342,158 @@ a {
   line-height: 1.4;
 }
 
-.hero-details p {
+.hero-details > p,
+.add-to-calendar {
   min-height: 3.25rem;
   margin: 0;
   padding: 0.25rem 1.5rem 0.25rem 0;
 }
 
-.hero-details p + p {
+.add-to-calendar + p {
   padding-left: 1.5rem;
   border-left: 1px solid var(--hairline);
+}
+
+.add-to-calendar {
+  position: relative;
+}
+
+.calendar-trigger {
+  display: grid;
+  gap: 0.28rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline-offset: 0.35rem;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-trigger > span {
+  width: fit-content;
+  background-image: linear-gradient(var(--coral), var(--coral));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1px;
+  transition: background-size 260ms var(--motion-bloom);
+}
+
+.calendar-trigger:hover > span,
+.calendar-trigger:focus-visible > span,
+.calendar-trigger[aria-expanded="true"] > span {
+  background-size: 100% 1px;
+}
+
+.calendar-trigger small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--olive-muted);
+  font-family: "DM Sans Variable", sans-serif;
+  font-size: 0.58rem;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.calendar-trigger svg {
+  width: 0.9rem;
+  fill: none;
+  stroke: var(--coral);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.45;
+  transition: transform 260ms var(--motion-bloom);
+}
+
+.calendar-trigger:hover svg,
+.calendar-trigger:focus-visible svg,
+.calendar-trigger[aria-expanded="true"] svg {
+  transform: translateY(-1px) rotate(-4deg);
+}
+
+.calendar-popover {
+  position: absolute;
+  z-index: 15;
+  top: calc(100% + 0.75rem);
+  left: -1rem;
+  display: grid;
+  width: min(300px, calc(100vw - 36px));
+  padding: 1.25rem;
+  border: 1px solid rgb(68 71 47 / 16%);
+  border-radius: 1.4rem 2.5rem 1.4rem 1.4rem;
+  background: rgb(255 253 248 / 96%);
+  box-shadow: 0 24px 70px rgb(68 71 47 / 16%);
+  font-family: "DM Sans Variable", sans-serif;
+  animation: calendar-popover-in 340ms var(--motion-bloom) both;
+  backdrop-filter: blur(14px);
+}
+
+.calendar-popover::before {
+  position: absolute;
+  top: -0.3rem;
+  left: 1.4rem;
+  width: 0.6rem;
+  aspect-ratio: 1;
+  border-top: 1px solid rgb(68 71 47 / 16%);
+  border-left: 1px solid rgb(68 71 47 / 16%);
+  background: #fffdf8;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.calendar-popover-eyebrow {
+  color: var(--poppy);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.calendar-popover > strong {
+  margin-top: 0.35rem;
+  font-family: "Fraunces Variable", serif;
+  font-size: 1.35rem;
+  font-weight: 530;
+}
+
+.calendar-popover > div {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.calendar-popover a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.8rem;
+  background: rgb(251 246 238 / 74%);
+  font-size: 0.7rem;
+  font-weight: 730;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms var(--motion-bloom);
+}
+
+.calendar-popover a:hover,
+.calendar-popover a:focus-visible {
+  border-color: rgb(239 83 81 / 38%);
+  background: var(--blush);
+  transform: translateX(2px);
+}
+
+.calendar-popover > small {
+  margin-top: 0.8rem;
+  color: var(--olive-muted);
+  font-size: 0.61rem;
+  line-height: 1.45;
 }
 
 .hero-actions {
@@ -1703,6 +1928,76 @@ a {
   text-transform: uppercase;
 }
 
+.motion-reveals-ready [data-reveal]:not([data-revealed="true"]) .section-heading,
+.motion-reveals-ready [data-reveal]:not([data-revealed="true"]) .draft-content-card,
+.motion-reveals-ready .fact-ribbon[data-reveal]:not([data-revealed="true"]) > div,
+.motion-reveals-ready .rsvp-preview[data-reveal]:not([data-revealed="true"]) > :not(svg),
+.motion-reveals-ready .site-footer[data-reveal]:not([data-revealed="true"]) > * {
+  opacity: 0;
+}
+
+.motion-reveals-ready .content-section[data-revealed="true"] .section-heading {
+  animation: garden-reveal-rise 760ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .content-section[data-revealed="true"] .draft-content-card {
+  animation: garden-reveal-rise 820ms 130ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .content-section[data-revealed="true"] .section-flourish path {
+  animation: wedding-line-draw 900ms 220ms var(--motion-draw) both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.motion-reveals-ready .content-section[data-revealed="true"] .section-stamp,
+.motion-reveals-ready .content-section[data-revealed="true"] .petal-cluster {
+  animation: garden-decoration-bloom 900ms 180ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .fact-ribbon[data-revealed="true"] > div {
+  animation: garden-reveal-rise 650ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .fact-ribbon[data-revealed="true"] > div:nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.motion-reveals-ready .fact-ribbon[data-revealed="true"] > div:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > .eyebrow,
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > h2,
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > p,
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > .button {
+  animation: garden-reveal-rise 760ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > h2 {
+  animation-delay: 80ms;
+}
+
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > p {
+  animation-delay: 150ms;
+}
+
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] > .button {
+  animation-delay: 220ms;
+}
+
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] .rsvp-stamp {
+  animation: garden-decoration-bloom 950ms 120ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .site-footer[data-revealed="true"] > * {
+  animation: garden-reveal-rise 650ms var(--motion-bloom) both;
+}
+
+.motion-reveals-ready .site-footer[data-revealed="true"] > :last-child {
+  animation-delay: 100ms;
+}
+
 /* RSVP */
 
 .rsvp-page {
@@ -1813,6 +2108,9 @@ a {
 .rsvp-title-flourish path {
   stroke: var(--poppy);
   stroke-width: 2;
+  animation: wedding-line-draw 850ms 260ms var(--motion-draw) both;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
 }
 
 .rsvp-title-flourish-found path {
@@ -2253,6 +2551,20 @@ a {
     transform 160ms ease;
 }
 
+.rsvp-choice::after {
+  position: absolute;
+  top: -0.3rem;
+  right: 0.7rem;
+  width: 1rem;
+  height: 0.65rem;
+  border-radius: 100% 12% 100% 12%;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  background: var(--coral);
+  transform: translateY(5px) rotate(24deg) scale(0.4);
+}
+
 .rsvp-choice:hover {
   transform: translateY(-1px);
 }
@@ -2261,6 +2573,15 @@ a {
   border-color: var(--poppy);
   background: var(--blush);
   box-shadow: 0 8px 24px rgb(239 83 81 / 8%);
+  animation: rsvp-choice-selected 380ms var(--motion-bloom);
+}
+
+.rsvp-choice:has(input:checked)::after {
+  animation: rsvp-choice-petal 480ms 80ms var(--motion-bloom) both;
+}
+
+.rsvp-choice:active:not(:has(input:disabled)) {
+  transform: scale(0.985);
 }
 
 .rsvp-choice:has(input:disabled) {
@@ -2309,6 +2630,7 @@ a {
 }
 
 .rsvp-meal-choice {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -2318,11 +2640,44 @@ a {
   border-radius: 1rem;
   background: rgb(255 255 255 / 52%);
   cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms var(--motion-bloom);
+}
+
+.rsvp-meal-choice::after {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.65rem;
+  width: 0.7rem;
+  height: 1rem;
+  border-radius: 100% 8% 100% 8%;
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  background: var(--leaf-light);
+  transform: rotate(38deg) scale(0.35);
 }
 
 .rsvp-meal-choice:has(input:checked) {
   border-color: var(--leaf);
   background: rgb(168 199 68 / 9%);
+  box-shadow: 0 8px 24px rgb(110 152 44 / 8%);
+  animation: rsvp-choice-selected 380ms var(--motion-bloom);
+}
+
+.rsvp-meal-choice:has(input:checked)::after {
+  animation: rsvp-meal-leaf 500ms 80ms var(--motion-bloom) both;
+}
+
+.rsvp-meal-choice:hover:not(:has(input:disabled)) {
+  transform: translateY(-1px);
+}
+
+.rsvp-meal-choice:active:not(:has(input:disabled)) {
+  transform: scale(0.985);
 }
 
 .rsvp-meal-choice input {
@@ -2353,6 +2708,13 @@ a {
   border: 1px dashed rgb(110 152 44 / 35%);
   border-radius: 1.25rem;
   background: rgb(168 199 68 / 6%);
+}
+
+.rsvp-meal-options,
+.rsvp-dietary-field,
+.rsvp-plus-one {
+  transform-origin: top;
+  animation: rsvp-detail-unfold 520ms var(--motion-bloom) both;
 }
 
 .rsvp-plus-one > button {
@@ -2662,6 +3024,7 @@ a {
   overflow: hidden;
   background: rgb(255 253 248 / 82%);
   box-shadow: 0 28px 90px rgb(68 71 47 / 8%);
+  animation: rsvp-confirmation-card-in 850ms var(--motion-bloom) both;
 }
 
 .rsvp-confirmation-mark {
@@ -2673,8 +3036,30 @@ a {
   border-radius: 50%;
   color: white;
   background: var(--leaf);
-  font-size: 1.35rem;
-  font-weight: 800;
+  animation: rsvp-confirmation-mark-in 680ms 140ms var(--motion-bloom) both;
+}
+
+.rsvp-confirmation-mark svg {
+  width: 2.4rem;
+  overflow: visible;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.rsvp-confirmation-mark circle {
+  opacity: 0.42;
+  animation: rsvp-confirmation-circle 600ms 300ms ease-out both;
+  stroke-dasharray: 90;
+  stroke-dashoffset: 90;
+}
+
+.rsvp-confirmation-mark path {
+  animation: rsvp-confirmation-check 400ms 620ms ease-out both;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
 }
 
 .rsvp-confirmation-intro {
@@ -2696,11 +3081,44 @@ a {
   width: 240px;
   opacity: 0.12;
   transform: rotate(16deg);
+  animation: rsvp-confirmation-stamp-in 1050ms 220ms var(--motion-bloom) both;
 }
 
 .rsvp-confirmation-stamp path {
   stroke: var(--poppy);
   stroke-width: 2;
+}
+
+.rsvp-confirmation > .eyebrow,
+.rsvp-confirmation > h2,
+.rsvp-confirmation > .rsvp-confirmation-intro,
+.rsvp-confirmation > .rsvp-response-summary,
+.rsvp-confirmation > .rsvp-household-message-summary,
+.rsvp-confirmation > .rsvp-confirmation-email,
+.rsvp-confirmation > .rsvp-page-actions {
+  animation: rsvp-confirmation-content-in 700ms var(--motion-bloom) both;
+}
+
+.rsvp-confirmation > .eyebrow {
+  animation-delay: 260ms;
+}
+
+.rsvp-confirmation > h2 {
+  animation-delay: 330ms;
+}
+
+.rsvp-confirmation > .rsvp-confirmation-intro {
+  animation-delay: 400ms;
+}
+
+.rsvp-confirmation > .rsvp-response-summary,
+.rsvp-confirmation > .rsvp-household-message-summary,
+.rsvp-confirmation > .rsvp-confirmation-email {
+  animation-delay: 470ms;
+}
+
+.rsvp-confirmation > .rsvp-page-actions {
+  animation-delay: 540ms;
 }
 
 /* Style board */
@@ -3125,6 +3543,69 @@ a {
   }
 }
 
+@keyframes wedding-page-out {
+  to {
+    opacity: 0.18;
+    filter: blur(2px);
+    transform: scale(0.995);
+  }
+}
+
+@keyframes wedding-page-in {
+  from {
+    opacity: 0.72;
+    clip-path: inset(48% 0 round 3rem);
+    transform: scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    clip-path: inset(0 round 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes wedding-line-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes calendar-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes garden-reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes garden-decoration-bloom {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+  }
+
+  to {
+    filter: blur(0);
+  }
+}
+
 @keyframes rsvp-flourish-found {
   from {
     opacity: 0.35;
@@ -3212,6 +3693,126 @@ a {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rsvp-choice-selected {
+  0% {
+    transform: scale(0.985);
+  }
+
+  58% {
+    transform: scale(1.018);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rsvp-choice-petal {
+  from {
+    opacity: 0;
+    transform: translateY(5px) rotate(10deg) scale(0.4);
+  }
+
+  to {
+    opacity: 0.72;
+    transform: translateY(0) rotate(24deg) scale(1);
+  }
+}
+
+@keyframes rsvp-meal-leaf {
+  from {
+    opacity: 0;
+    transform: translateY(5px) rotate(20deg) scale(0.35);
+  }
+
+  to {
+    opacity: 0.7;
+    transform: translateY(0) rotate(38deg) scale(1);
+  }
+}
+
+@keyframes rsvp-detail-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes rsvp-confirmation-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rsvp-confirmation-mark-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-12deg) scale(0.55);
+  }
+
+  62% {
+    opacity: 1;
+    transform: rotate(3deg) scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+@keyframes rsvp-confirmation-circle {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rsvp-confirmation-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rsvp-confirmation-stamp-in {
+  0% {
+    opacity: 0;
+    transform: rotate(28deg) scale(1.35);
+  }
+
+  52% {
+    opacity: 0.2;
+    transform: rotate(14deg) scale(0.96);
+  }
+
+  100% {
+    opacity: 0.12;
+    transform: rotate(16deg) scale(1);
+  }
+}
+
+@keyframes rsvp-confirmation-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -3590,13 +4191,18 @@ a {
     text-align: left;
   }
 
-  .hero-details p {
+  .hero-details > p,
+  .add-to-calendar {
     padding-right: 0.8rem;
     font-size: 0.92rem;
   }
 
-  .hero-details p + p {
+  .add-to-calendar + p {
     padding-left: 0.8rem;
+  }
+
+  .calendar-popover {
+    left: 0;
   }
 
   .hero-actions {
@@ -3802,8 +4408,11 @@ a {
 
   .hero-eyebrow,
   .hero h1,
+  .hero-flourish path,
   .garden-artwork,
   .sun-shape,
+  .calendar-popover,
+  .rsvp-title-flourish path,
   .rsvp-title-flourish-found path,
   .rsvp-lookup-card[data-status="found"],
   .rsvp-lookup-card[data-status="found"]::before,
@@ -3811,11 +4420,44 @@ a {
   .rsvp-lookup-card[data-status="found"] .rsvp-lookup-sprig-right,
   .rsvp-lookup-success-mark circle,
   .rsvp-lookup-success-mark path,
-  .rsvp-invitation-overview-reveal {
+  .rsvp-invitation-overview-reveal,
+  .rsvp-choice:has(input:checked),
+  .rsvp-choice:has(input:checked)::after,
+  .rsvp-meal-choice:has(input:checked),
+  .rsvp-meal-choice:has(input:checked)::after,
+  .rsvp-meal-options,
+  .rsvp-dietary-field,
+  .rsvp-plus-one,
+  .rsvp-confirmation,
+  .rsvp-confirmation-mark,
+  .rsvp-confirmation-mark circle,
+  .rsvp-confirmation-mark path,
+  .rsvp-confirmation-stamp,
+  .rsvp-confirmation > * {
+    animation: none;
+  }
+
+  .hero-flourish path,
+  .rsvp-title-flourish path,
+  .rsvp-lookup-success-mark circle,
+  .rsvp-lookup-success-mark path,
+  .rsvp-confirmation-mark circle,
+  .rsvp-confirmation-mark path {
+    stroke-dashoffset: 0;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
     animation: none;
   }
 
   .button,
+  .calendar-trigger > span,
+  .calendar-trigger svg,
+  .calendar-popover a,
+  .wedding-monogram *,
+  .rsvp-choice,
+  .rsvp-meal-choice,
   .font-option,
   .style-preview,
   .preview-garden {

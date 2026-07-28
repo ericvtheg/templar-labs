@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type SyntheticEvent, useId, useRef, useState, useTransition } from "react";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
+import { WeddingMonogram } from "../components/wedding-monogram.tsx";
 import {
   defaultEventIds,
   mealOptionById,
@@ -350,9 +351,7 @@ function EnrollmentAdmin({
       <BotanicalStamp className="admin-botanical admin-botanical-right" />
 
       <header className="admin-header">
-        <Link aria-label="Emma and Eric wedding home" className="admin-monogram" to="/">
-          E <span>&</span> E
-        </Link>
+        <WeddingMonogram className="admin-monogram" />
         <div className="admin-header-title">
           <p>Wedding administration</p>
           <span>Guest enrollment</span>

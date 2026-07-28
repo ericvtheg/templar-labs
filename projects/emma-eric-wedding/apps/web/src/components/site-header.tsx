@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 
 import { wedding } from "../content/wedding";
+import { WeddingMonogram } from "./wedding-monogram.tsx";
 
 export function SiteHeader() {
   return (
     <header className="site-header">
-      <a aria-label="Emma and Eric home" className="site-wordmark" href="#top">
-        E <span>&</span> E
-      </a>
+      <WeddingMonogram className="site-wordmark" homeAnchor />
       <nav aria-label="Wedding website navigation" className="site-nav">
         <a href="#weekend">Weekend</a>
         <a href="#travel">Travel</a>
@@ -15,7 +14,7 @@ export function SiteHeader() {
       </nav>
       <div className="header-actions">
         {wedding.status === "draft" ? <span className="draft-pill">Draft</span> : null}
-        <Link className="style-link" to="/style">
+        <Link className="style-link" to="/style" viewTransition>
           Style board
         </Link>
       </div>

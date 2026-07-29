@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/v1/runs")({
 
           try {
             const result = shoppingRunResponse(
-              await createShoppingRun(input, new URL(request.url).origin),
+              await createShoppingRun(input, new URL(request.url).origin, request.signal),
             );
             return Response.json(result.body, { status: result.status });
           } catch {

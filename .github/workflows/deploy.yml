@@ -40,6 +40,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ELEVENLABS_API_TOKEN: ${{ secrets.ELEVENLABS_API_TOKEN }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENROUTER_API_TOKEN: ${{ secrets.OPENROUTER_API_TOKEN }}

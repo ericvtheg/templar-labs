@@ -22,6 +22,9 @@ app-local credentials. `POST /api/v1/runs` accepts a buying brief under the `run
 permission and runs the evaluated product agent synchronously. Public accounts, payments, durable
 run history, and continuation endpoints remain deferred.
 
+Disconnecting clients abort the in-flight agent effect. Aggregate spend is bounded at the upstream
+OpenRouter and Exa credentials rather than through application-level quotas.
+
 Hermes integration is maintained in the homelab repository at
 `agents/skills/shopping/your-shopper`. The shared skill calls the production API through a profile
 credential; the credential itself remains in each Hermes profile's runtime `.env`.

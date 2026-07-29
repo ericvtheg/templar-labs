@@ -37,6 +37,7 @@ export function parseCreateShoppingRunInput(value: unknown): CreateShoppingRunIn
 export async function createShoppingRun(
   input: CreateShoppingRunInput,
   siteUrl: string,
+  signal?: AbortSignal,
 ): Promise<ShopperRun> {
   const { env } = await import("cloudflare:workers");
   const bindings = env as unknown as {
@@ -52,7 +53,7 @@ export async function createShoppingRun(
     webSearch: makeWebSearch({ apiKey: bindings.EXA_API_KEY }),
   });
 
-  return Effect.runPromise(shopper.start(input));
+  return Effect.runPromise(shopper.start(input), signal === undefined ? undefined : { signal });
 }
 
 export function shoppingRunResponse(run: ShopperRun): {

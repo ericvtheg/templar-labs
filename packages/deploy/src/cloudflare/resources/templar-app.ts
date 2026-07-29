@@ -1,4 +1,3 @@
-import type { TemplarPlatformEnv } from "@templar/config";
 import alchemy, { Scope, type Secret } from "alchemy";
 import type {
   Binding,
@@ -7,8 +6,12 @@ import type {
   QueueConsumerSettings,
   TanStackStartProps,
 } from "alchemy/cloudflare";
-import { defaultTemplarBindings, type StandardTemplarBindings } from "../../templar-bindings.ts";
-import { createTemplarPlatformBindings } from "../platform-bindings.ts";
+import { defaultTemplarBindings } from "../../templar-bindings.ts";
+import {
+  assertNoTemplarBindingCollisions,
+  createTemplarPlatformBindings,
+  type TemplarPlatformBindingSpecs,
+} from "../platform-bindings.ts";
 import { type TanStackStartAppOptions, tanstackStartApp } from "./tanstack-start-app.ts";
 
 export type TemplarAppQueueInput = {
@@ -24,7 +27,6 @@ export type TemplarAppServices = {
 };
 
 export type TemplarAppOptions<
-  B extends StandardTemplarBindings = typeof defaultTemplarBindings,
   AppBindings extends Bindings = Bindings,
   BlobBinding extends Binding | undefined = Binding | undefined,
   CacheBinding extends Binding | undefined = Binding | undefined,
@@ -43,28 +45,35 @@ export type TemplarAppOptions<
   readonly eventSources?: EventSource[];
   readonly queue?: QueueBinding;
   readonly services?: Services;
-  readonly templarBindings?: B;
 };
 
 type NamedBinding<Name extends string, Value extends Binding> = {
   readonly [BindingName in Name]: Value;
 };
 
-type EnabledServiceBinding<
-  Services extends TemplarAppServices | undefined,
-  Service extends keyof TemplarAppServices,
-  Value extends Binding,
-> = Services extends { readonly [Key in Service]: true } ? Value : never;
+type ServiceBindings<Services extends TemplarAppServices | undefined> = (Services extends {
+  readonly auth: true;
+}
+  ? NamedBinding<typeof defaultTemplarBindings.authSecret, Secret>
+  : object) &
+  (Services extends { readonly ai: true }
+    ? NamedBinding<typeof defaultTemplarBindings.openRouterApiToken, Secret>
+    : object);
+
+type ResourceBinding<Name extends string, Value extends Binding | undefined> = [Value] extends [
+  Binding,
+]
+  ? NamedBinding<Name, Extract<Value, Binding>>
+  : object;
 
 type QueueResourceBinding<Value extends Queue<string> | TemplarAppQueueInput | undefined> =
   Value extends TemplarAppQueueInput
     ? Value["binding"]
     : Value extends Queue<string>
       ? Value
-      : never;
+      : undefined;
 
 type TemplarAppBindings<
-  B extends StandardTemplarBindings,
   AppBindings extends Bindings,
   BlobBinding extends Binding | undefined,
   CacheBinding extends Binding | undefined,
@@ -72,14 +81,12 @@ type TemplarAppBindings<
   QueueBinding extends Queue<string> | TemplarAppQueueInput | undefined,
   Services extends TemplarAppServices | undefined,
 > = AppBindings &
-  TemplarPlatformEnv &
-  NamedBinding<B["authBaseUrl"], EnabledServiceBinding<Services, "auth", string>> &
-  NamedBinding<B["authSecret"], EnabledServiceBinding<Services, "auth", Secret>> &
-  NamedBinding<B["openRouterApiToken"], EnabledServiceBinding<Services, "ai", Secret>> &
-  NamedBinding<B["db"], Extract<DbBinding, Binding>> &
-  NamedBinding<B["r2"], Extract<BlobBinding, Binding>> &
-  NamedBinding<B["cache"], Extract<CacheBinding, Binding>> &
-  NamedBinding<B["jobsQueue"], QueueResourceBinding<QueueBinding>>;
+  TemplarPlatformBindingSpecs &
+  ServiceBindings<Services> &
+  ResourceBinding<typeof defaultTemplarBindings.db, DbBinding> &
+  ResourceBinding<typeof defaultTemplarBindings.r2, BlobBinding> &
+  ResourceBinding<typeof defaultTemplarBindings.cache, CacheBinding> &
+  ResourceBinding<typeof defaultTemplarBindings.jobsQueue, QueueResourceBinding<QueueBinding>>;
 
 const DEFAULT_QUEUE_SETTINGS = {
   batchSize: 1,
@@ -88,7 +95,6 @@ const DEFAULT_QUEUE_SETTINGS = {
 } as const satisfies QueueConsumerSettings;
 
 export async function templarApp<
-  const B extends StandardTemplarBindings = typeof defaultTemplarBindings,
   const AppBindings extends Bindings = Record<never, never>,
   const BlobBinding extends Binding | undefined = undefined,
   const CacheBinding extends Binding | undefined = undefined,
@@ -98,7 +104,6 @@ export async function templarApp<
 >(
   id: string,
   options: TemplarAppOptions<
-    B,
     AppBindings,
     BlobBinding,
     CacheBinding,
@@ -107,18 +112,8 @@ export async function templarApp<
     Services
   >,
 ) {
-  const {
-    bindings,
-    blob,
-    cache,
-    db,
-    domainName,
-    eventSources,
-    queue,
-    services,
-    templarBindings = defaultTemplarBindings as unknown as B,
-    ...appOptions
-  } = options;
+  const { bindings, blob, cache, db, domainName, eventSources, queue, services, ...appOptions } =
+    options;
   const scope = Scope.current;
   const queueInput = normalizeQueueInput(queue);
   const consumerEventSource = queueConsumerEventSource(queueInput);
@@ -126,8 +121,16 @@ export async function templarApp<
     appId: scope.appName,
     local: scope.local,
   });
+  const reservedBindingNames = [
+    ...(services?.auth === true ? [defaultTemplarBindings.authSecret] : []),
+    ...(services?.ai === true ? [defaultTemplarBindings.openRouterApiToken] : []),
+    ...(db === undefined ? [] : [defaultTemplarBindings.db]),
+    ...(blob === undefined ? [] : [defaultTemplarBindings.r2]),
+    ...(cache === undefined ? [] : [defaultTemplarBindings.cache]),
+    ...(queueInput === undefined ? [] : [defaultTemplarBindings.jobsQueue]),
+  ];
+  assertNoTemplarBindingCollisions(bindings, reservedBindingNames);
   type WorkerBindings = TemplarAppBindings<
-    B,
     AppBindings,
     BlobBinding,
     CacheBinding,
@@ -154,19 +157,20 @@ export async function templarApp<
       ...platformBindings,
       ...(services?.auth === true
         ? {
-            [templarBindings.authBaseUrl]: domainName === undefined ? "" : `https://${domainName}`,
-            [templarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
+            [defaultTemplarBindings.authSecret]: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
           }
         : {}),
       ...(services?.ai === true
         ? {
-            [templarBindings.openRouterApiToken]: alchemy.secret.env("OPENROUTER_API_TOKEN"),
+            [defaultTemplarBindings.openRouterApiToken]: alchemy.secret.env("OPENROUTER_API_TOKEN"),
           }
         : {}),
-      ...(db === undefined ? {} : { [templarBindings.db]: db }),
-      ...(blob === undefined ? {} : { [templarBindings.r2]: blob }),
-      ...(cache === undefined ? {} : { [templarBindings.cache]: cache }),
-      ...(queueInput === undefined ? {} : { [templarBindings.jobsQueue]: queueInput.binding }),
+      ...(db === undefined ? {} : { [defaultTemplarBindings.db]: db }),
+      ...(blob === undefined ? {} : { [defaultTemplarBindings.r2]: blob }),
+      ...(cache === undefined ? {} : { [defaultTemplarBindings.cache]: cache }),
+      ...(queueInput === undefined
+        ? {}
+        : { [defaultTemplarBindings.jobsQueue]: queueInput.binding }),
     } as WorkerBindings,
     eventSources: [
       ...(eventSources ?? []),

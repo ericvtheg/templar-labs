@@ -31,7 +31,6 @@ export const website = await templarApp("website", {
     ai: true,
     auth: true,
   },
-  templarBindings,
   bindings: {
     [templarBindings.elevenLabsApiKey]: alchemy.secret.env("ELEVENLABS_API_TOKEN"),
     [templarBindings.stripeSecretKey]: alchemy.secret.env("STRIPE_SECRET_KEY", ""),

@@ -11,7 +11,6 @@ const db = await d1Database("db", {
 });
 
 export const website = await templarApp("website", {
-  project: "cardiff-split",
   adopt: true,
   cwd: "apps/web",
   domainName: "cardiff-split.ericventor.com",

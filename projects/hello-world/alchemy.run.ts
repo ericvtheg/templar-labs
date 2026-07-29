@@ -6,7 +6,6 @@ import { schedules } from "./apps/web/src/schedules.ts";
 
 const domainName = "hello-world.breli.app";
 const app = await deployApp("hello-world");
-const authIssuer = "https://auth.breli.app";
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",
@@ -26,7 +25,6 @@ const jobs = await queue("jobs", {
 });
 
 export const website = await templarApp("website", {
-  project: "hello-world",
   adopt: true,
   cwd: "apps/web",
   domainName,
@@ -35,8 +33,8 @@ export const website = await templarApp("website", {
   db,
   blob: r2,
   queue: jobs,
-  bindings: {
-    AUTH_ISSUER: authIssuer,
+  services: {
+    auth: true,
   },
 });
 

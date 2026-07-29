@@ -88,7 +88,6 @@ const JOBS_QUEUE = await queue("jobs", {
 });
 
 await templarApp("website", {
-  project: "my-project",
   cwd: "apps/web",
   queue: {
     binding: JOBS_QUEUE,

@@ -8,7 +8,7 @@ export const AppEnvironment = {
 export type AppEnvironment = (typeof AppEnvironment)[keyof typeof AppEnvironment];
 
 export const appEnvironmentConfig: Config.Config<AppEnvironment> = Config.withDefault(
-  Config.literal(AppEnvironment.Local, AppEnvironment.Prod)("APP_ENV"),
+  Config.literal(AppEnvironment.Local, AppEnvironment.Prod)("TEMPLAR_ENVIRONMENT"),
   AppEnvironment.Local,
 );
 

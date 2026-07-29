@@ -34,7 +34,7 @@ import { buildLateCancellationEmail, buildRsvpConfirmationEmail } from "./rsvp-e
 import { readRsvpSettings } from "./rsvp-settings-server-functions.ts";
 
 type RsvpBindings = {
-  readonly APP_ENV: "local" | "prod";
+  readonly TEMPLAR_ENVIRONMENT: "local" | "prod";
   readonly AUTH_SECRET: string;
   readonly EMAIL: Parameters<typeof makeEmail>[0];
   readonly RSVP_LOOKUP_RATE_LIMIT: {
@@ -417,7 +417,7 @@ async function sendLateCancellationNotification(
 function weddingEmail(bindings: RsvpBindings) {
   return makeEmail(bindings.EMAIL, {
     app: "emma-eric-wedding",
-    environment: bindings.APP_ENV,
+    environment: bindings.TEMPLAR_ENVIRONMENT,
     defaultFrom: { email: "rsvp@ericventor.com", name: "Emma & Eric" },
   });
 }

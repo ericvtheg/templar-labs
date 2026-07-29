@@ -1,16 +1,30 @@
 # Your Shopper
 
-Your Shopper is the first dogfood application for `@templar/api-auth`. Its deliberately small
-product surface proves one complete workflow:
+Your Shopper is an evaluation-first shopping research agent with a deployed TanStack Start product
+surface and authenticated API.
 
-1. Sign in through the shared Templar authentication service.
-2. Create an app-local API key from the authenticated UI.
-3. Call `GET /api/v1/hello` with the key as a Bearer credential.
-4. Receive `{ "message": "hello world" }` for a valid key.
-5. Revoke the key and observe subsequent requests return `401`.
+The local product stack is:
 
-The app has no shopper domain behavior yet. Its purpose is to exercise API credential issuance and
-request authentication end to end.
+```text
+your-shopper-agent
+  → @templar/agent       model/tool loop, limits, events, traces
+      → @templar/llm     provider-backed model turns
+  → @templar/web-search  Exa-backed search and contents
+```
 
-Local development uses the production Templar Auth issuer and returns to the app's loopback
-callback, so no local auth process is required.
+The current evaluated default uses MiniMax M3 for tool-driven research and GLM 5.2 only for
+forced finalization. Both run through OpenRouter. DeepSeek V4 Flash authors the evaluation protocol
+and performs the blinded hard-requirement audit. Exa supplies Search and Contents; the production
+agent never delegates its run to Exa Agent.
+
+The web application has a public landing page and an admin-only dashboard for issuing and revoking
+app-local credentials. `POST /api/v1/runs` accepts a buying brief under the `runs:create`
+permission and runs the evaluated product agent synchronously. Public accounts, payments, durable
+run history, and continuation endpoints remain deferred.
+
+Hermes integration is maintained in the homelab repository at
+`agents/skills/shopping/your-shopper`. The shared skill calls the production API through a profile
+credential; the credential itself remains in each Hermes profile's runtime `.env`.
+
+See [plan.md](./plan.md) for the architecture, [eval/README.md](./eval/README.md) for commands, and
+[eval/RESULTS.md](./eval/RESULTS.md) for the recorded development signal.

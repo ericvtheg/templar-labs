@@ -282,7 +282,7 @@ Voice responsibilities:
 - transcribe learner speech
 - support slow replay or chunked playback
 - expose enough metadata for intelligibility feedback
-- allow the app to choose a voice model by named tier, similar to `@templar/ai`
+- allow the app to choose a voice model by named tier, similar to `@templar/llm`
 - expose the resolved ElevenLabs model id in logs and stored attempt metadata
 
 Potential future package:

@@ -4,7 +4,7 @@ export const apiAuthManifest = defineApiAuthManifest({
   audience: "your-shopper:web",
   keyPrefix: "ys_live_",
   permissions: {
-    hello: ["read"],
+    runs: ["create"],
   },
   keys: {
     defaultExpiresInDays: 90,

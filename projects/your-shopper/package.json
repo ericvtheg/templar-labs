@@ -8,15 +8,23 @@
     "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
     "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
     "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
+    "eval": "node --env-file-if-exists=../../.env --env-file-if-exists=.env eval/run.ts",
+    "eval:all": "node --env-file-if-exists=../../.env --env-file-if-exists=.env eval/run.ts --all",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'Project tests run in the owning app workspace.'",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@templar/agent": "workspace:*",
+    "@templar/llm": "workspace:*",
     "@templar/api-auth": "workspace:*",
     "@templar/deploy": "workspace:*",
     "@templar/dev-ports": "workspace:*",
-    "@templar/users": "workspace:*"
+    "@templar/users": "workspace:*",
+    "@templar/web-search": "workspace:*",
+    "effect": "^3.21.2",
+    "your-shopper-agent": "workspace:*",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "alchemy": "^0.93.7",

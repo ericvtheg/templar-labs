@@ -1,0 +1,26 @@
+{
+  "name": "@templar/web-search",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Effect-based web search and content retrieval",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "smoke:live": "node scripts/live-smoke.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@templar/tsconfig": "workspace:*",
+    "effect": "^3.21.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.4"
+  }
+}

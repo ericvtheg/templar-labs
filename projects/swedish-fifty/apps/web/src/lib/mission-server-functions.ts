@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { makeAI } from "@templar/ai";
 import { and, desc, eq, makeDatabase } from "@templar/db";
+import { makeLLM } from "@templar/llm";
 import { Effect } from "effect";
 import { z } from "zod";
 import * as schema from "../../../../db/schema.ts";
@@ -559,7 +559,7 @@ async function generateMission(
       };
     }
 
-    const ai = makeAI({
+    const ai = makeLLM({
       apiKey,
       appName: "Swedish Fifty",
       siteUrl: "https://swedish-fifty.ericventor.com",
@@ -630,7 +630,7 @@ async function generateEvaluation(input: {
       return fallback;
     }
 
-    const ai = makeAI({
+    const ai = makeLLM({
       apiKey,
       appName: "Swedish Fifty",
       siteUrl: "https://swedish-fifty.ericventor.com",
@@ -701,7 +701,7 @@ async function generateRoleplayReply(input: {
       return fallback;
     }
 
-    const ai = makeAI({
+    const ai = makeLLM({
       apiKey,
       appName: "Swedish Fifty",
       siteUrl: "https://swedish-fifty.ericventor.com",

@@ -254,8 +254,11 @@ importers:
         specifier: ^4.90.1
         version: 4.90.1(@cloudflare/workers-types@4.20260514.1)
 
-  packages/ai:
+  packages/agent:
     dependencies:
+      '@templar/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@templar/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -416,6 +419,22 @@ importers:
       effect:
         specifier: ^3.21.2
         version: 3.21.2
+    devDependencies:
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
+
+  packages/llm:
+    dependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.12.4
@@ -592,6 +611,22 @@ importers:
       '@cloudflare/workers-types':
         specifier: 4.20260511.1
         version: 4.20260511.1
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
+
+  packages/web-search:
+    dependencies:
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
       '@types/node':
         specifier: ^24.12.4
         version: 24.12.4
@@ -1025,9 +1060,6 @@ importers:
       '@tanstack/router-plugin':
         specifier: ^1.132.0
         version: 1.167.35(@tanstack/react-router@1.169.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
-      '@templar/ai':
-        specifier: workspace:*
-        version: link:../../../../packages/ai
       '@templar/auth':
         specifier: workspace:*
         version: link:../../../../packages/auth
@@ -1040,6 +1072,9 @@ importers:
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../../../tools/dev-ports
+      '@templar/llm':
+        specifier: workspace:*
+        version: link:../../../../packages/llm
       '@templar/payments':
         specifier: workspace:*
         version: link:../../../../packages/payments
@@ -1383,6 +1418,9 @@ importers:
 
   projects/your-shopper:
     dependencies:
+      '@templar/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@templar/api-auth':
         specifier: workspace:*
         version: link:../../packages/api-auth
@@ -1392,9 +1430,24 @@ importers:
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../tools/dev-ports
+      '@templar/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@templar/users':
         specifier: workspace:*
         version: link:../../packages/users
+      '@templar/web-search':
+        specifier: workspace:*
+        version: link:../../packages/web-search
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
+      your-shopper-agent:
+        specifier: workspace:*
+        version: link:packages/agent
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       alchemy:
         specifier: ^0.93.7
@@ -1411,15 +1464,24 @@ importers:
       '@tanstack/react-start':
         specifier: ^1.132.0
         version: 1.167.65(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
+      '@templar/agent':
+        specifier: workspace:*
+        version: link:../../../../packages/agent
       '@templar/api-auth':
         specifier: workspace:*
         version: link:../../../../packages/api-auth
       '@templar/dev-ports':
         specifier: workspace:*
         version: link:../../../../tools/dev-ports
+      '@templar/llm':
+        specifier: workspace:*
+        version: link:../../../../packages/llm
       '@templar/users':
         specifier: workspace:*
         version: link:../../../../packages/users
+      '@templar/web-search':
+        specifier: workspace:*
+        version: link:../../../../packages/web-search
       effect:
         specifier: ^3.21.2
         version: 3.21.2
@@ -1432,6 +1494,9 @@ importers:
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.3)(vite@7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))
+      your-shopper-agent:
+        specifier: workspace:*
+        version: link:../../packages/agent
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.11.6
@@ -1460,6 +1525,31 @@ importers:
       vite:
         specifier: ^7.1.9
         version: 7.3.3(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0)
+
+  projects/your-shopper/packages/agent:
+    dependencies:
+      '@templar/agent':
+        specifier: workspace:*
+        version: link:../../../../packages/agent
+      '@templar/llm':
+        specifier: workspace:*
+        version: link:../../../../packages/llm
+      '@templar/tsconfig':
+        specifier: workspace:*
+        version: link:../../../../packages/tsconfig
+      '@templar/web-search':
+        specifier: workspace:*
+        version: link:../../../../packages/web-search
+      effect:
+        specifier: ^3.21.2
+        version: 3.21.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
 
   tools/dev-ports:
     devDependencies:

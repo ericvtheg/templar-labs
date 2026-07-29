@@ -1,4 +1,7 @@
 {
   "extends": "@templar/tsconfig/node-script",
-  "include": ["alchemy.run.ts"]
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM"]
+  },
+  "include": ["alchemy.run.ts", "eval/**/*.ts", "test/**/*.ts"]
 }

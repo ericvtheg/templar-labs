@@ -33,7 +33,7 @@ These are the current defaults for new packages and projects in this monorepo.
 - Radix/shadcn-style owned components for UI primitives and app components
 - Better Auth for authentication
 - PostHog for product analytics, feature flags, session replay, and experiments
-- OpenRouter behind a local `@templar/ai` provider adapter, so app code is not coupled directly to one model gateway
+- OpenRouter behind a local `@templar/llm` provider adapter, so app code is not coupled directly to one model gateway
 - Stripe Checkout/Payment Links first for payments, with deeper Billing/Connect integrations added only when needed
 - Effect Logger as the application logging API
 - Structured JSON logs as the default sink for Cloudflare/Node log ingestion

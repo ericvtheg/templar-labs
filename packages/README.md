@@ -17,7 +17,8 @@ concern:
 - `@templar/logger` should own structured logging conventions.
 - `@templar/db` should own database access and migration conventions.
 - `@templar/auth` should own authentication conventions.
-- `@templar/ai` should own model-provider conventions.
+- `@templar/llm` should own model-provider conventions.
+- `@templar/agent` owns reusable LLM/tool execution mechanics without product policy.
 - `@templar/email` owns transactional email conventions.
 - `@templar/deploy` owns infrastructure and deployment conventions.
 - `@templar/blob` owns object storage conventions.
@@ -53,9 +54,11 @@ Prefer APIs that encode Templar defaults:
   defaults inside the package. Tests can inspect internals through package-local
   helpers, but app code should not assemble them.
 
-For example, an AI consumer should select a curated tier such as `balanced` or
-`auto`, not provider model IDs or fallback chains. The AI package owns those
-model choices because they are shared Templar Labs decisions. Likewise, a blob
+For example, a normal LLM consumer should select a curated tier such as `balanced` or
+`auto`, not provider model IDs or fallback chains. The LLM package owns those
+model choices because they are shared Templar Labs decisions. Explicit provider
+model IDs remain available when the consumer is an evaluation harness whose job
+is to benchmark an exact model configuration. Likewise, a blob
 consumer should use the blob service contract, not directly depend on R2 object
 shapes unless it is wiring the provider layer.
 
@@ -80,7 +83,7 @@ package. Consumers should not have to choose a provider for normal app code.
 Expose both root constructors and root layers for the default provider:
 
 ```ts
-import { aiLayer, makeAI } from "@templar/ai";
+import { llmLayer, makeLLM } from "@templar/llm";
 import { analyticsLayer, makeAnalytics } from "@templar/analytics";
 import { blobLayer, makeBlob } from "@templar/blob";
 import { cacheLayer, makeCache } from "@templar/cache";
@@ -91,7 +94,7 @@ import { makeQueue, queueLayer } from "@templar/queue";
 
 These names mean "use the Templar default":
 
-- `@templar/ai` defaults to OpenRouter.
+- `@templar/llm` defaults to OpenRouter.
 - `@templar/blob` defaults to R2.
 - `@templar/cache` defaults to KV.
 - `@templar/db` defaults to D1.

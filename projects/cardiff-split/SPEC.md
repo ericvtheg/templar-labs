@@ -99,7 +99,7 @@ Potential capabilities:
 - Let user review extracted values before saving
 - Optionally help split itemized receipts later
 
-Implementation should use the existing `@templar/ai` package and should not block the v1 manual expense path.
+Implementation should use the existing `@templar/llm` package and should not block the v1 manual expense path.
 
 ## Core User Flows
 
@@ -333,7 +333,7 @@ Recommended stack based on the repo defaults:
 - Alchemy for deployment
 - Existing `@templar/ui` primitives where useful
 - Existing `@templar/analytics` only with privacy-safe events
-- Existing `@templar/ai` for v1.1 receipt scanning
+- Existing `@templar/llm` for v1.1 receipt scanning
 
 ## Analytics
 

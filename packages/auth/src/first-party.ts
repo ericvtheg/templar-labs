@@ -60,27 +60,37 @@ export function createTemplarFirstPartyHandler(
   const baseURL = new URL(config.baseURL);
   const now = config.now ?? Date.now;
 
-  return (request) => {
-    const url = new URL(request.url);
-
-    if (request.method === "GET" && url.pathname === firstPartyAuthorizePath) {
-      return authorize(request, config, baseURL, now);
-    }
-
-    if (request.method === "POST" && url.pathname === firstPartyExchangePath) {
-      return exchange(request, config, baseURL, now);
-    }
-
-    if (
-      url.pathname === "/api/auth/sign-jwt" ||
-      url.pathname === "/api/auth/verify-jwt" ||
-      url.pathname === "/api/auth/token"
-    ) {
-      return Promise.resolve(new Response("Not found", { status: 404 }));
-    }
-
-    return config.auth.handler(request);
+  return async (request) => {
+    const response = await handleFirstPartyRequest(request, config, baseURL, now);
+    return mutableResponse(response);
   };
+}
+
+function handleFirstPartyRequest(
+  request: Request,
+  config: TemplarFirstPartyServerConfig,
+  baseURL: URL,
+  now: () => number,
+): Response | Promise<Response> {
+  const url = new URL(request.url);
+
+  if (request.method === "GET" && url.pathname === firstPartyAuthorizePath) {
+    return authorize(request, config, baseURL, now);
+  }
+
+  if (request.method === "POST" && url.pathname === firstPartyExchangePath) {
+    return exchange(request, config, baseURL, now);
+  }
+
+  if (
+    url.pathname === "/api/auth/sign-jwt" ||
+    url.pathname === "/api/auth/verify-jwt" ||
+    url.pathname === "/api/auth/token"
+  ) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  return config.auth.handler(request);
 }
 
 async function authorize(
@@ -274,8 +284,12 @@ export function isAllowedFirstPartyCallback(callback: URL, authBaseURL: URL): bo
     return false;
   }
 
+  if (callback.protocol === "http:" && isLoopbackHostname(callback.hostname)) {
+    return true;
+  }
+
   if (isLoopbackHostname(authBaseURL.hostname)) {
-    return callback.protocol === "http:" && isLoopbackHostname(callback.hostname);
+    return false;
   }
 
   return (
@@ -337,4 +351,25 @@ function isLoopbackHostname(hostname: string): boolean {
 function includesEmail(emails: ReadonlySet<string>, email: string): boolean {
   const normalizedEmail = email.trim().toLowerCase();
   return [...emails].some((candidate) => candidate.trim().toLowerCase() === normalizedEmail);
+}
+
+function mutableResponse(response: Response): Response {
+  const headers = new Headers(response.headers);
+  const responseHeaders = response.headers as Headers & {
+    readonly getSetCookie?: () => Array<string>;
+  };
+  const cookies = responseHeaders.getSetCookie?.() ?? [];
+
+  if (cookies.length > 0) {
+    headers.delete("set-cookie");
+    for (const cookie of cookies) {
+      headers.append("set-cookie", cookie);
+    }
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }

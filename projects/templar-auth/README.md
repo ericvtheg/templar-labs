@@ -17,16 +17,17 @@ The credential values are read from the ignored root `.env` as `GOOGLE_CLIENT_ID
 
 ## Local development
 
-The auth service runs on `http://localhost:5181`. Emma runs on `http://localhost:5180`. Run both
-projects when testing the complete local flow.
+Consumer applications use `https://auth.breli.app` during local development and return to their
+loopback callback, so they do not need a local auth process or Google credentials. Run the auth
+service on `http://localhost:5181` only when developing the auth service itself.
 
 ## First-party applications
 
-There is no per-application OAuth client registry. Production handoffs accept the standard
-`/api/auth/callback` path on `breli.app`, `ericventor.com`, and their HTTPS subdomains; local auth
-accepts loopback callbacks. The legacy root remains allowed for existing applications, but the
-canonical auth issuer is `auth.breli.app`. All handoff tokens use the shared `templar-first-party`
-audience.
+There is no per-application OAuth client registry. Handoffs accept only the standard
+`/api/auth/callback` path: HTTPS callbacks on `breli.app`, `ericventor.com`, and their subdomains,
+plus HTTP loopback callbacks for local applications. The legacy root remains allowed for existing
+applications, but the canonical auth issuer is `auth.breli.app`. All handoff tokens use the shared
+`templar-first-party` audience.
 
 Authorization codes live in Better Auth's `verification` table for at most 60 seconds and are
 deleted atomically during PKCE exchange. This is transient protocol state, not a durable record of

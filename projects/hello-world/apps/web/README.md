@@ -4,4 +4,4 @@ TanStack Start integration app deployed to Cloudflare with Alchemy. Its authenti
 uses `createTemplarUserApp`: central Templar SSO establishes the app session and the successful
 callback creates the canonical ID in this app's local `app_users` table.
 
-Run `pnpm --filter templar-auth dev` alongside Hello World to test the local SSO flow.
+Local development uses `https://auth.breli.app` and returns to Hello World's loopback callback.

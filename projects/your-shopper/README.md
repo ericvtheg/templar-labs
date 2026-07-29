@@ -11,3 +11,6 @@ product surface proves one complete workflow:
 
 The app has no shopper domain behavior yet. Its purpose is to exercise API credential issuance and
 request authentication end to end.
+
+Local development uses the production Templar Auth issuer and returns to the app's loopback
+callback, so no local auth process is required.

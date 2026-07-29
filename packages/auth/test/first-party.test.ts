@@ -38,17 +38,21 @@ test("production auth accepts only standard callbacks on first-party domains", (
   );
 });
 
-test("local auth accepts loopback callbacks only while running locally", () => {
+test("first-party auth accepts loopback callbacks for local applications", () => {
+  const callback = new URL("http://localhost:5180/api/auth/callback");
+
+  assert.equal(isAllowedFirstPartyCallback(callback, new URL("http://localhost:5181")), true);
+  assert.equal(isAllowedFirstPartyCallback(callback, new URL("https://auth.breli.app")), true);
   assert.equal(
     isAllowedFirstPartyCallback(
-      new URL("http://localhost:5180/api/auth/callback"),
-      new URL("http://localhost:5181"),
+      new URL("https://localhost:5180/api/auth/callback"),
+      new URL("https://auth.breli.app"),
     ),
-    true,
+    false,
   );
   assert.equal(
     isAllowedFirstPartyCallback(
-      new URL("http://localhost:5180/api/auth/callback"),
+      new URL("http://untrusted.invalid/api/auth/callback"),
       new URL("https://auth.breli.app"),
     ),
     false,
@@ -146,6 +150,7 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
   assert.equal(authorization.status, 302);
   assert.equal(callback.searchParams.get("state"), state);
   assert.ok(code !== null);
+  assert.doesNotThrow(() => authorization.headers.set("x-tanstack-start", "merged"));
 
   const exchangeRequest = () =>
     new Request("https://auth.breli.app/api/auth/first-party/exchange", {

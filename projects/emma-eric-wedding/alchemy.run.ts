@@ -11,9 +11,7 @@ const app = await deployApp(project);
 const authBaseUrl = app.local
   ? `http://localhost:${devPort("emma-eric-wedding-web")}`
   : `https://${domainName}`;
-const authIssuer = app.local
-  ? `http://localhost:${devPort("templar-auth-web")}`
-  : "https://auth.breli.app";
+const authIssuer = "https://auth.breli.app";
 
 const db = await d1Database("db", {
   project,

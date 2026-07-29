@@ -1,15 +1,12 @@
 import { withApiAuthMigrations } from "@templar/api-auth/deploy";
 import { deployApp } from "@templar/deploy";
 import { d1Database, templarApp } from "@templar/deploy/cloudflare";
-import { devPort } from "@templar/dev-ports";
 import { withUsersMigrations } from "@templar/users/deploy";
 
 const project = "your-shopper";
 const domainName = "your-shopper.breli.app";
 const app = await deployApp(project);
-const authIssuer = app.local
-  ? `http://localhost:${devPort("templar-auth-web")}`
-  : "https://auth.breli.app";
+const authIssuer = "https://auth.breli.app";
 
 const db = await d1Database(
   "db",

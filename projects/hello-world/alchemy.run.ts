@@ -1,15 +1,12 @@
 import { deployApp } from "@templar/deploy";
 import { d1Database, queue, r2Bucket, templarApp } from "@templar/deploy/cloudflare";
-import { devPort } from "@templar/dev-ports";
 import { schedulerCrons } from "@templar/scheduler";
 import { withUsersMigrations } from "@templar/users/deploy";
 import { schedules } from "./apps/web/src/schedules.ts";
 
 const domainName = "hello-world.breli.app";
 const app = await deployApp("hello-world");
-const authIssuer = app.local
-  ? `http://localhost:${devPort("templar-auth-web")}`
-  : "https://auth.breli.app";
+const authIssuer = "https://auth.breli.app";
 
 const r2 = await r2Bucket("r2", {
   project: "hello-world",

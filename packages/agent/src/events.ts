@@ -53,18 +53,19 @@ export type AgentEventInput = AgentEvent extends infer Event
 
 export type AgentConfigSnapshot = {
   readonly model: string;
-  readonly finalModel?: string;
+  readonly finalizationModel?: string;
   readonly reasoning?: unknown;
   readonly temperature?: number;
   readonly toolChoice?: unknown;
   readonly parallelToolCalls: boolean;
   readonly instructions: string;
   readonly instructionsVersion: string;
+  readonly finalizationInstructions: string;
   readonly maxModelTurns: number;
   readonly maxToolCalls: number;
   readonly maxConcurrentTools: number;
   readonly maxDurationMs?: number;
-  readonly researchBudgetUsd?: number;
+  readonly softCostLimitUsd?: number;
   readonly hardCostLimitUsd?: number;
   readonly maxTokens?: number;
   readonly providerOptions?: Readonly<Record<string, unknown>>;

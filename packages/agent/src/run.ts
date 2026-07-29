@@ -9,7 +9,7 @@ import {
 } from "@templar/llm";
 import { Effect, Option } from "effect";
 import { z } from "zod";
-import { reachedHardLimit, shouldForceSynthesis } from "./budget.ts";
+import { reachedHardLimit, shouldEnterFinalization } from "./budget.ts";
 import { AgentConfigurationError, type AgentFailure, AgentToolError } from "./errors.ts";
 import type { AgentConfigSnapshot, AgentEvent, AgentEventInput } from "./events.ts";
 import type { AgentTool, AgentToolOutput } from "./tool.ts";
@@ -28,13 +28,14 @@ import {
   type StartAgentInput,
 } from "./types.ts";
 
-const synthesisInstruction =
-  "Research is over and no tools are available. Do not call, describe, or encode a tool call, and do not say that you will verify one more fact. Return the best-supported final answer now from the evidence already collected, clearly noting uncertainty.";
+const defaultFinalizationInstructions =
+  "This is the final model phase and tools are unavailable. Return a terminal text response now without requesting a tool.";
 
-const synthesisRetryInstruction =
-  "Your previous synthesis attempted another tool call. Tools are unavailable. Write the final user-facing answer now using only the evidence already collected; do not emit tool-call syntax.";
+const finalizationRetryInstruction =
+  "The previous finalization did not produce a terminal text response. Tools remain unavailable. Return terminal text now without requesting a tool.";
 
 type ResolvedAgentConfig = AgentConfig & {
+  readonly finalizationInstructions: string;
   readonly maxConcurrentTools: number;
   readonly maxModelRetries: number;
   readonly maxToolRetries: number;
@@ -53,8 +54,8 @@ type MutableRun = {
   readonly toolCalls: AgentToolCallTrace[];
   usage: AgentUsage;
   sequence: number;
-  forceSynthesis: boolean;
-  synthesisInstructionAdded: boolean;
+  finalizing: boolean;
+  finalizationInstructionAdded: boolean;
   terminal: boolean;
   pendingToolCall?: LLMToolCall;
   outcome?: AgentOutcome;
@@ -102,8 +103,8 @@ function start(
       toolCalls: [],
       usage: emptyUsage(),
       sequence: 0,
-      forceSynthesis: false,
-      synthesisInstructionAdded: false,
+      finalizing: false,
+      finalizationInstructionAdded: false,
       terminal: false,
     };
     emit(config, state, { type: "run.started", config: snapshot });
@@ -185,22 +186,22 @@ function runLoop(
       return Effect.succeed(failForLimit(config, snapshot, state, limit));
     }
 
-    const forceSynthesis =
-      state.forceSynthesis ||
+    const finalizing =
+      state.finalizing ||
       state.usage.toolCalls >= config.maxToolCalls ||
-      shouldForceSynthesis({
+      shouldEnterFinalization({
         usage: state.usage,
         maxModelTurns: config.maxModelTurns,
-        ...(config.researchBudgetUsd === undefined
+        ...(config.softCostLimitUsd === undefined
           ? {}
-          : { researchBudgetUsd: config.researchBudgetUsd }),
+          : { softCostLimitUsd: config.softCostLimitUsd }),
       });
-    if (forceSynthesis && !state.synthesisInstructionAdded) {
-      state.messages.push({ role: "system", content: synthesisInstruction });
-      state.synthesisInstructionAdded = true;
+    if (finalizing && !state.finalizationInstructionAdded) {
+      state.messages.push({ role: "system", content: config.finalizationInstructions });
+      state.finalizationInstructionAdded = true;
     }
 
-    const request = modelRequest(config, snapshot, state, forceSynthesis);
+    const request = modelRequest(config, snapshot, state, finalizing);
     const turn = state.usage.modelTurns + 1;
     const turnStartedMs = config.now();
     const turnStartedAt = new Date(turnStartedMs).toISOString();
@@ -236,7 +237,7 @@ function runLoop(
             turn,
             turnStartedMs,
             turnStartedAt,
-            forceSynthesis,
+            finalizing,
             attempts,
           ),
       }),
@@ -253,7 +254,7 @@ function handleModelResponse(
   turn: number,
   turnStartedMs: number,
   turnStartedAt: string,
-  forceSynthesis: boolean,
+  finalizing: boolean,
   attempts: number,
 ): Effect.Effect<AgentRun> {
   const durationMs = config.now() - turnStartedMs;
@@ -287,20 +288,17 @@ function handleModelResponse(
     );
   }
 
-  if (forceSynthesis) {
-    const invalidSynthesis =
-      response.text === undefined ||
-      response.toolCalls.length > 0 ||
-      containsEncodedToolCall(response.text);
-    if (invalidSynthesis && state.usage.modelTurns < config.maxModelTurns) {
-      state.messages.push({ role: "system", content: synthesisRetryInstruction });
+  if (finalizing) {
+    const invalidFinalization = response.text === undefined || response.toolCalls.length > 0;
+    if (invalidFinalization && state.usage.modelTurns < config.maxModelTurns) {
+      state.messages.push({ role: "system", content: finalizationRetryInstruction });
       return runLoop(config, snapshot, state);
     }
     return Effect.succeed(
-      invalidSynthesis
+      invalidFinalization
         ? failRun(config, snapshot, state, {
             code: "model_turn_limit",
-            message: "The forced final synthesis did not return a usable final answer.",
+            message: "Finalization did not return a usable terminal response.",
           })
         : completeRun(config, snapshot, state, response.text as string),
     );
@@ -356,7 +354,7 @@ function handleModelResponse(
         appendToolLimitResult(config, state, call);
       }
       if (rejected.length > 0) {
-        state.forceSynthesis = true;
+        state.finalizing = true;
       }
 
       const fatal = executions.find((execution) => execution.failure?.recoverable === false);
@@ -386,14 +384,14 @@ function handleModelResponse(
         );
       }
 
-      state.forceSynthesis =
-        state.forceSynthesis ||
-        shouldForceSynthesis({
+      state.finalizing =
+        state.finalizing ||
+        shouldEnterFinalization({
           usage: state.usage,
           maxModelTurns: config.maxModelTurns,
-          ...(config.researchBudgetUsd === undefined
+          ...(config.softCostLimitUsd === undefined
             ? {}
-            : { researchBudgetUsd: config.researchBudgetUsd }),
+            : { softCostLimitUsd: config.softCostLimitUsd }),
         });
       return runLoop(config, snapshot, state);
     },
@@ -427,10 +425,6 @@ function isRetryableModelError(error: LLMError): boolean {
 
 function modelAttemptsForFailure(config: ResolvedAgentConfig, error: LLMError): number {
   return isRetryableModelError(error) ? config.maxModelRetries + 1 : 1;
-}
-
-function containsEncodedToolCall(text: string): boolean {
-  return /<[^>]*(?:tool[_ -]?calls?|invoke)[^>]*>/iu.test(text);
 }
 
 function executeToolCall(
@@ -641,15 +635,15 @@ function modelRequest(
   config: ResolvedAgentConfig,
   snapshot: AgentConfigSnapshot,
   state: MutableRun,
-  forceSynthesis: boolean,
+  finalizing: boolean,
 ): GenerateTurnInput {
   return {
-    model: forceSynthesis ? (config.finalModel ?? config.model) : config.model,
+    model: finalizing ? (config.finalizationModel ?? config.model) : config.model,
     messages: [...state.messages],
-    ...(forceSynthesis || snapshot.tools.length === 0 ? {} : { tools: snapshot.tools }),
+    ...(finalizing || snapshot.tools.length === 0 ? {} : { tools: snapshot.tools }),
     ...(config.reasoning === undefined ? {} : { reasoning: config.reasoning }),
     ...(config.temperature === undefined ? {} : { temperature: config.temperature }),
-    ...(forceSynthesis
+    ...(finalizing
       ? { toolChoice: "none" }
       : {
           ...(config.toolChoice === undefined ? {} : { toolChoice: config.toolChoice }),
@@ -666,7 +660,7 @@ function completeRun(
   state: MutableRun,
   text: string,
 ): AgentRun {
-  state.outcome = { kind: "answer", text };
+  state.outcome = { kind: "completion", text };
   state.terminal = true;
   emit(config, state, { type: "run.completed", durationMs: elapsed(config, state) });
   return immutableRun(config, snapshot, state, "completed");
@@ -755,9 +749,9 @@ function mutableFromRun(run: AgentRun, config: ResolvedAgentConfig): MutableRun 
     toolCalls: [...run.trace.toolCalls],
     usage: run.usage,
     sequence: run.events.at(-1)?.sequence ?? 0,
-    forceSynthesis: false,
-    synthesisInstructionAdded: run.messages.some(
-      (message) => message.role === "system" && message.content === synthesisInstruction,
+    finalizing: false,
+    finalizationInstructionAdded: run.messages.some(
+      (message) => message.role === "system" && message.content === config.finalizationInstructions,
     ),
     terminal: false,
     ...(run.pendingToolCall === undefined ? {} : { pendingToolCall: run.pendingToolCall }),
@@ -844,6 +838,7 @@ function resolveConfig(input: AgentConfig): ResolvedAgentConfig {
   }
   return {
     ...input,
+    finalizationInstructions: input.finalizationInstructions ?? defaultFinalizationInstructions,
     maxConcurrentTools: input.maxConcurrentTools ?? 4,
     maxModelRetries: input.maxModelRetries ?? 0,
     maxToolRetries: input.maxToolRetries ?? 1,
@@ -856,20 +851,23 @@ function configSnapshot(config: ResolvedAgentConfig): AgentConfigSnapshot {
   try {
     return {
       model: config.model,
-      ...(config.finalModel === undefined ? {} : { finalModel: config.finalModel }),
+      ...(config.finalizationModel === undefined
+        ? {}
+        : { finalizationModel: config.finalizationModel }),
       ...(config.reasoning === undefined ? {} : { reasoning: config.reasoning }),
       ...(config.temperature === undefined ? {} : { temperature: config.temperature }),
       ...(config.toolChoice === undefined ? {} : { toolChoice: config.toolChoice }),
       parallelToolCalls: config.parallelToolCalls ?? true,
       instructions: config.instructions,
       instructionsVersion: config.instructionsVersion,
+      finalizationInstructions: config.finalizationInstructions,
       maxModelTurns: config.maxModelTurns,
       maxToolCalls: config.maxToolCalls,
       maxConcurrentTools: config.maxConcurrentTools,
       ...(config.maxDurationMs === undefined ? {} : { maxDurationMs: config.maxDurationMs }),
-      ...(config.researchBudgetUsd === undefined
+      ...(config.softCostLimitUsd === undefined
         ? {}
-        : { researchBudgetUsd: config.researchBudgetUsd }),
+        : { softCostLimitUsd: config.softCostLimitUsd }),
       ...(config.hardCostLimitUsd === undefined
         ? {}
         : { hardCostLimitUsd: config.hardCostLimitUsd }),

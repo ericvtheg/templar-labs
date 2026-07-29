@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { reachedHardLimit, shouldForceSynthesis } from "../src/budget.ts";
+import { reachedHardLimit, shouldEnterFinalization } from "../src/budget.ts";
 import { emptyUsage } from "../src/types.ts";
 
 test("hard limits report duration, cost, and model-turn exhaustion", () => {
@@ -27,19 +27,19 @@ test("hard limits report duration, cost, and model-turn exhaustion", () => {
   );
 });
 
-test("synthesis reserves the final model turn and reacts to research cost", () => {
+test("finalization reserves the final model turn and reacts to the soft cost limit", () => {
   assert.equal(
-    shouldForceSynthesis({
+    shouldEnterFinalization({
       usage: { ...emptyUsage(), modelTurns: 2 },
       maxModelTurns: 3,
     }),
     true,
   );
   assert.equal(
-    shouldForceSynthesis({
+    shouldEnterFinalization({
       usage: { ...emptyUsage(), totalCostUsd: 0.1 },
       maxModelTurns: 5,
-      researchBudgetUsd: 0.1,
+      softCostLimitUsd: 0.1,
     }),
     true,
   );

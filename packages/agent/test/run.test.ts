@@ -27,7 +27,7 @@ test("returns a final answer without executing tools", async () => {
   );
 
   assert.equal(run.status, "completed");
-  assert.deepEqual(run.outcome, { kind: "answer", text: "Buy the first option." });
+  assert.deepEqual(run.outcome, { kind: "completion", text: "Buy the first option." });
   assert.equal(run.id, "run-final");
   assert.deepEqual(requests[0]?.messages, [
     { role: "system", content: "Be useful." },
@@ -365,7 +365,7 @@ test("rejects unbounded local retry and concurrency configuration", () => {
   );
 });
 
-test("reserves the final turn for synthesis and enforces the tool-call ceiling", async () => {
+test("reserves the final turn for finalization and enforces the tool-call ceiling", async () => {
   let executions = 0;
   const tool = successTool("search", z.object({ query: z.string() }), () => {
     executions += 1;
@@ -383,7 +383,8 @@ test("reserves the final turn for synthesis and enforces the tool-call ceiling",
   const run = await Effect.runPromise(
     makeAgent({
       ...baseConfig(llm, [tool]),
-      finalModel: "finalizer/model",
+      finalizationModel: "finalizer/model",
+      finalizationInstructions: "Return the configured terminal response.",
       maxModelTurns: 2,
       maxToolCalls: 1,
     }).start({
@@ -398,22 +399,22 @@ test("reserves the final turn for synthesis and enforces the tool-call ceiling",
   assert.equal(requests[1]?.toolChoice, "none");
   assert.equal(requests[0]?.model, "openai/gpt-5.6-sol");
   assert.equal(requests[1]?.model, "finalizer/model");
-  assert.equal(run.config.finalModel, "finalizer/model");
+  assert.equal(run.config.finalizationModel, "finalizer/model");
+  assert.equal(run.config.finalizationInstructions, "Return the configured terminal response.");
   assert.equal(
     requests[1]?.messages.some(
-      (message) => message.role === "system" && message.content.includes("Research is over"),
+      (message) =>
+        message.role === "system" && message.content === "Return the configured terminal response.",
     ),
     true,
   );
 });
 
-test("retries a forced synthesis that encodes another tool call", async () => {
+test("retries finalization that requests another tool call", async () => {
   const tool = successTool("search", z.object({ query: z.string() }), () => ({}));
   const { llm, requests } = scriptedLLM([
     succeedingTurn({ toolCalls: [call("search-1", "search", { query: "one" })] }),
-    succeedingTurn({
-      text: '<tool_calls><invoke name="search">one more fact</invoke></tool_calls>',
-    }),
+    succeedingTurn({ toolCalls: [call("search-2", "search", { query: "one more fact" })] }),
     succeedingTurn({ text: "Best supported final answer." }),
   ]);
   const run = await Effect.runPromise(
@@ -423,9 +424,9 @@ test("retries a forced synthesis that encodes another tool call", async () => {
   );
 
   assert.equal(run.status, "completed");
-  assert.equal(run.outcome?.kind, "answer");
+  assert.equal(run.outcome?.kind, "completion");
   assert.equal(
-    run.outcome?.kind === "answer" ? run.outcome.text : undefined,
+    run.outcome?.kind === "completion" ? run.outcome.text : undefined,
     "Best supported final answer.",
   );
   assert.equal(requests.length, 3);
@@ -433,14 +434,31 @@ test("retries a forced synthesis that encodes another tool call", async () => {
   assert.equal(requests[2]?.tools, undefined);
   assert.equal(
     requests[2]?.messages.some(
-      (message) =>
-        message.role === "system" && message.content.includes("previous synthesis attempted"),
+      (message) => message.role === "system" && message.content.includes("previous finalization"),
     ),
     true,
   );
 });
 
-test("accumulates model and tool costs and uses a soft research budget", async () => {
+test("does not interpret provider-like markup in terminal text as a tool call", async () => {
+  const tool = successTool("search", z.object({ query: z.string() }), () => ({}));
+  const terminalText = '<tool_calls><invoke name="search">example</invoke></tool_calls>';
+  const { llm, requests } = scriptedLLM([
+    succeedingTurn({ toolCalls: [call("search-1", "search", { query: "one" })] }),
+    succeedingTurn({ text: terminalText }),
+  ]);
+  const run = await Effect.runPromise(
+    makeAgent({ ...baseConfig(llm, [tool]), maxModelTurns: 2 }).start({
+      messages: [{ role: "user", content: "Explain this syntax" }],
+    }),
+  );
+
+  assert.equal(run.status, "completed");
+  assert.deepEqual(run.outcome, { kind: "completion", text: terminalText });
+  assert.equal(requests.length, 2);
+});
+
+test("accumulates model and tool costs and uses a soft cost limit", async () => {
   const tool: AgentTool = {
     name: "priced",
     description: "Costs money",
@@ -463,7 +481,7 @@ test("accumulates model and tool costs and uses a soft research budget", async (
     }),
   ]);
   const run = await Effect.runPromise(
-    makeAgent({ ...baseConfig(llm, [tool]), researchBudgetUsd: 0.05 }).start({
+    makeAgent({ ...baseConfig(llm, [tool]), softCostLimitUsd: 0.05 }).start({
       messages: [{ role: "user", content: "Research" }],
     }),
   );
@@ -550,7 +568,7 @@ test("events are monotonically ordered and snapshot the exact effective configur
       parallelToolCalls: false,
       providerOptions: { route: "fixed" },
       maxDurationMs: 10_000,
-      researchBudgetUsd: 0.2,
+      softCostLimitUsd: 0.2,
       hardCostLimitUsd: 0.4,
     }).start({ messages: [{ role: "user", content: "Run" }] }),
   );

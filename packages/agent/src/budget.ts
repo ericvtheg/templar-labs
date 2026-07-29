@@ -21,13 +21,13 @@ export function reachedHardLimit(input: {
   return undefined;
 }
 
-export function shouldForceSynthesis(input: {
+export function shouldEnterFinalization(input: {
   readonly usage: AgentUsage;
   readonly maxModelTurns: number;
-  readonly researchBudgetUsd?: number;
+  readonly softCostLimitUsd?: number;
 }): boolean {
   return (
     input.usage.modelTurns + 1 >= input.maxModelTurns ||
-    (input.researchBudgetUsd !== undefined && input.usage.totalCostUsd >= input.researchBudgetUsd)
+    (input.softCostLimitUsd !== undefined && input.usage.totalCostUsd >= input.softCostLimitUsd)
   );
 }

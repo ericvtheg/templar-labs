@@ -18,14 +18,14 @@ export type AgentUsage = {
   readonly durationMs: number;
 };
 
-export type AgentAnswer = { readonly kind: "answer"; readonly text: string };
+export type AgentCompletion = { readonly kind: "completion"; readonly text: string };
 export type AgentSuspension = {
   readonly kind: "suspension";
   readonly toolCallId: string;
   readonly toolName: string;
   readonly request: unknown;
 };
-export type AgentOutcome = AgentAnswer | AgentSuspension;
+export type AgentOutcome = AgentCompletion | AgentSuspension;
 
 export type AgentRun = {
   readonly id: string;
@@ -44,18 +44,19 @@ export type AgentRun = {
 export type AgentConfig = {
   readonly llm: LLMService;
   readonly model: string;
-  readonly finalModel?: string;
+  readonly finalizationModel?: string;
   readonly reasoning?: unknown;
   readonly temperature?: number;
   readonly toolChoice?: unknown;
   readonly parallelToolCalls?: boolean;
   readonly instructions: string;
   readonly instructionsVersion: string;
+  readonly finalizationInstructions?: string;
   readonly maxModelTurns: number;
   readonly maxToolCalls: number;
   readonly maxConcurrentTools?: number;
   readonly maxDurationMs?: number;
-  readonly researchBudgetUsd?: number;
+  readonly softCostLimitUsd?: number;
   readonly hardCostLimitUsd?: number;
   readonly maxTokens?: number;
   readonly providerOptions?: Readonly<Record<string, unknown>>;

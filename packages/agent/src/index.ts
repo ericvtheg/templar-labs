@@ -12,7 +12,7 @@ export {
 } from "./tool.ts";
 export type { AgentModelTurnTrace, AgentToolCallTrace, AgentTrace } from "./trace.ts";
 export type {
-  AgentAnswer,
+  AgentCompletion,
   AgentConfig,
   AgentOutcome,
   AgentRun,

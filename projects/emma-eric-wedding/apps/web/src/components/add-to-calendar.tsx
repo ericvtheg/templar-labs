@@ -77,10 +77,16 @@ export function AddToCalendar() {
           <strong>{wedding.date.display}</strong>
           <div>
             <a href={calendarLinks.google} rel="noreferrer" target="_blank">
-              Google Calendar <span aria-hidden="true">↗</span>
+              Google Calendar
+              <svg aria-hidden="true" className="calendar-option-icon" viewBox="0 0 20 20">
+                <path d="M7 13 13.5 6.5M8.5 6.5h5v5" />
+              </svg>
             </a>
             <a download="emma-and-eric-wedding.ics" href={calendarLinks.ics}>
-              Apple or Outlook <span aria-hidden="true">↓</span>
+              Apple or Outlook
+              <svg aria-hidden="true" className="calendar-option-icon" viewBox="0 0 20 20">
+                <path d="M10 4.5v8m-3-3 3 3 3-3M5.5 15.5h9" />
+              </svg>
             </a>
           </div>
           <small>Saved as an all-day celebration.</small>

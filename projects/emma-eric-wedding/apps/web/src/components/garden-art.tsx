@@ -26,11 +26,11 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
       </defs>
 
       <g className="garden-stems" fill="none" strokeLinecap="round">
-        <path d="M118 760C129 605 193 470 296 315" />
-        <path d="M250 760C271 555 327 364 387 180" />
-        <path d="M389 760C407 585 486 448 579 343" />
-        <path d="M521 760C520 600 551 459 626 310" />
-        <path d="M80 760C122 652 157 591 207 534" />
+        <path className="plant-sway plant-small" d="M118 760C129 605 193 470 296 315" />
+        <path className="plant-sway plant-tall" d="M250 760C271 555 327 364 387 180" />
+        <path className="plant-sway plant-mid" d="M389 760C407 585 486 448 579 343" />
+        <path className="plant-sway plant-right" d="M521 760C520 600 551 459 626 310" />
+        <path className="plant-sway plant-left" d="M80 760C122 652 157 591 207 534" />
       </g>
 
       <g className="garden-leaves" filter={`url(#${textureId})`}>
@@ -53,7 +53,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
       </g>
 
       <g
-        className="flower flower-coral flower-tall"
+        className="flower flower-coral flower-tall plant-sway plant-tall"
         filter={`url(#${textureId})`}
         transform="translate(9)"
       >
@@ -63,14 +63,20 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         <path className="flower-highlight" d="M359 217c-22-70-1-130 53-164 32 67 17 125-53 164Z" />
       </g>
 
-      <g className="flower flower-pink flower-left" filter={`url(#${textureId})`}>
+      <g
+        className="flower flower-pink flower-left plant-sway plant-left"
+        filter={`url(#${textureId})`}
+      >
         <path d="M178 536c-55-41-66-103-27-150 45 31 63 87 27 150Z" />
         <path d="M225 534c-12-66 20-116 76-126 8 62-17 107-76 126Z" />
         <path className="flower-highlight" d="M190 535c-24-69 2-118 49-139 23 57 11 107-49 139Z" />
         <circle className="flower-center" cx="211" cy="507" r="18" />
       </g>
 
-      <g className="flower flower-marigold flower-mid" filter={`url(#${textureId})`}>
+      <g
+        className="flower flower-marigold flower-mid plant-sway plant-mid"
+        filter={`url(#${textureId})`}
+      >
         <circle cx="509" cy="371" r="58" />
         <circle cx="555" cy="392" r="55" />
         <circle cx="533" cy="339" r="51" />
@@ -78,13 +84,16 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         <circle className="flower-center" cx="530" cy="381" r="18" />
       </g>
 
-      <g className="flower flower-red flower-right" filter={`url(#${textureId})`}>
+      <g
+        className="flower flower-red flower-right plant-sway plant-right"
+        filter={`url(#${textureId})`}
+      >
         <path d="M582 360c-35-65-16-123 35-151 31 53 25 107-35 151Z" />
         <path d="M625 359c-7-70 30-117 82-118 7 59-21 104-82 118Z" />
         <path className="flower-highlight" d="M603 366c-14-72 12-121 62-137 18 62 2 108-62 137Z" />
       </g>
 
-      <g className="flower flower-small" filter={`url(#${textureId})`}>
+      <g className="flower flower-small plant-sway plant-small" filter={`url(#${textureId})`}>
         <ellipse cx="292" cy="327" rx="43" ry="20" transform="rotate(20 292 327)" />
         <ellipse cx="292" cy="327" rx="43" ry="20" transform="rotate(92 292 327)" />
         <ellipse cx="292" cy="327" rx="43" ry="20" transform="rotate(160 292 327)" />

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type SyntheticEvent, useEffect, useId, useRef, useState, useTransition } from "react";
+import { AddToCalendar } from "../components/add-to-calendar.tsx";
 import { BotanicalStamp, LineFlourish } from "../components/garden-art.tsx";
 import { WeddingMonogram } from "../components/wedding-monogram.tsx";
 import { eventById, mealOptionById, type WeddingEventId } from "../content/rsvp.ts";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/rsvp")({
 
 function RsvpPage() {
   const settings = Route.useLoaderData();
+  const calendarTitleId = useId();
   const titleId = useId();
   const messageRef = useRef<HTMLDivElement>(null);
   const matchFoundTimerRef = useRef<number | null>(null);
@@ -214,9 +216,11 @@ function RsvpPage() {
           <LineFlourish
             className={`rsvp-title-flourish ${matchFound ? "rsvp-title-flourish-found" : ""}`}
           />
-          <p className="rsvp-deadline">
-            Please RSVP by: <strong>{settings.deadlineDisplay}</strong>
-          </p>
+          {step === "confirmed" ? null : (
+            <p className="rsvp-deadline">
+              Please RSVP by: <strong>{settings.deadlineDisplay}</strong>
+            </p>
+          )}
           <p>{stepIntroduction(step, household)}</p>
         </header>
 
@@ -339,6 +343,16 @@ function RsvpPage() {
           <Confirmation household={household} emailStatus={emailStatus} />
         ) : null}
       </div>
+
+      <section aria-labelledby={calendarTitleId} className="rsvp-calendar-footer">
+        <BotanicalStamp className="rsvp-calendar-botanical" />
+        <div>
+          <p className="eyebrow">Keep the date close</p>
+          <h2 id={calendarTitleId}>Save the celebration.</h2>
+          <p>Add September 25, 2027 to your calendar for one less thing to remember.</p>
+        </div>
+        <AddToCalendar />
+      </section>
     </main>
   );
 }
@@ -977,17 +991,9 @@ function Confirmation({
         Your RSVP is confirmed.
       </p>
       <BotanicalStamp className="rsvp-confirmation-stamp" />
-      <span className="rsvp-confirmation-mark" aria-hidden="true">
-        <svg aria-hidden="true" viewBox="0 0 32 32">
-          <circle cx="16" cy="16" r="14" />
-          <path d="m9.5 16.25 4.25 4.25 8.75-10" />
-        </svg>
-      </span>
       <p className="eyebrow">All together</p>
       <h2>Your RSVP is confirmed.</h2>
-      <p className="rsvp-confirmation-intro">
-        Thank you. This is the complete response for every event on your invitation.
-      </p>
+      <p className="rsvp-confirmation-intro">Thank you. Your complete RSVP is saved.</p>
       <ResponseSummary household={household} />
       <HouseholdMessageSummary message={household.message} />
       {emailStatus === "sent" ? (

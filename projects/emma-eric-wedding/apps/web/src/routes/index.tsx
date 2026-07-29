@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { type RefObject, useEffect, useId, useRef } from "react";
 
-import { AddToCalendar } from "../components/add-to-calendar.tsx";
 import { BotanicalStamp, GardenArtwork, LineFlourish } from "../components/garden-art";
 import { SiteHeader } from "../components/site-header";
 import { type WeddingSection, wedding } from "../content/wedding";
@@ -37,7 +36,7 @@ function WeddingHome() {
             </h1>
             <LineFlourish className="hero-flourish" />
             <div className="hero-details">
-              <AddToCalendar />
+              <p>{wedding.date.display}</p>
               <p>
                 {wedding.venue.name}
                 <br />

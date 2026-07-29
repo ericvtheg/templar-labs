@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiV1HelloRouteImport } from './routes/api/v1/hello'
+import { Route as ApiV1RunsRouteImport } from './routes/api/v1/runs'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +18,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiV1HelloRoute = ApiV1HelloRouteImport.update({
-  id: '/api/v1/hello',
-  path: '/api/v1/hello',
+const ApiV1RunsRoute = ApiV1RunsRouteImport.update({
+  id: '/api/v1/runs',
+  path: '/api/v1/runs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -32,31 +32,31 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/v1/hello': typeof ApiV1HelloRoute
+  '/api/v1/runs': typeof ApiV1RunsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/v1/hello': typeof ApiV1HelloRoute
+  '/api/v1/runs': typeof ApiV1RunsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/v1/hello': typeof ApiV1HelloRoute
+  '/api/v1/runs': typeof ApiV1RunsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/auth/$' | '/api/v1/hello'
+  fullPaths: '/' | '/api/auth/$' | '/api/v1/runs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/auth/$' | '/api/v1/hello'
-  id: '__root__' | '/' | '/api/auth/$' | '/api/v1/hello'
+  to: '/' | '/api/auth/$' | '/api/v1/runs'
+  id: '__root__' | '/' | '/api/auth/$' | '/api/v1/runs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiV1HelloRoute: typeof ApiV1HelloRoute
+  ApiV1RunsRoute: typeof ApiV1RunsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -68,11 +68,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/v1/hello': {
-      id: '/api/v1/hello'
-      path: '/api/v1/hello'
-      fullPath: '/api/v1/hello'
-      preLoaderRoute: typeof ApiV1HelloRouteImport
+    '/api/v1/runs': {
+      id: '/api/v1/runs'
+      path: '/api/v1/runs'
+      fullPath: '/api/v1/runs'
+      preLoaderRoute: typeof ApiV1RunsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -88,7 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiV1HelloRoute: ApiV1HelloRoute,
+  ApiV1RunsRoute: ApiV1RunsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

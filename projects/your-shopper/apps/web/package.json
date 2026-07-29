@@ -14,15 +14,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@templar/agent": "workspace:*",
     "@templar/api-auth": "workspace:*",
     "@templar/dev-ports": "workspace:*",
+    "@templar/llm": "workspace:*",
     "@templar/users": "workspace:*",
+    "@templar/web-search": "workspace:*",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-start": "^1.132.0",
     "effect": "^3.21.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "your-shopper-agent": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.11.6",

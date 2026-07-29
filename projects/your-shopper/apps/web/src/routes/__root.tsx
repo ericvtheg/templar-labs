@@ -9,7 +9,8 @@ export const Route = createRootRoute({
       { title: "Your Shopper" },
       {
         name: "description",
-        content: "A small dogfood application for Templar API authentication.",
+        content:
+          "Source-backed shopping research for agents, from real-world constraints to a defensible recommendation.",
       },
       { name: "theme-color", content: "#f7f4ed" },
     ],

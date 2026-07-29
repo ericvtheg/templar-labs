@@ -2,6 +2,7 @@ import { withApiAuthMigrations } from "@templar/api-auth/deploy";
 import { deployApp } from "@templar/deploy";
 import { d1Database, templarApp } from "@templar/deploy/cloudflare";
 import { withUsersMigrations } from "@templar/users/deploy";
+import alchemy from "alchemy";
 
 const project = "your-shopper";
 const domainName = "your-shopper.breli.app";
@@ -28,6 +29,7 @@ export const website = await templarApp("website", {
   db,
   bindings: {
     AUTH_ISSUER: authIssuer,
+    EXA_API_KEY: alchemy.secret.env("EXA_API_KEY"),
   },
 });
 

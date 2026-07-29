@@ -8,6 +8,23 @@ in a fresh agent context without re-deriving the architecture.
 
 The product is named **Your Shopper**.
 
+Architecture amendment agreed on 2026-07-29: the provider integration is named
+`@templar/llm`, reusable policy-free model/tool execution lives in
+`@templar/agent`, and the shopping behavior remains in `your-shopper-agent`.
+
+Implementation update: the local agent stack, Exa-backed retrieval package,
+tool-capable LLM layer, exact-model controls, resumable paid evaluation harness,
+and development matrix are implemented. The current evaluated product default
+uses MiniMax M3 for research and GLM 5.2 for forced finalization through
+OpenRouter. DeepSeek V4 Flash creates the frozen protocol and judges blinded
+outputs with per-hard-requirement audits. Exa Agent is an expensive explicit
+opt-in baseline and is not part of routine development or the product run.
+
+The deployed web app now exposes the first thin product surface: a public
+landing page, admin-only API-key management, and synchronous authenticated
+shopping runs. See `eval/RESULTS.md` for the current empirical signal rather
+than treating the model pairing or prompt as permanent.
+
 The immediate goal is not to build a production-complete procurement API. The
 goal is to build and benchmark the strongest shopping research agent harness we
 can: we choose the model, own the complete agent run, give it excellent search
@@ -67,7 +84,8 @@ Your Shopper owns:
 
 Exa is a search and content-retrieval provider. The production Your Shopper
 agent must not delegate its run to the Exa Agent API. Exa Agent may be called by
-the evaluation harness as a strong external baseline.
+the evaluation harness only as an explicit, cost-gated external baseline after
+cheaper comparisons show useful signal.
 
 ### The Model Owns Request-Specific Reasoning
 
@@ -121,7 +139,7 @@ the strongest native capabilities of the best-performing model, including its
 tool-call format, reasoning controls, parallel tool calls, structured output,
 and streaming behavior.
 
-The shared AI package may normalize common concepts, but it must retain an
+The shared LLM package may normalize common concepts, but it must retain an
 escape hatch for model/provider-specific features. Portability is secondary to
 measured shopping performance.
 
@@ -144,7 +162,8 @@ Defer until the harness demonstrates value:
 - retention and audit policy
 - billing and quotas
 - stable backwards-compatible public schemas
-- a generic cross-product agent runtime package
+- a broad cross-product policy framework beyond the deliberately narrow
+  `@templar/agent` execution package
 
 Breaking changes are acceptable during this phase.
 
@@ -155,24 +174,25 @@ The repository already contains:
 - `projects/your-shopper`, a deployed TanStack Start/Cloudflare application
 - Google sign-in through the shared Templar auth service
 - app-local API key creation and revocation
-- a protected `GET /api/v1/hello` dogfood endpoint
+- an admin-gated API-key dashboard and protected `POST /api/v1/runs` endpoint
 - a D1 database with users and API-auth migrations
-- `@templar/ai`, an Effect-based OpenRouter abstraction supporting text and
+- `@templar/llm`, an Effect-based OpenRouter abstraction supporting text and
   Zod-backed structured generation
 - `@templar/db`, `@templar/queue`, and deployment primitives that can be used
   later if durable runs become necessary
 
-Important current limitations:
+These were the important limitations at plan creation and are now addressed by
+the implementation described above:
 
-- `@templar/ai` messages only contain string content
-- `@templar/ai` does not represent tool definitions, assistant tool calls, or
-  tool-result messages
-- `@templar/ai` selects from fixed Templar model tiers rather than making
-  arbitrary benchmark model identifiers a first-class input
-- Your Shopper has no domain behavior beyond its API-auth demo
+- tool definitions, assistant calls, and tool-result messages are represented
+  by `@templar/llm`
+- arbitrary exact provider model identifiers are first-class inputs and common
+  eval choices are exported as constants
+- the product-specific shopper behavior is locally runnable outside the web app
+- the web app now calls the product agent through a thin synchronous route
 
-The existing authentication UI and hello endpoint should not dictate the core
-agent design. The agent and evaluation runner must work locally without the web
+The authentication UI and HTTP route do not dictate the core agent design. The
+agent and evaluation runner continue to work locally without the web
 application.
 
 ## Target Dependency Structure
@@ -180,7 +200,7 @@ application.
 ```text
 projects/your-shopper
 ├── packages/agent                 # Product-specific moat
-│   ├── @templar/ai
+│   ├── @templar/agent
 │   └── @templar/web-search
 ├── eval                           # App-owned evaluation laboratory
 └── apps/web                       # Thin UI/API adapter
@@ -190,16 +210,26 @@ projects/your-shopper
 
 packages/web-search
 └── Exa search/content provider
+
+packages/agent
+└── @templar/llm                   # Provider-neutral model/tool runtime
+
+packages/llm
+└── OpenRouter model provider
 ```
 
-There are two foundational changes:
+There are three foundational changes:
 
 1. Create `@templar/web-search`.
-2. Extend `@templar/ai` with native tool-call turns.
+2. Rename the provider integration package to `@templar/llm` and add native
+   tool-call turns.
+3. Create a deliberately narrow `@templar/agent` package for reusable model/tool
+   execution mechanics.
 
 The Your Shopper agent remains product-specific at
-`projects/your-shopper/packages/agent`. Do not create a shared
-`@templar/agent-runtime` package during the initial implementation.
+`projects/your-shopper/packages/agent`. Shopping instructions, enabled tools,
+default budgets, clarification semantics, and outcome mapping must not move into
+`@templar/agent`.
 
 ## Package: `@templar/web-search`
 
@@ -231,7 +261,7 @@ packages/web-search
     └── service.test.ts
 ```
 
-Follow the existing provider-backed package conventions used by `@templar/ai`,
+Follow the existing provider-backed package conventions used by `@templar/llm`,
 `@templar/email`, and similar packages:
 
 - `service.ts` defines the public service, Effect tag, constructor, and layer
@@ -362,11 +392,11 @@ Tests belong in `packages/web-search/test` and should cover:
 - abort/interruption propagation
 - logging annotations where practical
 
-## Extension: `@templar/ai` Tool-Call Support
+## Extension: `@templar/llm` Tool-Call Support
 
 ### Purpose
 
-`@templar/ai` should provide a model-turn primitive rich enough for Your Shopper
+`@templar/llm` should provide a model-turn primitive rich enough for Your Shopper
 to own the agent loop. It should not execute tools or decide how long an agent
 runs.
 
@@ -384,13 +414,13 @@ message/content model that can represent:
 A conceptual target is:
 
 ```ts
-type AIMessage =
+type LLMMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
   | {
       role: "assistant";
       content?: string;
-      toolCalls?: ReadonlyArray<AIToolCall>;
+      toolCalls?: ReadonlyArray<LLMToolCall>;
     }
   | {
       role: "tool";
@@ -412,14 +442,14 @@ Tool definitions require:
 - JSON Schema input
 
 Your Shopper will generally construct these definitions from Zod-backed tool
-implementations, but `@templar/ai` only needs the serialized model-facing form.
+implementations, but `@templar/llm` only needs the serialized model-facing form.
 
 ### Model-Turn Primitive
 
 Add a primitive such as `generateTurn`:
 
 ```ts
-ai.generateTurn({
+llm.generateTurn({
   model,
   messages,
   tools,
@@ -475,7 +505,7 @@ the shipped harness around that path.
 
 ### Non-Responsibilities
 
-`@templar/ai` must not own:
+`@templar/llm` must not own:
 
 - tool execution
 - agent run IDs
@@ -486,9 +516,9 @@ the shipped harness around that path.
 - user clarification policy
 - final shopping semantics
 
-### AI Package Tests
+### LLM Package Tests
 
-Extend `packages/ai/test` to cover:
+Extend `packages/llm/test` to cover:
 
 - tool definition serialization
 - one and multiple assistant tool calls
@@ -500,6 +530,45 @@ Extend `packages/ai/test` to cover:
 - malformed tool arguments remaining available for harness validation
 - backwards compatibility for existing text/structured calls where retained
 
+## Package: `@templar/agent`
+
+### Purpose
+
+`@templar/agent` owns the reusable execution mechanics between an LLM and a
+registry of locally implemented tools. It depends on `@templar/llm`, but remains
+independent of Exa, shopping, and any category ontology.
+
+It owns:
+
+- Zod-backed tool registration and model-facing JSON Schema conversion
+- validation of model-produced tool arguments before local execution
+- bounded parallel tool execution
+- recoverable tool observations and bounded retries
+- model-turn, tool-call, duration, soft-cost, and hard-cost limits
+- suspension and continuation through tools
+- ordered run events, usage accumulation, and complete local traces
+- Effect interruption propagation
+
+It does not own:
+
+- product instructions or value judgments
+- which tools a product enables
+- provider integrations
+- shopper citation or recommendation semantics
+- persistence, queues, billing, or public API schemas
+
+This boundary is intentionally smaller than a universal agent framework. The
+package exposes the recurring run-loop mechanism while Your Shopper continues
+to own the behavior being benchmarked.
+
+### Agent Package Tests
+
+Tests belong in `packages/agent/test` and use fake LLMs and tools. They cover
+parallel execution, validation recovery, recoverable and fatal tool failures,
+bounded retry, clarification suspension and continuation, budgets and hard
+limits, cancellation, cost accumulation, event ordering, and exact effective
+configuration snapshots.
+
 ## Project Package: Your Shopper Agent
 
 ### Location
@@ -510,22 +579,17 @@ projects/your-shopper/packages/agent
 ├── tsconfig.json
 ├── src
 │   ├── agent.ts
-│   ├── budget.ts
 │   ├── config.ts
-│   ├── errors.ts
-│   ├── events.ts
 │   ├── index.ts
 │   ├── instructions.ts
-│   ├── run.ts
-│   ├── tool.ts
-│   ├── trace.ts
+│   ├── types.ts
 │   └── tools
+│       ├── ask-user.ts
 │       ├── get-web-contents.ts
+│       ├── index.ts
 │       └── web-search.ts
 └── test
     ├── agent.test.ts
-    ├── budget.test.ts
-    ├── run.test.ts
     └── tools.test.ts
 ```
 
@@ -534,9 +598,10 @@ product-specific.
 
 ### Core Principle
 
-The harness is deliberately small. It should enable the frontier model to
-reason and use tools rather than decompose the task into a fixed pipeline of
-intent interpreter, planner, ranker, and response generator.
+The product composition is deliberately small. It configures `@templar/agent`
+to enable the frontier model to reason and use tools rather than decomposing the
+task into a fixed pipeline of intent interpreter, planner, ranker, and response
+generator.
 
 The basic loop is:
 
@@ -573,7 +638,7 @@ type ShopperAgentConfig = {
   readonly maxModelTurns: number;
   readonly maxToolCalls: number;
   readonly maxDurationMs?: number;
-  readonly researchBudgetUsd?: number;
+  readonly softCostLimitUsd?: number;
   readonly tools: ReadonlyArray<ShopperTool>;
   readonly providerOptions?: Readonly<Record<string, unknown>>;
 };
@@ -593,18 +658,18 @@ ceilings.
 
 ### Tool Contract
 
-All tools, including future category integrations, implement one app-owned
-contract:
+All tools, including future category integrations, implement the shared narrow
+`@templar/agent` contract while remaining app-owned implementations:
 
 ```ts
-type ShopperTool<S extends z.ZodType = z.ZodType> = {
+type AgentTool<S extends z.ZodType = z.ZodType> = {
   readonly name: string;
   readonly description: string;
   readonly schema: S;
   readonly execute: (
     input: z.output<S>,
-    context: ShopperToolContext,
-  ) => Effect.Effect<unknown, ShopperToolError>;
+    context: AgentToolContext,
+  ) => Effect.Effect<AgentToolOutput, AgentToolError>;
 };
 ```
 
@@ -768,7 +833,7 @@ cost.
 
 ### Agent Package Tests
 
-All tests belong in the package's `test` directory. Use fake AI and tool
+All tests belong in the package's `test` directory. Use fake LLM and tool
 services; normal tests must not spend model or Exa credits.
 
 Cover:
@@ -846,7 +911,7 @@ type EvaluationStrategy = {
   readonly tools: ReadonlyArray<string>;
   readonly maxModelTurns: number;
   readonly maxToolCalls: number;
-  readonly researchBudgetUsd?: number;
+  readonly softCostLimitUsd?: number;
   readonly runner: EvaluationStrategyRunner;
 };
 ```
@@ -1109,9 +1174,12 @@ The agent package owns the actual run.
 
 ### API Direction
 
-After the local harness is useful, introduce resources along these lines:
+The first synchronous resource is implemented:
 
 - `POST /api/v1/runs` — start a shopping run
+
+Possible durable follow-on resources remain:
+
 - `POST /api/v1/runs/:id/messages` — continue with user input
 - `GET /api/v1/runs/:id` — retrieve current state/outcome
 - `GET /api/v1/runs/:id/events` — stream or replay events
@@ -1120,9 +1188,8 @@ After the local harness is useful, introduce resources along these lines:
 Exact schemas and paths remain intentionally unstable until local evaluation
 establishes the run behavior.
 
-The current `/api/v1/hello` route and `hello:read` permission can remain during
-the local agent phase. Replace or supplement them with run permissions when the
-API is implemented.
+The earlier `/api/v1/hello` route and `hello:read` permission have been replaced
+by `POST /api/v1/runs` and `runs:create`.
 
 ### Persistence
 
@@ -1193,7 +1260,7 @@ Exit condition:
 - a manual authenticated search works
 - no Exa Agent lifecycle appears in the public package API
 
-### Phase 2: Extend `@templar/ai`
+### Phase 2: Extend `@templar/llm`
 
 Tasks:
 
@@ -1214,19 +1281,21 @@ Exit condition:
 - a final assistant response can be distinguished from a tool-call turn
 - exact model/configuration and usage are available to the caller
 
-### Phase 3: Build The Product-Specific Agent Harness
+### Phase 3: Build `@templar/agent` And The Product-Specific Composition
 
 Tasks:
 
-1. Scaffold `projects/your-shopper/packages/agent`.
-2. Define run configuration, outcome, event, trace, tool, and error types.
+1. Scaffold `packages/agent` for policy-free execution mechanics.
+2. Define generic run configuration, event, trace, tool, suspension, and error
+   types.
 3. Implement the model/tool loop with bounded parallel execution.
-4. Implement budget tracking and hard limits.
-5. Implement the initial shopper instructions.
-6. Add `web_search` and `get_web_contents` tools.
-7. Implement in-memory run storage or a simple run object suitable for local
+4. Implement budget tracking, hard limits, continuation, and cancellation.
+5. Scaffold `projects/your-shopper/packages/agent` as the product composition.
+6. Implement the initial shopper instructions and `ask_user` control tool.
+7. Add `web_search` and `get_web_contents` adapters.
+8. Implement an in-memory run object suitable for local
    evaluation.
-8. Add full fake-model/fake-tool tests.
+9. Add full fake-model/fake-tool tests at both ownership boundaries.
 
 Exit condition:
 
@@ -1343,7 +1412,7 @@ Shopper work unless explicitly requested.
 - a universal product/service schema
 - a fixed taxonomy for every shopping category
 - category-specific scoring code
-- a general-purpose shared agent runtime
+- a policy-heavy universal agent framework
 - long-term memory
 - multi-agent orchestration
 - a production SLA
@@ -1381,7 +1450,7 @@ At the beginning of implementation after the context reset:
 1. Read this entire file and the repository `AGENTS.md`.
 2. Inspect `git status` and preserve unrelated changes, especially the existing
    `.codex-breli-staging/` directory.
-3. Inspect the latest `@templar/ai` implementation and tests in case they changed
+3. Inspect the latest `@templar/llm` implementation and tests in case they changed
    after this plan.
 4. Verify the current official Exa TypeScript SDK/API surface and Cloudflare
    compatibility before adding a dependency.

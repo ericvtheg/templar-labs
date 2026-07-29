@@ -3,7 +3,6 @@ import { deployApp } from "@templar/deploy";
 import { d1Database, templarApp } from "@templar/deploy/cloudflare";
 import { devPort } from "@templar/dev-ports";
 import { withUsersMigrations } from "@templar/users/deploy";
-import alchemy from "alchemy";
 
 const project = "your-shopper";
 const domainName = "your-shopper.breli.app";
@@ -31,7 +30,6 @@ export const website = await templarApp("website", {
   url: false,
   db,
   bindings: {
-    API_AUTH_SECRET: alchemy.secret.env("YOUR_SHOPPER_API_AUTH_SECRET"),
     AUTH_ISSUER: authIssuer,
   },
 });

@@ -1,28 +1,28 @@
 import { Effect } from "effect";
-import type { AIOperation } from "./errors.ts";
-import type { AIUsage } from "./types.ts";
+import type { LLMOperation } from "./errors.ts";
+import type { LLMUsage } from "./types.ts";
 
-export type AILoggingInput = {
+export type LLMLoggingInput = {
   readonly provider: string;
-  readonly operation: AIOperation;
+  readonly operation: LLMOperation;
   readonly model?: string;
-  readonly usage?: AIUsage;
+  readonly usage?: LLMUsage;
   readonly finishReason?: string;
 };
 
-export function withAILogging(input: AILoggingInput) {
+export function withLLMLogging(input: LLMLoggingInput) {
   return <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     self.pipe(
-      Effect.tap(() => Effect.logDebug("ai operation completed")),
-      Effect.tapError((error) => Effect.logError("ai operation failed", error)),
-      Effect.annotateLogs(aiLogAnnotations(input)),
-      Effect.withLogSpan(`ai.${input.operation}`),
+      Effect.tap(() => Effect.logDebug("llm operation completed")),
+      Effect.tapError((error) => Effect.logError("llm operation failed", error)),
+      Effect.annotateLogs(llmLogAnnotations(input)),
+      Effect.withLogSpan(`llm.${input.operation}`),
     );
 }
 
-function aiLogAnnotations(input: AILoggingInput): Record<string, unknown> {
+function llmLogAnnotations(input: LLMLoggingInput): Record<string, unknown> {
   return {
-    package: "@templar/ai",
+    package: "@templar/llm",
     provider: input.provider,
     operation: input.operation,
     ...(input.model === undefined ? {} : { model: input.model }),

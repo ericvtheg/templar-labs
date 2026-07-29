@@ -22,7 +22,7 @@
     "@tanstack/react-router-ssr-query": "^1.131.7",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
-    "@templar/ai": "workspace:*",
+    "@templar/llm": "workspace:*",
     "@templar/auth": "workspace:*",
     "@templar/db": "workspace:*",
     "@templar/deploy": "workspace:*",

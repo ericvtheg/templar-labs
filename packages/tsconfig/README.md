@@ -19,7 +19,7 @@ For reusable TypeScript libraries under `packages/*`.
 Examples:
 
 - `packages/logger`
-- `packages/ai`
+- `packages/llm`
 - `packages/auth`
 - `packages/db`
 - `packages/email`

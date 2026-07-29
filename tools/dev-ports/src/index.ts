@@ -11,6 +11,7 @@ export const devPorts = {
   "templar-auth-web": 5181,
   "ui-showcase-web": 5174,
   "utils-web": 5179,
+  "your-shopper-web": 5182,
 } as const;
 
 export type DevPortName = keyof typeof devPorts;

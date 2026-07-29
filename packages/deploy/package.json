@@ -9,14 +9,19 @@
     "build": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "echo 'No tests configured yet.'",
+    "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@templar/config": "workspace:*",
     "alchemy": "^0.93.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260514.1",
+    "@types/node": "^24.12.4"
   },
   "exports": {
     ".": "./src/index.ts",

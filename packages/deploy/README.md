@@ -12,6 +12,7 @@ the underlying deployment model clear enough to debug.
 
 - standard resource naming
 - Cloudflare deployment wrappers
+- automatic Templar platform context
 - shared defaults for deployable app types
 - small utilities used by those wrappers
 
@@ -148,11 +149,33 @@ single production environment. Helpers may accept optional qualifiers for future
 cases, but projects should not model environments unless they actually need
 them.
 
+## Automatic Platform Context
+
+`templarApp` derives the application ID and environment from the active
+`deployApp` scope and binds the shared auth issuer from the central Templar
+platform definition. Every Templar app receives this typed runtime contract:
+
+```ts
+type TemplarPlatformEnv = {
+  readonly TEMPLAR_APP_ID: string;
+  readonly TEMPLAR_AUTH_ISSUER: string;
+  readonly TEMPLAR_ENVIRONMENT: "local" | "prod";
+};
+```
+
+Apps must not bind these values themselves. Local Alchemy runs receive
+`TEMPLAR_ENVIRONMENT=local`; deployments receive `prod`. The app ID is the
+name passed to `deployApp`, so it cannot drift from the deployment scope.
+
+Secrets remain explicit capabilities. Set `services.auth` to bind the shared
+auth secret, and set `services.ai` to bind the OpenRouter token. Apps that do
+not request those services never receive their credentials.
+
 ## Example
 
 ```ts
 import { deployApp } from "@templar/deploy";
-import { r2Bucket, tanstackStartApp } from "@templar/deploy/cloudflare";
+import { r2Bucket, templarApp } from "@templar/deploy/cloudflare";
 
 const app = await deployApp("hello-world");
 
@@ -160,11 +183,12 @@ const r2 = await r2Bucket("r2", {
   project: "hello-world",
 });
 
-export const website = await tanstackStartApp("website", {
-  project: "hello-world",
+export const website = await templarApp("website", {
   cwd: "apps/web",
-  bindings: {
-    R2: r2,
+  blob: r2,
+  domainName: "hello-world.breli.app",
+  services: {
+    auth: true,
   },
 });
 
@@ -176,6 +200,10 @@ await app.finalize();
 ## Naming Decisions
 
 Use `tanstackStartApp` for the TanStack Start wrapper.
+
+Use `templarApp` for Templar product apps. It composes the lower-level wrapper
+with platform metadata, optional platform services, domains, and common
+resource bindings.
 
 Use `cloudflareWorker` for a plain Cloudflare Worker wrapper.
 

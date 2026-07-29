@@ -1,17 +1,11 @@
 import { deployApp } from "@templar/deploy";
-import { d1Database, tanstackStartApp } from "@templar/deploy/cloudflare";
-import { devPort } from "@templar/dev-ports";
-import alchemy from "alchemy";
+import { d1Database, templarApp } from "@templar/deploy/cloudflare";
 import { EmailSender, RateLimit } from "alchemy/cloudflare";
 
 const project = "emma-eric-wedding";
 const domainName = "emmaand.ericventor.com";
 
 const app = await deployApp(project);
-const authBaseUrl = app.local
-  ? `http://localhost:${devPort("emma-eric-wedding-web")}`
-  : `https://${domainName}`;
-const authIssuer = "https://auth.breli.app";
 
 const db = await d1Database("db", {
   project,
@@ -29,25 +23,18 @@ const rsvpLookupRateLimit = RateLimit({
   },
 });
 
-export const website = await tanstackStartApp("website", {
-  project,
+export const website = await templarApp("website", {
   adopt: true,
   cwd: "apps/web",
+  domainName,
+  db,
+  services: {
+    auth: true,
+  },
   bindings: {
-    APP_ENV: app.local ? "local" : "prod",
-    AUTH_BASE_URL: authBaseUrl,
-    AUTH_ISSUER: authIssuer,
-    AUTH_SECRET: alchemy.secret.env("TEMPLAR_AUTH_SECRET"),
-    DB: db,
     EMAIL: email,
     RSVP_LOOKUP_RATE_LIMIT: rsvpLookupRateLimit,
   },
-  domains: [
-    {
-      domainName,
-      adopt: true,
-    },
-  ],
   url: false,
 });
 

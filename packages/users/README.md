@@ -9,7 +9,7 @@ import { createTemplarUserApp } from "@templar/users";
 
 const app = createTemplarUserApp({
   baseURL: "https://example.breli.app",
-  issuer: "https://auth.breli.app",
+  issuer: env.TEMPLAR_AUTH_ISSUER,
   secret: env.AUTH_SECRET,
   db: env.DB,
 });

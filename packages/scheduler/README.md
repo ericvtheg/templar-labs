@@ -37,7 +37,6 @@ import { schedulerCrons } from "@templar/scheduler";
 import { schedules } from "./apps/web/src/schedules.ts";
 
 export const website = await templarApp("website", {
-  project: "example",
   cwd: "apps/web",
   crons: schedulerCrons(schedules),
 });

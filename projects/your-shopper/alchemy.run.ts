@@ -6,7 +6,6 @@ import { withUsersMigrations } from "@templar/users/deploy";
 const project = "your-shopper";
 const domainName = "your-shopper.breli.app";
 const app = await deployApp(project);
-const authIssuer = "https://auth.breli.app";
 
 const db = await d1Database(
   "db",
@@ -20,14 +19,13 @@ const db = await d1Database(
 );
 
 export const website = await templarApp("website", {
-  project,
   adopt: true,
   cwd: "apps/web",
   domainName,
   url: false,
   db,
-  bindings: {
-    AUTH_ISSUER: authIssuer,
+  services: {
+    auth: true,
   },
 });
 

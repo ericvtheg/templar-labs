@@ -10,4 +10,9 @@ export {
   isLocal,
   isProd,
 } from "./environment.ts";
+export {
+  defaultTemplarAuthIssuer,
+  type TemplarPlatformEnv,
+  templarPlatformBindingNames,
+} from "./platform.ts";
 export { exposeSecret, optionalSecret, requiredSecret } from "./secret.ts";

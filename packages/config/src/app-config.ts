@@ -1,15 +1,16 @@
 import { Config, Context, Layer } from "effect";
 import { type AppEnvironment, appEnvironmentConfig } from "./environment.ts";
+import { templarPlatformBindingNames } from "./platform.ts";
 
 export type AppConfig = {
-  readonly appName: string;
-  readonly projectName: string;
+  readonly appId: string;
+  readonly authIssuer: string;
   readonly environment: AppEnvironment;
 };
 
 export const appConfigDescriptor: Config.Config<AppConfig> = Config.all({
-  appName: Config.string("APP_NAME"),
-  projectName: Config.string("PROJECT_NAME"),
+  appId: Config.string(templarPlatformBindingNames.appId),
+  authIssuer: Config.string(templarPlatformBindingNames.authIssuer),
   environment: appEnvironmentConfig,
 });
 

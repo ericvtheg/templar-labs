@@ -22,13 +22,15 @@ const db = await d1Database(
 );
 
 export const website = await templarApp("website", {
-  project,
   adopt: true,
   cwd: "apps/web",
   domainName,
   url: false,
   db,
-  templarBindings,
+  services: {
+    ai: true,
+    auth: true,
+  },
   bindings: {
     [templarBindings.elevenLabsApiKey]: alchemy.secret.env("ELEVENLABS_API_TOKEN"),
     [templarBindings.stripeSecretKey]: alchemy.secret.env("STRIPE_SECRET_KEY", ""),

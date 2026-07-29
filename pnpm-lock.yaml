@@ -365,6 +365,10 @@ importers:
       effect:
         specifier: ^3.21.2
         version: 3.21.2
+    devDependencies:
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
 
   packages/db:
     dependencies:
@@ -387,9 +391,19 @@ importers:
 
   packages/deploy:
     dependencies:
+      '@templar/config':
+        specifier: workspace:*
+        version: link:../config
       alchemy:
         specifier: ^0.93.7
         version: 0.93.7(@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260514.1)))(kysely@0.28.17)(stripe@18.5.0(@types/node@24.12.4))(vite@7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260514.1
+        version: 4.20260514.1
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
 
   packages/email:
     dependencies:

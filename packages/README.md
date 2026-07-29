@@ -232,7 +232,9 @@ other environment.
 
 Shared packages should assume:
 
-- `APP_ENV` is either `local` or `prod`.
+- `TEMPLAR_APP_ID` identifies the app created by `deployApp`.
+- `TEMPLAR_AUTH_ISSUER` is the shared first-party auth service.
+- `TEMPLAR_ENVIRONMENT` is either `local` or `prod`.
 - runtime secrets are distributed to deployed apps by deployment code, usually
   through Cloudflare bindings configured by `@templar/deploy`.
 - packages read and validate config; they do not distribute secrets.

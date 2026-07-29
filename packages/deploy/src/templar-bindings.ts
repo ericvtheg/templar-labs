@@ -1,7 +1,6 @@
 export type TemplarBindings = Readonly<Record<string, string>>;
 
 export type StandardTemplarBindings = TemplarBindings & {
-  readonly authBaseUrl: string;
   readonly authSecret: string;
   readonly cache: string;
   readonly db: string;
@@ -11,7 +10,6 @@ export type StandardTemplarBindings = TemplarBindings & {
 };
 
 export const defaultTemplarBindings = defineTemplarBindings({
-  authBaseUrl: "AUTH_BASE_URL",
   authSecret: "AUTH_SECRET",
   cache: "CACHE",
   db: "DB",

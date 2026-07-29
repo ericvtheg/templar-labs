@@ -1,18 +1,12 @@
 import { deployApp } from "@templar/deploy";
-import { tanstackStartApp } from "@templar/deploy/cloudflare";
+import { templarApp } from "@templar/deploy/cloudflare";
 
 const app = await deployApp("ui-showcase");
 
-export const website = await tanstackStartApp("website", {
-  project: "ui-showcase",
+export const website = await templarApp("website", {
   adopt: true,
   cwd: "apps/web",
-  domains: [
-    {
-      domainName: "ui-showcase.ericventor.com",
-      adopt: true,
-    },
-  ],
+  domainName: "ui-showcase.ericventor.com",
   url: false,
 });
 

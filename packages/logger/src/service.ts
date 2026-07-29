@@ -12,9 +12,8 @@ export const TemplarLoggerLive = Layer.unwrapEffect(
       Logger.minimumLogLevel(loggerConfig.level),
       Layer.scopedDiscard(
         Effect.annotateLogsScoped({
-          app: appConfig.appName,
+          app: appConfig.appId,
           env: appConfig.environment,
-          project: appConfig.projectName,
         }),
       ),
     );

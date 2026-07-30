@@ -6,9 +6,9 @@ import { comparisonReport } from "../eval/report.ts";
 import { evaluationResumeFingerprint, evaluationResumeManifest } from "../eval/resume.ts";
 import type { ComparisonArtifact, EvaluationStrategyResult } from "../eval/types.ts";
 
-test("development matrix starts with twelve varied missions", () => {
-  assert.equal(developmentCases.length, 12);
-  assert.equal(new Set(developmentCases.map(({ id }) => id)).size, 12);
+test("development matrix starts with thirteen varied missions", () => {
+  assert.equal(developmentCases.length, 13);
+  assert.equal(new Set(developmentCases.map(({ id }) => id)).size, 13);
   assert.deepEqual(
     new Set(developmentCases.map(({ track }) => track)),
     new Set(["clarification", "research_decision", "end_to_end"]),
@@ -19,6 +19,10 @@ test("development matrix starts with twelve varied missions", () => {
   );
   assert.equal(
     developmentCases.some(({ tags }) => tags.some((tag) => tag === "alternative-acquisition")),
+    true,
+  );
+  assert.equal(
+    developmentCases.some(({ tags }) => tags.some((tag) => tag === "travel")),
     true,
   );
 });

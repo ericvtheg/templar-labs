@@ -50,6 +50,7 @@ export type EvaluationStrategyResult = {
 };
 
 export type EvaluationLLMConfiguration = {
+  readonly backend?: "codex-cli-chatgpt";
   readonly model: string;
   readonly reasoning?: unknown;
   readonly temperature?: number;
@@ -122,7 +123,7 @@ export type EvaluationStrategyConfiguration = Omit<EvaluationStrategy, "runner">
 
 export type EvaluationResumeManifest = {
   readonly artifactVersion: "2";
-  readonly harnessVersion: "your-shopper-eval-v2-resume-safe";
+  readonly harnessVersion: "your-shopper-eval-v3-local-sol-judge";
   readonly evaluationCase: EvaluationCase;
   readonly strategies: ReadonlyArray<EvaluationStrategyConfiguration>;
   readonly evaluator: EvaluationLLMConfiguration;

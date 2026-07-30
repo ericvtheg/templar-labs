@@ -10,7 +10,12 @@ remain valid audit evidence; the post-run safety changes affected checkpoint reu
 and the opt-in Exa Agent baseline, not the recorded shopper outputs. No paid rerun was made solely
 to migrate artifact metadata.
 
-## Selected harness
+All scored runs below predate the local-judge change and used DeepSeek V4 Flash for protocol
+generation and judgment through OpenRouter. The current v3 harness instead locks both roles to
+subscription-backed local Codex `gpt-5.6-sol`, and the historical scores have not been mechanically
+rejudged. Manual-audit corrections called out below remain the authoritative caveats.
+
+## Historical harness used for these results
 
 | Role | Exact model |
 | --- | --- |
@@ -78,6 +83,74 @@ This targeted regression is not presented as a fresh four-case matrix. Substitut
 behavior changed by v9 yields the expected final shape—four completed shopper outputs, four ranking
 wins, and three strict reliability passes—but that composite is explicitly not a single run.
 
+## Travel retrieval and GPT-5.6 Luna finalizer probe
+
+A paired live probe on `stockholm-tokyo-flight` compared the existing MiniMax M3 research model
+with GPT-5.6 Luna or GLM 5.2 as the forced finalizer. The Luna run is stored in
+`eval/artifacts/2026-07-29T22-42-27.152Z`; the GLM run is stored in
+`eval/artifacts/2026-07-29T22-48-13.891Z`.
+
+| Finalizer | Shopper status | Shopper reliability | Shopper rank | Shopper cost | Shopper duration | Whole comparison cost |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| GPT-5.6 Luna | completed | failed | 2/2 | $0.0905 | 84.9 s | $0.2536 |
+| GLM 5.2 | completed | failed | 2/2 | $0.1169 | 58.7 s | $0.2917 |
+
+Neither shopper found a fully verified itinerary for the exact dates with at most one stop, no
+self-transfer, one checked bag, a total at or below 11,000 SEK, and a direct booking link. Luna
+produced the more concrete shopper answer: it retained exact-date Google Flights candidates and
+audited the missing return, baggage, currency, flight-number, and checkout evidence. GLM stayed at
+route and schedule-level tradeoffs and did not surface an exact-date candidate. Both disciplined
+generic controls ranked ahead of the shopper, and all four outputs failed strict reliability.
+
+This is evidence that Luna is a viable finalization candidate, not evidence that it should replace
+GLM. The runs used independent live research traces, random seeds, and generated protocols, so they
+do not isolate finalizer quality. The dominant failure was retrieval: generic web search could not
+obtain live, baggage-inclusive flight inventory and a stable direct booking offer. A fixed-evidence
+finalizer comparison and an integration-backed travel case are needed before changing the default.
+
+## Four-case GPT-5.6 Luna and GLM 5.2 sweep
+
+A matched live sweep used MiniMax M3 for research and compared GPT-5.6 Luna with GLM 5.2 as the
+forced finalizer on `dual-boiler-width-limit`, `refurbished-camera-kit`,
+`laptop-dock-compatibility`, and `impossible-compact-fridge`. The Luna run is stored in
+`eval/artifacts/2026-07-29T22-54-27.563Z`; the GLM run is stored in
+`eval/artifacts/2026-07-29T23-19-05.240Z`.
+
+| Finalizer | Automated shopper wins | Strict shopper reliability | Usable shopper answers after human audit | Shopper strategy cost | Whole comparison cost |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| GPT-5.6 Luna | 4/4 | 1/4 | 4/4 | $0.4223 | $0.8401 |
+| GLM 5.2 | 2/4 | 0/4 | 1/4 | $0.1994 | $0.5802 |
+
+Luna returned a normal no-tool synthesis in every shopper case. It found the stronger dual-boiler
+candidate without recommending it as fully verified, preserved the unresolved refurbished-lens
+and total-cost failures in the camera case, and correctly concluded that the fridge constraints
+required a tradeoff. The dock shopper was too conservative because its research did not verify a
+native candidate, but its answer remained well-formed and transparent.
+
+GLM's lower recorded cost is not a quality/cost win. Its finalizer emitted encoded `<tool_call>`
+text instead of an answer in the dual-boiler, camera, and dock shopper runs, and in all four
+disciplined-control runs, even though the provider reported `finishReason: stop`. Only the fridge
+shopper produced a usable synthesis. CoreWeave served all eight GLM finalization turns in this
+sweep; earlier successful GLM artifacts were served by a mix of CoreWeave, Friendli, and GMICloud,
+so provider-route or model variance remains a material operational risk.
+
+The automated Luna dock judgment is not trustworthy. Its reasoning claimed that an M3 MacBook Air
+cannot drive two external displays natively, but Apple's M3-specific support documentation says it
+can drive two simultaneously when the lid is closed. The judgment's ranking and hard-requirement
+audit should therefore be excluded from model-selection conclusions.
+
+The Luna run also exposed a cost outlier: the camera finalizer received about 94,000 input tokens
+and cost $0.0700 by itself. Context size and evidence selection should be controlled before treating
+Luna's cost profile as stable. One DeepSeek camera judge request timed out before checkpointed
+resume; its potential upstream cost is not represented in the successful artifact's recorded
+total.
+
+This sweep makes Luna the stronger operational finalization candidate under the current OpenRouter
+routes. It does not establish a broad quality win over a healthy GLM response because research
+traces and evaluator protocols were generated independently. A fixed-evidence replay remains the
+cleanest next comparison, while production use also needs a defense against encoded tool-call text
+being accepted as a completed final answer.
+
 ## Evaluation lessons
 
 - A judge that only ranks prose is not enough. Reliability now includes a schema-enforced audit of
@@ -97,7 +170,8 @@ wins, and three strict reliability passes—but that composite is explicitly not
 - Four final development cases are enough for directional signal, not statistical confidence.
 - Marketplace and retailer state is volatile; reruns can legitimately change outcomes.
 - The strict camera failure remains unresolved and should be part of the next holdout expansion.
-- DeepSeek occasionally violates the structured-output schema; one bounded correction is retained
-  and its usage is included in artifacts and cost.
+- The historical DeepSeek judge occasionally violated the structured-output schema; one bounded
+  correction was retained and its usage was included in artifacts and cost. The current local Sol
+  judge retains the same bounded schema-correction path.
 - Human audit is still required for economically important or surprising conclusions even when the
   structured judge passes them.

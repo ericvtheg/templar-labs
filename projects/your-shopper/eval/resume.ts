@@ -19,7 +19,7 @@ export function evaluationResumeManifest(input: {
 }): EvaluationResumeManifest {
   return {
     artifactVersion: "2",
-    harnessVersion: "your-shopper-eval-v2-resume-safe",
+    harnessVersion: "your-shopper-eval-v3-local-sol-judge",
     evaluationCase: input.evaluationCase,
     strategies: input.strategies.map(strategyConfiguration),
     evaluator: input.evaluator,

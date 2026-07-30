@@ -2,8 +2,9 @@
 
 The paid evaluation runner compares frozen strategy configurations against a request-specific
 protocol. It blinds and shuffles outputs, pools candidate URLs, independently re-fetches selected
-sources with claim-focused summaries, and asks a separate judge to rank outputs and audit every
-hard requirement. Live artifacts are written beneath `eval/artifacts` and ignored by Git.
+sources with claim-focused summaries, and asks a local subscription-backed Codex Sol judge to rank
+outputs and audit every hard requirement. Live artifacts are written beneath `eval/artifacts` and
+ignored by Git. The evaluation command is intentionally developer-only and is not run in CI.
 
 ## Cost-safe defaults
 
@@ -14,15 +15,25 @@ sweep:
 | --- | --- |
 | Research model | `minimax/minimax-m3` |
 | Finalization model | `z-ai/glm-5.2` |
-| Protocol model | `deepseek/deepseek-v4-flash` |
-| Judge model | `deepseek/deepseek-v4-flash` |
+| Protocol model | Local Codex CLI `gpt-5.6-sol` through ChatGPT authentication |
+| Judge model | Local Codex CLI `gpt-5.6-sol` through ChatGPT authentication |
 | Search | Exa Search and Contents through `@templar/web-search` |
 | Agent bounds | 8 model turns, 12 tool calls, 2 concurrent tools, 240 seconds |
 | Per-strategy bounds | $0.12 research soft limit, $0.20 hard limit |
 
+Protocol generation and judgment never use OpenRouter and cannot be switched to another model.
+`codex exec` runs ephemerally in a temporary directory, disables tools and web search, strips API-key
+environment variables, and reuses the machine's saved ChatGPT login. Its marginal API cost is
+recorded as zero while token usage remains in the artifact. OpenRouter is reserved for strategy
+model calls that exercise the production agent path. The real adapter refuses to start when a `CI`
+environment variable is present; unit tests inject a no-cost fake executor.
+
+The OpenRouter managed-search strategy is not in the default matrix. It remains an explicit
+benchmark only when that server-side search route is being considered as a production alternative.
+
 Exa Agent is not a default baseline. It is expensive and requires both an explicit strategy and
-`--allow-exa-agent`. Routine development uses the owned shopper, owned controls, and optionally the
-OpenRouter managed-search baseline. Exa Search remains the ordinary low-cost retrieval provider.
+`--allow-exa-agent`. Routine development uses the owned shopper and owned controls. Exa Search
+remains the ordinary low-cost retrieval provider.
 The Exa Agent timeout bounds local polling; because the baseline has no cancellation call, a timed
 out remote run may still finish and bill, which is another reason to use the baseline sparingly.
 
@@ -46,7 +57,7 @@ pnpm --filter your-shopper eval -- \
   --max-run-cost 0.50
 ```
 
-Pin every model role for a reproducible sweep:
+Pin every production model role for a reproducible sweep; the evaluator remains fixed to local Sol:
 
 ```sh
 pnpm --filter your-shopper eval -- \
@@ -54,14 +65,25 @@ pnpm --filter your-shopper eval -- \
   --strategy your-shopper,disciplined-generic-agent \
   --model minimax/minimax-m3 \
   --finalization-model z-ai/glm-5.2 \
-  --evaluator-model deepseek/deepseek-v4-flash \
-  --judge-model deepseek/deepseek-v4-flash \
   --strategy-concurrency 1 \
   --tool-concurrency 2 \
   --agent-timeout-ms 240000 \
   --evaluator-timeout-ms 300000 \
   --max-verification-candidates 24 \
   --max-run-cost 1.00
+```
+
+GPT-5.6 Luna remains registered as an exact finalization-model option for targeted experiments, but
+it is not a cost-saving default. In the July 2026 four-case sweep its usable shopper output cost was
+materially higher than GLM 5.2, including one unusually large finalization context:
+
+```sh
+pnpm --filter your-shopper eval -- \
+  --case stockholm-tokyo-flight \
+  --strategy your-shopper,disciplined-generic-agent \
+  --model minimax/minimax-m3 \
+  --finalization-model openai/gpt-5.6-luna \
+  --max-run-cost 0.50
 ```
 
 Resume stage checkpoints without repeating completed strategy or verification work:
@@ -87,7 +109,9 @@ pnpm --filter your-shopper eval -- \
   --exa-agent-timeout-ms 180000
 ```
 
-Required environment variables are `OPENROUTER_API_TOKEN` and `EXA_API_KEY`. The command reads the
+Required environment variables for the production-path strategy and retrieval calls are
+`OPENROUTER_API_TOKEN` and `EXA_API_KEY`. The local evaluator additionally requires the Codex login
+status to report ChatGPT authentication; it refuses API-key authentication. The command reads the
 ignored repository `.env` followed by `projects/your-shopper/.env`. Artifacts retain exact model,
-prompt version, controls, budgets, costs, raw traces, random seed, failed evaluator attempts, and
-source verification evidence.
+prompt version, controls, budgets, costs, local evaluator token usage, raw traces, random seed,
+failed evaluator attempts, and source verification evidence.

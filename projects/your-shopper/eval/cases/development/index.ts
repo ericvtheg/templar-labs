@@ -59,6 +59,15 @@ export const developmentCases = [
     tags: ["service", "logistics", "missing-context"],
   },
   {
+    id: "stockholm-tokyo-flight",
+    track: "research_decision",
+    intent:
+      "Find the best round-trip economy flight for one adult from Stockholm Arlanda to Tokyo, departing 10 April 2027 and returning 19 April 2027.",
+    context:
+      "Either Haneda or Narita is acceptable. Allow at most one stop each way, with no self-transfer. The total budget is 11,000 SEK including all mandatory fees and one checked bag. Give the exact flight numbers, schedules, connection airports, baggage allowance, current total bookable price, and a direct booking link. Prefer the shortest elapsed journey once every hard requirement is satisfied.",
+    tags: ["travel", "flight", "live-inventory", "schedule", "bundle", "price"],
+  },
+  {
     id: "refurbished-camera-kit",
     track: "research_decision",
     intent:

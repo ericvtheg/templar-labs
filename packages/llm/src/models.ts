@@ -10,6 +10,7 @@ export const exactModels = {
   qwen36Flash: "qwen/qwen3.6-flash",
   minimaxM3: "minimax/minimax-m3",
   glm52: "z-ai/glm-5.2",
+  gpt56Luna: "openai/gpt-5.6-luna",
   gpt56Sol: "openai/gpt-5.6-sol",
 } as const;
 

@@ -6,6 +6,7 @@ import { makeWebSearch } from "@templar/web-search";
 import { Effect } from "effect";
 import { writeComparisonArtifacts, writeEvaluationCheckpoint } from "./artifacts.ts";
 import { developmentCases } from "./cases/development/index.ts";
+import { codexEvaluationModel, makeCodexEvaluationLLM } from "./codex-evaluator.ts";
 import { compareStrategies } from "./compare.ts";
 import { comparisonReport } from "./report.ts";
 import { evaluationResumeFingerprint, evaluationResumeManifest } from "./resume.ts";
@@ -29,18 +30,16 @@ const cliArguments = process.argv.slice(2);
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const candidateModel = option("--model") ?? exactModels.minimaxM3;
 const finalizationModel = option("--finalization-model") ?? exactModels.glm52;
-const evaluatorModel = option("--evaluator-model") ?? exactModels.deepSeekV4Flash;
-const judgeModel = option("--judge-model") ?? evaluatorModel;
+const evaluatorTimeoutMs = integerOption("--evaluator-timeout-ms", 180_000);
 const evaluatorConfiguration = {
-  model: evaluatorModel,
+  backend: "codex-cli-chatgpt",
+  model: codexEvaluationModel,
   reasoning: { effort: "high" },
-  maxDurationMs: integerOption("--evaluator-timeout-ms", 180_000),
+  maxDurationMs: evaluatorTimeoutMs,
 } as const;
-const judgeConfiguration = {
-  model: judgeModel,
-  reasoning: { effort: "high" },
-  maxDurationMs: integerOption("--evaluator-timeout-ms", 180_000),
-} as const;
+const judgeConfiguration = evaluatorConfiguration;
+
+rejectRemoteEvaluatorOptions();
 
 if (cliArguments.includes("--list")) {
   printList();
@@ -56,6 +55,7 @@ async function runSelected(): Promise<void> {
     appName: "Your Shopper Evaluation",
     siteUrl: "https://templarlabs.com",
   });
+  const evaluatorLLM = makeCodexEvaluationLLM();
   const webSearch = makeWebSearch({ apiKey: exaApiKey });
   const ownedOptions = {
     llm,
@@ -156,7 +156,7 @@ async function runSelected(): Promise<void> {
       compareStrategies({
         evaluationCase,
         strategies,
-        evaluatorLLM: llm,
+        evaluatorLLM,
         evaluator: evaluatorConfiguration,
         judge: judgeConfiguration,
         webSearch,
@@ -336,12 +336,7 @@ function selectStrategies(
   const requested = option("--strategy")?.split(",").filter(Boolean);
   if (requested === undefined) {
     return available.filter(({ id }) =>
-      [
-        "your-shopper",
-        "generic-owned-agent",
-        "disciplined-generic-agent",
-        "openrouter-search-agent",
-      ].includes(id),
+      ["your-shopper", "generic-owned-agent", "disciplined-generic-agent"].includes(id),
     );
   }
   if (requested.includes("exa-agent") && !cliArguments.includes("--allow-exa-agent")) {
@@ -388,6 +383,17 @@ function option(name: string): string | undefined {
   return index < 0 ? undefined : cliArguments[index + 1];
 }
 
+function rejectRemoteEvaluatorOptions(): void {
+  const removed = ["--evaluator-model", "--judge-model"].filter((name) =>
+    cliArguments.includes(name),
+  );
+  if (removed.length > 0) {
+    throw new Error(
+      `${removed.join(", ")} is not supported. Evaluation protocols and judgments are always produced locally by ${codexEvaluationModel} through the authenticated Codex CLI.`,
+    );
+  }
+}
+
 function requiredEnvironment(name: string): string {
   // biome-ignore lint/style/noProcessEnv: This opt-in CLI entry point owns environment configuration.
   const value = process.env[name];
@@ -407,10 +413,14 @@ function printList(): void {
   console.log("  generic-owned-agent");
   console.log("  disciplined-generic-agent");
   console.log("  legacy-shopper-v1");
-  console.log("  openrouter-search-agent");
+  console.log("  openrouter-search-agent (explicit production-alternative benchmark)");
   console.log("  exa-agent (requires --allow-exa-agent)");
+  console.log("Exact model options:");
+  for (const model of Object.values(exactModels)) {
+    console.log(`  ${model}`);
+  }
   console.log(`Default candidate model: ${candidateModel}`);
   console.log(`Finalization model: ${finalizationModel}`);
-  console.log(`Default evaluator model: ${evaluatorModel}`);
-  console.log(`Default judge model: ${judgeModel}`);
+  console.log(`Protocol model: ${codexEvaluationModel} (local Codex CLI only)`);
+  console.log(`Judge model: ${codexEvaluationModel} (local Codex CLI only)`);
 }

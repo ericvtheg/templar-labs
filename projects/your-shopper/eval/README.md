@@ -8,13 +8,12 @@ ignored by Git. The evaluation command is intentionally developer-only and is no
 
 ## Cost-safe defaults
 
-The default owned harness uses the best cost/quality pairing found in the July 2026 development
-sweep:
+The default owned harness uses the current production model pairing:
 
 | Role | Default |
 | --- | --- |
 | Research model | `minimax/minimax-m3` |
-| Finalization model | `z-ai/glm-5.2` |
+| Finalization model | `openai/gpt-5.6-luna` |
 | Protocol model | Local Codex CLI `gpt-5.6-sol` through ChatGPT authentication |
 | Judge model | Local Codex CLI `gpt-5.6-sol` through ChatGPT authentication |
 | Search | Exa Search and Contents through `@templar/web-search` |
@@ -64,7 +63,7 @@ pnpm --filter your-shopper eval -- \
   --cases dual-boiler-width-limit,laptop-dock-compatibility \
   --strategy your-shopper,disciplined-generic-agent \
   --model minimax/minimax-m3 \
-  --finalization-model z-ai/glm-5.2 \
+  --finalization-model openai/gpt-5.6-luna \
   --strategy-concurrency 1 \
   --tool-concurrency 2 \
   --agent-timeout-ms 240000 \
@@ -73,18 +72,12 @@ pnpm --filter your-shopper eval -- \
   --max-run-cost 1.00
 ```
 
-GPT-5.6 Luna remains registered as an exact finalization-model option for targeted experiments, but
-it is not a cost-saving default. In the July 2026 four-case sweep its usable shopper output cost was
-materially higher than GLM 5.2, including one unusually large finalization context:
-
-```sh
-pnpm --filter your-shopper eval -- \
-  --case stockholm-tokyo-flight \
-  --strategy your-shopper,disciplined-generic-agent \
-  --model minimax/minimax-m3 \
-  --finalization-model openai/gpt-5.6-luna \
-  --max-run-cost 0.50
-```
+GPT-5.6 Luna became the default finalization model on 2026-07-31 after its OpenRouter pricing fell
+below GLM 5.2. The July four-case sweep also found Luna operationally stronger: all four shopper
+finalizations were usable after human audit, compared with one of four for GLM. Luna's recorded
+strategy cost was higher in that sweep because of an unusually large finalization context, so the
+historical artifact cost should not be read as the current list-price comparison. GLM 5.2 remains
+registered as an exact model for reproducing historical experiments.
 
 Resume stage checkpoints without repeating completed strategy or verification work:
 

@@ -14,7 +14,7 @@ test("default model is the balanced Templar tier", async () => {
 
   await Effect.runPromise(llm.generateText({ messages: [{ role: "user", content: "Hello" }] }));
 
-  assert.equal(received?.model, "deepseek/deepseek-v4-flash");
+  assert.equal(received?.model, "deepseek/deepseek-v4-flash-0731");
   assert.equal(received?.fallbackModels, undefined);
 });
 
@@ -50,7 +50,7 @@ test("explicit provider model identifiers bypass tier routing", async () => {
 
 test("exports exact model identifiers for reproducible evaluations", () => {
   assert.deepEqual(exactModels, {
-    deepSeekV4Flash: "deepseek/deepseek-v4-flash",
+    deepSeekV4Flash: "deepseek/deepseek-v4-flash-0731",
     qwen37Flash: "qwen/qwen3.7-flash",
     qwen36Flash: "qwen/qwen3.6-flash",
     minimaxM3: "minimax/minimax-m3",

@@ -5,7 +5,7 @@ export type LLMModelRoute = {
 
 /** Exact provider model IDs suitable for reproducible runs and eval matrices. */
 export const exactModels = {
-  deepSeekV4Flash: "deepseek/deepseek-v4-flash",
+  deepSeekV4Flash: "deepseek/deepseek-v4-flash-0731",
   qwen37Flash: "qwen/qwen3.7-flash",
   qwen36Flash: "qwen/qwen3.6-flash",
   minimaxM3: "minimax/minimax-m3",

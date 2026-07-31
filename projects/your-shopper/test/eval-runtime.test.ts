@@ -84,7 +84,7 @@ test("local Codex evaluator produces structured results without API cost", async
   const unsupportedModel = await Effect.runPromise(
     Effect.either(
       llm.generateObject({
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-flash-0731",
         messages: [{ role: "user", content: "Judge this." }],
         schema: zod.object({ verdict: zod.string() }),
       }),
@@ -544,7 +544,7 @@ test("OpenRouter managed-search baseline caps its server tool and retains citati
       request = input;
       return Effect.succeed({
         text: "Choose A.",
-        model: "deepseek/deepseek-v4-flash",
+        model: "deepseek/deepseek-v4-flash-0731",
         provider: "openrouter",
         usage: { costUsd: 0.004 },
         raw: {
@@ -568,7 +568,7 @@ test("OpenRouter managed-search baseline caps its server tool and retains citati
   } as LLMService;
   const strategy = openRouterSearchStrategy({
     llm,
-    model: "deepseek/deepseek-v4-flash",
+    model: "deepseek/deepseek-v4-flash-0731",
     engine: "parallel",
     maxUses: 3,
     maxResults: 5,
@@ -607,7 +607,7 @@ test("OpenRouter managed-search baseline interrupts a hanging provider request",
   } as LLMService;
   const strategy = openRouterSearchStrategy({
     llm,
-    model: "deepseek/deepseek-v4-flash",
+    model: "deepseek/deepseek-v4-flash-0731",
     maxDurationMs: 5,
   });
 

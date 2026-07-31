@@ -4,6 +4,10 @@ Recorded 2026-07-29. These are development results, not a permanent leaderboard.
 inventory changes and the matrix is intentionally small; exact ignored artifacts remain under
 `eval/artifacts` for local audit.
 
+The production and evaluation-runner finalization default changed from GLM 5.2 to GPT-5.6 Luna on
+2026-07-31 after OpenRouter's Luna price reduction. The tables below preserve the exact models and
+costs of the recorded historical runs.
+
 The recorded live runs use artifact format v1. The current runner writes v2 artifacts with a
 canonical paid-stage resume fingerprint and intentionally refuses to resume v1 data. The v1 runs
 remain valid audit evidence; the post-run safety changes affected checkpoint reuse, cost gates,

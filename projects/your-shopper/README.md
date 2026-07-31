@@ -12,10 +12,10 @@ your-shopper-agent
   → @templar/web-search  Exa-backed search and contents
 ```
 
-The current evaluated default uses MiniMax M3 for tool-driven research and GLM 5.2 only for
-forced finalization. Both run through OpenRouter. DeepSeek V4 Flash authors the evaluation protocol
-and performs the blinded hard-requirement audit. Exa supplies Search and Contents; the production
-agent never delegates its run to Exa Agent.
+The current default uses MiniMax M3 for tool-driven research and GPT-5.6 Luna only for forced
+finalization. Both run through OpenRouter. A local subscription-backed GPT-5.6 Sol model authors
+the evaluation protocol and performs the blinded hard-requirement audit. Exa supplies Search and
+Contents; the production agent never delegates its run to Exa Agent.
 
 The web application has a public landing page and an admin-only dashboard for issuing and revoking
 app-local credentials. `POST /api/v1/runs` accepts a buying brief under the `runs:create`

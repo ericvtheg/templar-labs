@@ -3,7 +3,7 @@
 ## Status
 
 This document records the agreed product and implementation direction as of
-2026-07-29. It is intended to be sufficient context for beginning implementation
+2026-07-31. It is intended to be sufficient context for beginning implementation
 in a fresh agent context without re-deriving the architecture.
 
 The product is named **Your Shopper**.
@@ -14,11 +14,11 @@ Architecture amendment agreed on 2026-07-29: the provider integration is named
 
 Implementation update: the local agent stack, Exa-backed retrieval package,
 tool-capable LLM layer, exact-model controls, resumable paid evaluation harness,
-and development matrix are implemented. The current evaluated product default
-uses MiniMax M3 for research and GLM 5.2 for forced finalization through
-OpenRouter. DeepSeek V4 Flash creates the frozen protocol and judges blinded
-outputs with per-hard-requirement audits. Exa Agent is an expensive explicit
-opt-in baseline and is not part of routine development or the product run.
+and development matrix are implemented. The current product default uses MiniMax M3 for research
+and GPT-5.6 Luna for forced finalization through OpenRouter. A local subscription-backed GPT-5.6
+Sol model creates the frozen protocol and judges blinded outputs with per-hard-requirement audits.
+Exa Agent is an expensive explicit opt-in baseline and is not part of routine development or the
+product run.
 
 The deployed web app now exposes the first thin product surface: a public
 landing page, admin-only API-key management, and synchronous authenticated

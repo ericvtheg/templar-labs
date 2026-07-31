@@ -68,7 +68,7 @@ test("openrouter service configures Auto Beta for cost-biased routing", async ()
 
       return Promise.resolve(
         Response.json({
-          model: "deepseek/deepseek-v4-flash",
+          model: "deepseek/deepseek-v4-flash-0731",
           choices: [{ message: { content: "Hello" } }],
         }),
       );

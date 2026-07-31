@@ -36,7 +36,7 @@ export type ShopperAgentConfig = {
 };
 
 export const defaultShopperModel = exactModels.minimaxM3;
-export const defaultShopperFinalizationModel = exactModels.glm52;
+export const defaultShopperFinalizationModel = exactModels.gpt56Luna;
 export const defaultShopperSoftCostLimitUsd = 0.12;
 export const defaultShopperHardCostLimitUsd = 0.2;
 

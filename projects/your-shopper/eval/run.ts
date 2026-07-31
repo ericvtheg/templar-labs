@@ -29,7 +29,7 @@ import type {
 const cliArguments = process.argv.slice(2);
 const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const candidateModel = option("--model") ?? exactModels.minimaxM3;
-const finalizationModel = option("--finalization-model") ?? exactModels.glm52;
+const finalizationModel = option("--finalization-model") ?? exactModels.gpt56Luna;
 const evaluatorTimeoutMs = integerOption("--evaluator-timeout-ms", 180_000);
 const evaluatorConfiguration = {
   backend: "codex-cli-chatgpt",

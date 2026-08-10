@@ -94,7 +94,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         <path className="plant-sway plant-small" d="M118 760C129 605 193 470 296 315" />
         <path className="plant-sway plant-tall" d="M250 760C271 555 327 364 387 180" />
         <path className="plant-sway plant-mid" d="M389 760C405 590 436 470 480 421" />
-        <path className="plant-sway plant-right" d="M521 760C520 600 543 445 626 292" />
+        <path className="plant-sway plant-right" d="M521 760C520 600 543 445 638 270" />
       </g>
 
       <g className="garden-leaves" filter={`url(#${textureId})`}>
@@ -202,7 +202,7 @@ export function StateFlowerPair({ className = "" }: { readonly className?: strin
       xmlns="http://www.w3.org/2000/svg"
     >
       <g className="state-flower-stems">
-        <path d="M118 298c-4-74 7-136 31-188" />
+        <path d="M118 298c-4-74 7-136 38-204" />
         <path d="M334 298c0-74-12-137-31-193" />
       </g>
 

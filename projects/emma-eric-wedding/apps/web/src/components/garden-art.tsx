@@ -93,7 +93,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
       <g className="garden-stems" fill="none" strokeLinecap="round">
         <path className="plant-sway plant-small" d="M118 760C129 605 193 470 296 315" />
         <path className="plant-sway plant-tall" d="M250 760C271 555 327 364 387 180" />
-        <path className="plant-sway plant-mid" d="M389 760C405 590 466 470 530 421" />
+        <path className="plant-sway plant-mid" d="M389 760C405 590 450 470 500 421" />
         <path className="plant-sway plant-right" d="M521 760C520 600 557 445 646 292" />
       </g>
 
@@ -133,7 +133,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         className="flower flower-sunflower flower-mid plant-sway plant-mid"
         filter={`url(#${textureId})`}
       >
-        <SunflowerBloom x={530} y={380} />
+        <SunflowerBloom x={500} y={380} />
       </g>
 
       <g

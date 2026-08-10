@@ -5,6 +5,42 @@ type GardenArtworkProps = {
   readonly compact?: boolean;
 };
 
+type SunflowerBloomProps = {
+  readonly scale?: number;
+  readonly x: number;
+  readonly y: number;
+};
+
+function SunflowerBloom({ scale = 1, x, y }: SunflowerBloomProps) {
+  return (
+    <g className="sunflower-bloom" transform={`translate(${x} ${y}) scale(${scale})`}>
+      <g className="sunflower-petals">
+        <path d="M0-32C-18-50-18-74 1-96c19 23 17 48-1 64Z" />
+        <path d="M0-32C-15-51-12-80 4-91c15 19 12 43-4 59Z" transform="rotate(35)" />
+        <path d="M0-32C-20-48-22-70-4-88c22 14 23 38 4 56Z" transform="rotate(72)" />
+        <path d="M0-32C-17-52-13-77 5-94c17 22 13 47-5 62Z" transform="rotate(109)" />
+        <path d="M0-32C-20-47-19-72-1-90c20 18 19 42 1 58Z" transform="rotate(144)" />
+        <path d="M0-32C-14-53-10-78 7-92c15 22 10 46-7 60Z" transform="rotate(181)" />
+        <path d="M0-32C-19-49-21-73-2-95c20 21 20 46 2 63Z" transform="rotate(218)" />
+        <path d="M0-32C-17-48-14-72 3-88c18 19 15 41-3 56Z" transform="rotate(254)" />
+        <path d="M0-32C-21-51-18-78 2-93c18 22 16 46-2 61Z" transform="rotate(291)" />
+        <path d="M0-32C-15-49-13-74 5-90c17 20 12 43-5 58Z" transform="rotate(327)" />
+      </g>
+      <circle className="sunflower-seed-ring" r="38" />
+      <circle className="sunflower-core" r="27" />
+      <g className="sunflower-seeds">
+        <circle cx="-10" cy="-10" r="3" />
+        <circle cx="3" cy="-13" r="2.5" />
+        <circle cx="13" cy="-4" r="3" />
+        <circle cx="10" cy="10" r="2.5" />
+        <circle cx="-3" cy="14" r="3" />
+        <circle cx="-14" cy="6" r="2.5" />
+        <circle cx="-1" cy="1" r="2.5" />
+      </g>
+    </g>
+  );
+}
+
 export function GardenArtwork({ className = "", compact = false }: GardenArtworkProps) {
   const reactId = useId();
   const textureId = `garden-texture-${reactId.replaceAll(":", "")}`;
@@ -56,8 +92,11 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         filter={`url(#${textureId})`}
         transform="translate(9)"
       >
-        <path d="M348 214c-47-59-39-130 21-168 37 52 39 113-21 168Z" />
-        <path d="M402 207c-25-72 8-130 70-145 19 65 1 118-70 145Z" />
+        <path
+          className="flower-pink-accent"
+          d="M348 214c-47-59-39-130 21-168 37 52 39 113-21 168Z"
+        />
+        <path className="flower-pink-accent" d="M402 207c-25-72 8-130 70-145 19 65 1 118-70 145Z" />
         <path d="M359 217c12-83 60-139 110-148 3 80-33 133-110 148Z" />
         <path className="flower-highlight" d="M359 217c-22-70-1-130 53-164 32 67 17 125-53 164Z" />
       </g>
@@ -66,22 +105,7 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         className="flower flower-sunflower flower-mid plant-sway plant-mid"
         filter={`url(#${textureId})`}
       >
-        <g className="sunflower-petals">
-          <ellipse cx="530" cy="320" rx="17" ry="39" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(30 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(60 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(90 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(120 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(150 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(180 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(210 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(240 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(270 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(300 530 380)" />
-          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(330 530 380)" />
-        </g>
-        <circle className="sunflower-seed-ring" cx="530" cy="380" r="43" />
-        <circle className="sunflower-seeds" cx="530" cy="380" r="30" />
+        <SunflowerBloom x={530} y={380} />
       </g>
 
       <g
@@ -183,22 +207,7 @@ export function StateFlowerPair({ className = "" }: { readonly className?: strin
       </g>
 
       <g className="state-sunflower">
-        <g className="state-sunflower-petals">
-          <ellipse cx="303" cy="39" rx="17" ry="39" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(30 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(60 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(90 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(120 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(150 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(180 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(210 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(240 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(270 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(300 303 105)" />
-          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(330 303 105)" />
-        </g>
-        <circle className="state-sunflower-center" cx="303" cy="105" r="45" />
-        <circle className="state-sunflower-core" cx="303" cy="105" r="27" />
+        <SunflowerBloom scale={0.78} x={303} y={105} />
       </g>
     </svg>
   );

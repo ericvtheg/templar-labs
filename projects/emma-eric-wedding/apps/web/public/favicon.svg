@@ -2,16 +2,19 @@
   <rect width="64" height="64" rx="16" fill="#fbf6ee"/>
   <path d="M21 55c0-11 0-21 1-29M44 55c0-10-1-19-3-28" fill="none" stroke="#7c8435" stroke-width="4" stroke-linecap="round"/>
   <g fill="#f3bd63">
-    <ellipse cx="21" cy="14" rx="4" ry="9"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(45 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(90 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(135 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(180 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(225 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(270 21 23)"/>
-    <ellipse cx="21" cy="14" rx="4" ry="9" transform="rotate(315 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(45 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(90 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(135 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(180 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(225 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(270 21 23)"/>
+    <path d="M21 18c-4-4-4-10 1-15 4 5 3 11-1 15Z" transform="rotate(315 21 23)"/>
   </g>
   <circle cx="21" cy="23" r="6" fill="#b79824"/>
+  <circle cx="21" cy="23" r="4" fill="#7c8435"/>
+  <circle cx="19" cy="21" r="1" fill="#f3bd63"/>
+  <circle cx="23" cy="24" r="1" fill="#f3bd63"/>
   <g fill="#fe5e31">
     <path d="M43 30c-8 0-13-4-14-10 5-5 11-2 15 6Z"/>
     <path d="M43 26c-6-6-5-13 1-17 7 4 8 12 2 18Z"/>

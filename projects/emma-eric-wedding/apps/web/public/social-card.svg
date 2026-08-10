@@ -35,21 +35,30 @@
       <path d="M102 368c3-62 38-105 80-116 7 58-18 101-80 116Z" fill="#f3bd63"/>
     </g>
 
-    <g fill="#f3bd63">
-      <ellipse cx="408" cy="202" rx="18" ry="42"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(30 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(60 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(90 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(120 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(150 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(180 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(210 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(240 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(270 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(300 408 270)"/>
-      <ellipse cx="408" cy="202" rx="18" ry="42" transform="rotate(330 408 270)"/>
-      <circle cx="408" cy="270" r="45" fill="#b79824"/>
-      <circle cx="408" cy="270" r="25" fill="#41451f"/>
+    <g transform="translate(408 270)">
+      <g fill="#f3bd63">
+        <path d="M0-32C-18-50-18-74 1-96c19 23 17 48-1 64Z"/>
+        <path d="M0-32C-15-51-12-80 4-91c15 19 12 43-4 59Z" transform="rotate(35)"/>
+        <path d="M0-32C-20-48-22-70-4-88c22 14 23 38 4 56Z" transform="rotate(72)"/>
+        <path d="M0-32C-17-52-13-77 5-94c17 22 13 47-5 62Z" transform="rotate(109)"/>
+        <path d="M0-32C-20-47-19-72-1-90c20 18 19 42 1 58Z" transform="rotate(144)"/>
+        <path d="M0-32C-14-53-10-78 7-92c15 22 10 46-7 60Z" transform="rotate(181)"/>
+        <path d="M0-32C-19-49-21-73-2-95c20 21 20 46 2 63Z" transform="rotate(218)"/>
+        <path d="M0-32C-17-48-14-72 3-88c18 19 15 41-3 56Z" transform="rotate(254)"/>
+        <path d="M0-32C-21-51-18-78 2-93c18 22 16 46-2 61Z" transform="rotate(291)"/>
+        <path d="M0-32C-15-49-13-74 5-90c17 20 12 43-5 58Z" transform="rotate(327)"/>
+      </g>
+      <circle r="38" fill="#b79824"/>
+      <circle r="27" fill="#7c8435"/>
+      <g fill="#f3bd63">
+        <circle cx="-10" cy="-10" r="3"/>
+        <circle cx="3" cy="-13" r="2.5"/>
+        <circle cx="13" cy="-4" r="3"/>
+        <circle cx="10" cy="10" r="2.5"/>
+        <circle cx="-3" cy="14" r="3"/>
+        <circle cx="-14" cy="6" r="2.5"/>
+        <circle cx="-1" cy="1" r="2.5"/>
+      </g>
     </g>
 
     <g transform="translate(-28)">

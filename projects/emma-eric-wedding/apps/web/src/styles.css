@@ -1612,6 +1612,10 @@ a {
   fill: var(--coral);
 }
 
+.flower-pink-accent {
+  fill: var(--pink);
+}
+
 .flower-sunflower {
   fill: var(--marigold);
 }
@@ -1641,12 +1645,12 @@ a {
   fill: var(--ochre);
 }
 
+.sunflower-core {
+  fill: var(--leaf);
+}
+
 .sunflower-seeds {
-  fill: none;
-  stroke: var(--olive);
-  stroke-dasharray: 1 7;
-  stroke-linecap: round;
-  stroke-width: 5;
+  fill: var(--sunflower);
 }
 
 .poppy-petals {
@@ -1685,24 +1689,12 @@ a {
   fill: var(--orange);
 }
 
-.state-sunflower-core {
-  fill: var(--olive);
-}
-
 .state-poppy-cup {
   fill: var(--sunflower);
 }
 
 .state-poppy-stamens {
   fill: var(--olive);
-}
-
-.state-sunflower-petals {
-  fill: var(--sunflower);
-}
-
-.state-sunflower-center {
-  fill: var(--ochre);
 }
 
 .garden-artwork .plant-sway {

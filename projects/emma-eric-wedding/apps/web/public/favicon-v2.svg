@@ -13,10 +13,10 @@
   </g>
   <circle cx="21" cy="23" r="6" fill="#b79824"/>
   <g fill="#fe5e31">
-    <ellipse cx="38" cy="23" rx="9" ry="7" transform="rotate(25 38 23)"/>
-    <ellipse cx="46" cy="21" rx="9" ry="7" transform="rotate(-30 46 21)"/>
-    <ellipse cx="40" cy="15" rx="7" ry="9"/>
-    <ellipse cx="43" cy="29" rx="7" ry="9" fill="#f6863e"/>
+    <path d="M43 30c-8 0-13-4-14-10 5-5 11-2 15 6Z"/>
+    <path d="M43 26c-6-6-5-13 1-17 7 4 8 12 2 18Z"/>
+    <path d="M46 26c1-8 6-13 12-13 4 7 0 14-11 17Z"/>
+    <path d="M47 29c5-7 11-8 14-3-1 7-7 10-15 5Z" fill="#f6863e"/>
   </g>
-  <circle cx="42" cy="23" r="4" fill="#41451f"/>
+  <path d="M40 28c3-2 7-2 10 0-1 4-3 5-5 5-3 0-4-1-5-5Z" fill="#f3bd63"/>
 </svg>

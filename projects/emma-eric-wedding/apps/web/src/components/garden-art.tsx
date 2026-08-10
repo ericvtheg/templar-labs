@@ -74,23 +74,47 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
       </g>
 
       <g
-        className="flower flower-marigold flower-mid plant-sway plant-mid"
+        className="flower flower-sunflower flower-mid plant-sway plant-mid"
         filter={`url(#${textureId})`}
       >
-        <circle cx="509" cy="371" r="58" />
-        <circle cx="555" cy="392" r="55" />
-        <circle cx="533" cy="339" r="51" />
-        <circle className="flower-highlight" cx="512" cy="392" r="47" />
-        <circle className="flower-center" cx="530" cy="381" r="18" />
+        <g className="sunflower-petals">
+          <ellipse cx="530" cy="320" rx="17" ry="39" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(30 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(60 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(90 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(120 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(150 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(180 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(210 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(240 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(270 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(300 530 380)" />
+          <ellipse cx="530" cy="320" rx="17" ry="39" transform="rotate(330 530 380)" />
+        </g>
+        <circle className="sunflower-seed-ring" cx="530" cy="380" r="43" />
+        <circle className="sunflower-seeds" cx="530" cy="380" r="30" />
       </g>
 
       <g
-        className="flower flower-red flower-right plant-sway plant-right"
+        className="flower flower-poppy flower-right plant-sway plant-right"
         filter={`url(#${textureId})`}
       >
-        <path d="M582 360c-35-65-16-123 35-151 31 53 25 107-35 151Z" />
-        <path d="M625 359c-7-70 30-117 82-118 7 59-21 104-82 118Z" />
-        <path className="flower-highlight" d="M603 366c-14-72 12-121 62-137 18 62 2 108-62 137Z" />
+        <g className="poppy-petals">
+          <path d="M620 338c-43 8-75-13-76-48 28-24 62-11 80 26Z" />
+          <path d="M621 328c-23-35-15-70 18-88 30 23 26 61-4 91Z" />
+          <path d="M630 331c28-34 66-34 83-5-14 36-54 43-85 19Z" />
+          <path d="M627 341c31 17 36 48 12 67-36-4-49-34-26-66Z" />
+        </g>
+        <circle className="poppy-center" cx="625" cy="336" r="19" />
+        <g className="poppy-stamens">
+          <circle cx="603" cy="330" r="4" />
+          <circle cx="612" cy="315" r="4" />
+          <circle cx="631" cy="311" r="4" />
+          <circle cx="646" cy="324" r="4" />
+          <circle cx="646" cy="345" r="4" />
+          <circle cx="629" cy="357" r="4" />
+          <circle cx="608" cy="350" r="4" />
+        </g>
       </g>
 
       <g className="flower flower-small plant-sway plant-small" filter={`url(#${textureId})`}>
@@ -133,6 +157,54 @@ export function BotanicalStamp({ className = "" }: { readonly className?: string
       <path d="M104 110c-35-10-56-35-60-70 39 9 60 34 60 70Z" />
       <path d="M108 92c5-35 27-58 60-67-3 36-23 58-60 67Z" />
       <path d="M88 145c-27-5-45-20-54-45 31 2 49 17 54 45Z" />
+    </svg>
+  );
+}
+
+export function StateFlowerPair({ className = "" }: { readonly className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 460 300"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g className="state-flower-stems">
+        <path d="M118 298c-4-74 7-136 30-189" />
+        <path d="M334 298c0-74-12-137-31-193" />
+      </g>
+
+      <path className="state-flower-leaf" d="M120 240c-47-15-69-46-66-91 46 16 69 46 66 91Z" />
+      <path className="state-flower-leaf" d="M332 231c51-10 83-37 94-79-51 8-82 34-94 79Z" />
+
+      <g className="state-poppy">
+        <g className="state-poppy-petals">
+          <path d="M147 111c-54 10-92-16-91-58 37-31 79-12 96 34Z" />
+          <path d="M147 98c-28-40-17-73 23-87 37 25 31 61-8 91Z" />
+          <path d="M158 102c35-41 81-38 99-1-20 42-68 48-102 16Z" />
+          <path d="M153 114c38 22 41 61 10 81-43-8-57-46-25-81Z" />
+        </g>
+        <circle className="state-poppy-center" cx="151" cy="106" r="23" />
+      </g>
+
+      <g className="state-sunflower">
+        <g className="state-sunflower-petals">
+          <ellipse cx="303" cy="39" rx="17" ry="39" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(30 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(60 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(90 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(120 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(150 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(180 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(210 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(240 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(270 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(300 303 105)" />
+          <ellipse cx="303" cy="39" rx="17" ry="39" transform="rotate(330 303 105)" />
+        </g>
+        <circle className="state-sunflower-center" cx="303" cy="105" r="45" />
+        <circle className="state-sunflower-core" cx="303" cy="105" r="27" />
+      </g>
     </svg>
   );
 }

@@ -8,16 +8,21 @@
 :root {
   --paper: #fbf6ee;
   --paper-deep: #f5ebde;
-  --blush: #fbede8;
-  --coral: #f27b76;
-  --poppy: #ef5351;
-  --marigold: #f8b942;
-  --tangerine: #f58a2a;
-  --leaf: #6e982c;
-  --leaf-light: #a8c744;
-  --olive: #44472f;
-  --olive-muted: #6f715b;
-  --hairline: rgb(68 71 47 / 18%);
+  --blush: #ffede8;
+  --pink: #ffa5a3;
+  --orange: #f6863e;
+  --sunflower: #f3bd63;
+  --ochre: #b79824;
+  --leaf: #7c8435;
+  --poppy: #fe5e31;
+  --poppy-text: #9f3217;
+  --coral: var(--orange);
+  --marigold: var(--sunflower);
+  --tangerine: var(--ochre);
+  --leaf-light: var(--ochre);
+  --olive: #41451f;
+  --olive-muted: #6b6d4d;
+  --hairline: rgb(65 69 31 / 18%);
   --motion-bloom: cubic-bezier(0.16, 1, 0.3, 1);
   --motion-draw: cubic-bezier(0.2, 0.8, 0.2, 1);
   color: var(--olive);
@@ -74,8 +79,8 @@ a {
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 8% 16%, rgb(248 185 66 / 12%), transparent 22rem),
-    radial-gradient(circle at 92% 10%, rgb(242 123 118 / 11%), transparent 25rem), var(--paper);
+    radial-gradient(circle at 8% 16%, rgb(243 189 99 / 12%), transparent 22rem),
+    radial-gradient(circle at 92% 10%, rgb(246 134 62 / 11%), transparent 25rem), var(--paper);
   isolation: isolate;
 }
 
@@ -99,7 +104,7 @@ a {
 }
 
 .admin-botanical path {
-  fill: rgb(110 152 44 / 9%);
+  fill: rgb(124 132 53 / 9%);
   stroke: var(--leaf);
   stroke-width: 2;
 }
@@ -139,7 +144,7 @@ a {
 }
 
 .admin-monogram .monogram-ampersand {
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-family: "Borel", cursive;
   font-size: 0.9em;
 }
@@ -330,7 +335,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 1.5rem;
   background: rgb(255 255 255 / 44%);
-  box-shadow: 0 20px 70px rgb(68 71 47 / 6%);
+  box-shadow: 0 20px 70px rgb(65 69 31 / 6%);
   overflow: hidden;
 }
 
@@ -372,7 +377,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 2rem;
   background: rgb(255 255 255 / 48%);
-  box-shadow: 0 20px 70px rgb(68 71 47 / 6%);
+  box-shadow: 0 20px 70px rgb(65 69 31 / 6%);
 }
 
 .admin-rsvp-settings form {
@@ -398,7 +403,7 @@ a {
   width: 1.1rem;
   height: 1.1rem;
   margin: 0;
-  accent-color: var(--poppy);
+  accent-color: var(--poppy-text);
 }
 
 .admin-rsvp-open-toggle > span {
@@ -445,7 +450,7 @@ a {
 .admin-enrollment-card,
 .admin-roster-card {
   border: 1px solid var(--hairline);
-  box-shadow: 0 24px 80px rgb(68 71 47 / 7%);
+  box-shadow: 0 24px 80px rgb(65 69 31 / 7%);
 }
 
 .admin-enrollment-card {
@@ -514,13 +519,13 @@ a {
 
 .admin-field input::placeholder,
 .admin-search input::placeholder {
-  color: rgb(111 113 91 / 65%);
+  color: rgb(107 109 77 / 65%);
 }
 
 .admin-field input:focus,
 .admin-search input:focus {
-  border-color: rgb(239 83 81 / 65%);
-  box-shadow: 0 0 0 3px rgb(239 83 81 / 10%);
+  border-color: rgb(254 94 49 / 65%);
+  box-shadow: 0 0 0 3px rgb(254 94 49 / 10%);
 }
 
 .admin-contact-grid {
@@ -560,7 +565,7 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem 1rem;
   padding: 1rem;
-  border: 1px solid rgb(68 71 47 / 13%);
+  border: 1px solid rgb(65 69 31 / 13%);
   border-radius: 1.2rem;
   background: rgb(255 255 255 / 36%);
 }
@@ -586,7 +591,7 @@ a {
   width: 1.1rem;
   height: 1.1rem;
   margin: 0;
-  accent-color: var(--poppy);
+  accent-color: var(--poppy-text);
 }
 
 .admin-plus-one-toggle > span {
@@ -641,14 +646,14 @@ a {
   width: 1rem;
   height: 1rem;
   margin: 0;
-  accent-color: var(--poppy);
+  accent-color: var(--poppy-text);
 }
 
 .admin-remove-person {
   justify-self: end;
   padding: 0;
   border: 0;
-  color: #a93e3c;
+  color: #9f3217;
   background: transparent;
   font-size: 0.68rem;
   font-weight: 700;
@@ -740,7 +745,7 @@ a {
 
 .admin-secondary-button:hover,
 .admin-secondary-button:focus-visible {
-  border-color: rgb(68 71 47 / 32%);
+  border-color: rgb(65 69 31 / 32%);
   background: rgb(255 255 255 / 72%);
   transform: translateY(-2px);
 }
@@ -749,7 +754,7 @@ a {
   margin-left: auto;
   padding: 0;
   border: 0;
-  color: #a93e3c;
+  color: #9f3217;
   background: transparent;
   font-size: 0.68rem;
   font-weight: 750;
@@ -803,7 +808,7 @@ a {
 
 .admin-delete-confirmation button:first-child {
   color: var(--paper);
-  background: #a93e3c;
+  background: #9f3217;
 }
 
 .admin-roster-header {
@@ -826,7 +831,7 @@ a {
   border: 1px solid rgb(169 62 60 / 28%);
   border-radius: 999px;
   color: var(--paper);
-  background: #a93e3c;
+  background: #9f3217;
   font-size: 0.62rem;
   font-weight: 780;
   letter-spacing: 0.08em;
@@ -885,9 +890,9 @@ a {
 .admin-edit-household {
   min-height: 30px;
   padding: 0.35rem 0.65rem;
-  border: 1px solid rgb(242 123 118 / 35%);
+  border: 1px solid rgb(246 134 62 / 35%);
   border-radius: 999px;
-  color: #a93e3c;
+  color: #9f3217;
   background: rgb(251 237 232 / 55%);
   font-size: 0.6rem;
   font-weight: 780;
@@ -938,9 +943,9 @@ a {
 .admin-household-message {
   margin: 1rem 0 0;
   padding: 0.85rem 1rem;
-  border-left: 3px solid rgb(110 152 44 / 42%);
+  border-left: 3px solid rgb(124 132 53 / 42%);
   border-radius: 0 0.8rem 0.8rem 0;
-  background: rgb(168 199 68 / 8%);
+  background: rgb(183 152 36 / 8%);
 }
 
 .admin-household-message span {
@@ -962,10 +967,10 @@ a {
 .admin-rsvp-status,
 .admin-named-guests small {
   flex: none;
-  border: 1px solid rgb(110 152 44 / 28%);
+  border: 1px solid rgb(124 132 53 / 28%);
   border-radius: 999px;
   color: #587c26;
-  background: rgb(168 199 68 / 10%);
+  background: rgb(183 152 36 / 10%);
   font-size: 0.6rem;
   font-weight: 780;
   letter-spacing: 0.08em;
@@ -981,9 +986,9 @@ a {
 }
 
 .admin-rsvp-pending {
-  border-color: rgb(68 71 47 / 18%);
+  border-color: rgb(65 69 31 / 18%);
   color: var(--olive-muted);
-  background: rgb(68 71 47 / 5%);
+  background: rgb(65 69 31 / 5%);
 }
 
 .admin-named-guests {
@@ -1024,13 +1029,13 @@ a {
   min-height: 340px;
   margin-top: 2rem;
   padding: 2rem;
-  border: 1px dashed rgb(68 71 47 / 25%);
+  border: 1px dashed rgb(65 69 31 / 25%);
   border-radius: 1.5rem;
   text-align: center;
 }
 
 .admin-empty-state > span {
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 2.2rem;
 }
 
@@ -1069,7 +1074,7 @@ a {
   min-height: 100vh;
   padding: 2rem;
   background:
-    radial-gradient(circle at 50% 35%, rgb(242 123 118 / 12%), transparent 24rem), var(--paper);
+    radial-gradient(circle at 50% 35%, rgb(246 134 62 / 12%), transparent 24rem), var(--paper);
 }
 
 .admin-auth-card {
@@ -1079,7 +1084,7 @@ a {
   border-radius: 2rem;
   text-align: center;
   background: rgb(255 255 255 / 52%);
-  box-shadow: 0 24px 70px rgb(68 71 47 / 8%);
+  box-shadow: 0 24px 70px rgb(65 69 31 / 8%);
 }
 
 .admin-auth-card h1 {
@@ -1099,7 +1104,7 @@ a {
 }
 
 .admin-auth-error {
-  color: #a93e3c;
+  color: #9f3217;
   font-weight: 650;
 }
 
@@ -1118,7 +1123,7 @@ a {
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 15% 10%, rgb(242 123 118 / 8%), transparent 25rem), var(--paper);
+    radial-gradient(circle at 15% 10%, rgb(246 134 62 / 8%), transparent 25rem), var(--paper);
 }
 
 .wedding-site::before,
@@ -1218,9 +1223,9 @@ a {
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  border: 1px solid rgb(239 83 81 / 35%);
+  border: 1px solid rgb(254 94 49 / 35%);
   border-radius: 999px;
-  color: #a93e3c;
+  color: #9f3217;
   background: rgb(255 255 255 / 45%);
   font-size: 0.65rem;
   font-weight: 750;
@@ -1263,7 +1268,7 @@ a {
 
 .eyebrow {
   margin: 0 0 1.25rem;
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 0.69rem;
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -1421,10 +1426,10 @@ a {
   display: grid;
   width: min(300px, calc(100vw - 36px));
   padding: 1.25rem;
-  border: 1px solid rgb(68 71 47 / 16%);
+  border: 1px solid rgb(65 69 31 / 16%);
   border-radius: 1.4rem 2.5rem 1.4rem 1.4rem;
   background: rgb(255 253 248 / 96%);
-  box-shadow: 0 24px 70px rgb(68 71 47 / 16%);
+  box-shadow: 0 24px 70px rgb(65 69 31 / 16%);
   font-family: "DM Sans Variable", sans-serif;
   animation: calendar-popover-in 340ms var(--motion-bloom) both;
   backdrop-filter: blur(14px);
@@ -1436,15 +1441,15 @@ a {
   left: 1.4rem;
   width: 0.6rem;
   aspect-ratio: 1;
-  border-top: 1px solid rgb(68 71 47 / 16%);
-  border-left: 1px solid rgb(68 71 47 / 16%);
+  border-top: 1px solid rgb(65 69 31 / 16%);
+  border-left: 1px solid rgb(65 69 31 / 16%);
   background: #fffdf8;
   content: "";
   transform: rotate(45deg);
 }
 
 .calendar-popover-eyebrow {
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.17em;
@@ -1483,7 +1488,7 @@ a {
 
 .calendar-popover a:hover,
 .calendar-popover a:focus-visible {
-  border-color: rgb(239 83 81 / 38%);
+  border-color: rgb(254 94 49 / 38%);
   background: var(--blush);
   transform: translateX(2px);
 }
@@ -1532,14 +1537,14 @@ a {
 }
 
 .button-primary {
-  color: var(--paper);
-  background: var(--poppy);
-  box-shadow: 0 10px 30px rgb(239 83 81 / 20%);
+  color: var(--olive);
+  background: var(--sunflower);
+  box-shadow: 0 10px 30px rgb(254 94 49 / 20%);
 }
 
 .button-primary:hover,
 .button-primary:focus-visible {
-  background: #d94443;
+  background: var(--pink);
   transform: translateY(-2px);
 }
 
@@ -1582,7 +1587,7 @@ a {
   width: min(56vw, 770px);
   height: auto;
   overflow: visible;
-  filter: drop-shadow(0 30px 30px rgb(68 71 47 / 8%));
+  filter: drop-shadow(0 30px 30px rgb(65 69 31 / 8%));
   animation: garden-in 1000ms 220ms both;
 }
 
@@ -1592,7 +1597,7 @@ a {
 }
 
 .leaf-dark {
-  fill: #527c1d;
+  fill: var(--leaf);
 }
 
 .leaf-mid {
@@ -1608,28 +1613,90 @@ a {
 }
 
 .flower-pink {
-  fill: #ed817d;
+  fill: var(--pink);
 }
 
-.flower-marigold {
+.flower-sunflower {
   fill: var(--marigold);
 }
 
-.flower-red {
+.flower-poppy {
   fill: var(--poppy);
 }
 
 .flower-small {
-  fill: #ff9870;
+  fill: var(--orange);
 }
 
 .flower-highlight {
-  fill: var(--tangerine);
+  fill: var(--sunflower);
   opacity: 0.8;
 }
 
 .flower-center {
-  fill: #8c6534;
+  fill: var(--olive);
+}
+
+.sunflower-petals {
+  fill: var(--sunflower);
+}
+
+.sunflower-seed-ring {
+  fill: var(--ochre);
+}
+
+.sunflower-seeds {
+  fill: none;
+  stroke: var(--olive);
+  stroke-dasharray: 1 7;
+  stroke-linecap: round;
+  stroke-width: 5;
+}
+
+.poppy-petals {
+  fill: var(--poppy);
+}
+
+.poppy-petals path:nth-child(2),
+.poppy-petals path:nth-child(4) {
+  fill: var(--orange);
+}
+
+.poppy-center,
+.poppy-stamens {
+  fill: var(--olive);
+}
+
+.state-flower-stems {
+  fill: none;
+  stroke: var(--leaf);
+  stroke-linecap: round;
+  stroke-width: 6;
+}
+
+.state-flower-leaf {
+  fill: var(--ochre);
+}
+
+.state-poppy-petals {
+  fill: var(--poppy);
+}
+
+.state-poppy-petals path:nth-child(even) {
+  fill: var(--orange);
+}
+
+.state-poppy-center,
+.state-sunflower-core {
+  fill: var(--olive);
+}
+
+.state-sunflower-petals {
+  fill: var(--sunflower);
+}
+
+.state-sunflower-center {
+  fill: var(--ochre);
 }
 
 .garden-artwork .plant-sway {
@@ -1783,10 +1850,10 @@ a {
   order: var(--section-card-order);
   max-width: 600px;
   padding: clamp(2rem, 5vw, 4.25rem);
-  border: 1px dashed rgb(68 71 47 / 30%);
+  border: 1px dashed rgb(65 69 31 / 30%);
   border-radius: 2rem 4rem 2rem 4rem;
   background: rgb(255 255 255 / 46%);
-  box-shadow: 0 25px 70px rgb(68 71 47 / 5%);
+  box-shadow: 0 25px 70px rgb(65 69 31 / 5%);
 }
 
 .draft-label {
@@ -1875,7 +1942,7 @@ a {
 .rsvp-preview::before {
   position: absolute;
   inset: 1.5rem;
-  border: 1px solid rgb(68 71 47 / 25%);
+  border: 1px solid rgb(65 69 31 / 25%);
   border-radius: 50% 45% 48% 44% / 44% 50% 45% 49%;
   content: "";
 }
@@ -1909,31 +1976,24 @@ a {
 
 .button-dark:hover,
 .button-dark:focus-visible {
-  background: #303322;
+  background: #303313;
   transform: translateY(-2px);
 }
 
-.rsvp-stamp {
+.rsvp-state-flowers {
   position: absolute;
-  width: min(25vw, 280px);
-  opacity: 0.4;
+  bottom: -13rem;
+  left: 50%;
+  width: min(82vw, 820px);
+  pointer-events: none;
+  opacity: 0.25;
+  transform: translateX(-50%);
 }
 
-.rsvp-stamp path {
-  stroke: var(--olive);
-  stroke-width: 2;
-}
-
-.rsvp-stamp-left {
-  bottom: -2rem;
-  left: 2vw;
-  transform: rotate(-25deg);
-}
-
-.rsvp-stamp-right {
-  top: -2rem;
-  right: 2vw;
-  transform: scale(-1, 1) rotate(-18deg);
+.rsvp-state-flowers .state-poppy,
+.rsvp-state-flowers .state-sunflower {
+  transform-box: fill-box;
+  transform-origin: bottom center;
 }
 
 .site-footer {
@@ -2025,7 +2085,7 @@ a {
   animation-delay: 220ms;
 }
 
-.motion-reveals-ready .rsvp-preview[data-revealed="true"] .rsvp-stamp {
+.motion-reveals-ready .rsvp-preview[data-revealed="true"] .rsvp-state-flowers {
   animation: garden-decoration-bloom 950ms 120ms var(--motion-bloom) both;
 }
 
@@ -2045,8 +2105,8 @@ a {
   padding-bottom: 7rem;
   overflow: hidden;
   background:
-    radial-gradient(circle at 8% 8%, rgb(248 185 66 / 14%), transparent 25rem),
-    radial-gradient(circle at 92% 26%, rgb(242 123 118 / 10%), transparent 28rem), var(--paper);
+    radial-gradient(circle at 8% 8%, rgb(243 189 99 / 14%), transparent 25rem),
+    radial-gradient(circle at 92% 26%, rgb(246 134 62 / 10%), transparent 28rem), var(--paper);
   isolation: isolate;
 }
 
@@ -2070,7 +2130,7 @@ a {
 }
 
 .rsvp-page-botanical path {
-  fill: rgb(110 152 44 / 8%);
+  fill: rgb(124 132 53 / 8%);
   stroke: var(--leaf);
   stroke-width: 2;
 }
@@ -2124,10 +2184,10 @@ a {
   width: min(100% - 64px, 1100px);
   margin: 4rem auto 0;
   padding: clamp(1.6rem, 4vw, 2.6rem);
-  border: 1px solid rgb(248 185 66 / 34%);
+  border: 1px solid rgb(243 189 99 / 34%);
   border-radius: 2rem 4rem 2rem 2rem;
-  background: rgb(248 185 66 / 13%);
-  box-shadow: 0 20px 65px rgb(68 71 47 / 6%);
+  background: rgb(243 189 99 / 13%);
+  box-shadow: 0 20px 65px rgb(65 69 31 / 6%);
   isolation: isolate;
 }
 
@@ -2169,7 +2229,7 @@ a {
 }
 
 .rsvp-calendar-botanical path {
-  fill: rgb(168 199 68 / 10%);
+  fill: rgb(183 152 36 / 10%);
   stroke: var(--leaf);
   stroke-width: 2;
 }
@@ -2183,11 +2243,11 @@ a {
 .rsvp-calendar-footer .calendar-trigger {
   width: 230px;
   padding: 0.9rem 1.1rem;
-  border: 1px solid rgb(68 71 47 / 12%);
+  border: 1px solid rgb(65 69 31 / 12%);
   border-radius: 1.1rem;
   color: var(--paper);
   background: var(--olive);
-  box-shadow: 0 12px 32px rgb(68 71 47 / 16%);
+  box-shadow: 0 12px 32px rgb(65 69 31 / 16%);
   transition:
     background 180ms ease,
     transform 180ms var(--motion-bloom);
@@ -2196,7 +2256,7 @@ a {
 .rsvp-calendar-footer .calendar-trigger:hover,
 .rsvp-calendar-footer .calendar-trigger:focus-visible,
 .rsvp-calendar-footer .calendar-trigger[aria-expanded="true"] {
-  background: #303322;
+  background: #303313;
   transform: translateY(-2px);
 }
 
@@ -2278,7 +2338,7 @@ a {
   width: fit-content;
   margin: 1.5rem auto 0;
   padding: 0.55rem 0.85rem;
-  border: 1px solid rgb(239 83 81 / 22%);
+  border: 1px solid rgb(254 94 49 / 22%);
   border-radius: 999px;
   color: var(--olive-muted);
   background: rgb(251 237 232 / 72%);
@@ -2320,7 +2380,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 2rem 4rem 2rem 4rem;
   background: rgb(255 255 255 / 56%);
-  box-shadow: 0 25px 80px rgb(68 71 47 / 8%);
+  box-shadow: 0 25px 80px rgb(65 69 31 / 8%);
   isolation: isolate;
   transition:
     border-color 240ms ease,
@@ -2334,7 +2394,7 @@ a {
   pointer-events: none;
   content: "";
   opacity: 0;
-  background: radial-gradient(circle, rgb(168 199 68 / 20%) 0, rgb(251 246 238 / 0%) 58%);
+  background: radial-gradient(circle, rgb(183 152 36 / 20%) 0, rgb(251 246 238 / 0%) 58%);
   transform: scale(0.45);
 }
 
@@ -2344,10 +2404,10 @@ a {
 }
 
 .rsvp-lookup-card[data-status="found"] {
-  border-color: rgb(110 152 44 / 48%);
+  border-color: rgb(124 132 53 / 48%);
   box-shadow:
-    0 28px 90px rgb(68 71 47 / 12%),
-    0 0 0 5px rgb(168 199 68 / 10%);
+    0 28px 90px rgb(65 69 31 / 12%),
+    0 0 0 5px rgb(183 152 36 / 10%);
   animation: rsvp-lookup-card-found 1200ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -2366,7 +2426,7 @@ a {
 }
 
 .rsvp-lookup-sprig path {
-  fill: rgb(168 199 68 / 10%);
+  fill: rgb(183 152 36 / 10%);
   stroke: var(--leaf);
   stroke-width: 2;
 }
@@ -2430,8 +2490,8 @@ a {
 .rsvp-dietary-field textarea:focus,
 .rsvp-household-message-card textarea:focus,
 .rsvp-email-card input:focus {
-  border-color: rgb(239 83 81 / 65%);
-  box-shadow: 0 0 0 3px rgb(239 83 81 / 10%);
+  border-color: rgb(254 94 49 / 65%);
+  box-shadow: 0 0 0 3px rgb(254 94 49 / 10%);
 }
 
 .rsvp-lookup-card button {
@@ -2449,7 +2509,7 @@ a {
 .rsvp-lookup-card[data-status="found"] button:disabled {
   color: var(--paper);
   background: var(--leaf);
-  box-shadow: 0 10px 30px rgb(110 152 44 / 24%);
+  box-shadow: 0 10px 30px rgb(124 132 53 / 24%);
   cursor: default;
   opacity: 1;
 }
@@ -2496,7 +2556,7 @@ a {
   width: min(100%, 760px);
   margin: 3rem auto 0;
   padding: clamp(1.5rem, 4vw, 2.4rem);
-  border: 1px solid rgb(239 83 81 / 22%);
+  border: 1px solid rgb(254 94 49 / 22%);
   border-radius: 2rem;
   background: rgb(251 237 232 / 72%);
   text-align: center;
@@ -2564,7 +2624,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 1.5rem 4rem 1.5rem 1.5rem;
   background: rgb(255 255 255 / 55%);
-  box-shadow: 0 20px 60px rgb(68 71 47 / 5%);
+  box-shadow: 0 20px 60px rgb(65 69 31 / 5%);
   text-align: center;
 }
 
@@ -2574,7 +2634,7 @@ a {
 }
 
 .rsvp-event-card > span {
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-family: "Fraunces Variable", serif;
   font-size: 0.9rem;
 }
@@ -2615,10 +2675,10 @@ a {
 
 .rsvp-event-card li {
   padding: 0.35rem 0.55rem;
-  border: 1px solid rgb(110 152 44 / 24%);
+  border: 1px solid rgb(124 132 53 / 24%);
   border-radius: 999px;
   color: #587c26;
-  background: rgb(168 199 68 / 9%);
+  background: rgb(183 152 36 / 9%);
   font-size: 0.64rem;
   font-weight: 720;
 }
@@ -2634,7 +2694,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 2rem;
   background: rgb(255 253 248 / 78%);
-  box-shadow: 0 24px 75px rgb(68 71 47 / 6%);
+  box-shadow: 0 24px 75px rgb(65 69 31 / 6%);
 }
 
 .rsvp-guest-card > header {
@@ -2643,7 +2703,7 @@ a {
 }
 
 .rsvp-guest-card > header > span {
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -2725,9 +2785,9 @@ a {
 }
 
 .rsvp-choice:has(input:checked) {
-  border-color: var(--poppy);
+  border-color: var(--poppy-text);
   background: var(--blush);
-  box-shadow: 0 8px 24px rgb(239 83 81 / 8%);
+  box-shadow: 0 8px 24px rgb(254 94 49 / 8%);
   animation: rsvp-choice-selected 380ms var(--motion-bloom);
 }
 
@@ -2753,7 +2813,7 @@ a {
   width: 1.05rem;
   height: 1.05rem;
   margin: 0 0.65rem 0 0;
-  accent-color: var(--poppy);
+  accent-color: var(--poppy-text);
 }
 
 .rsvp-choice span {
@@ -2818,8 +2878,8 @@ a {
 
 .rsvp-meal-choice:has(input:checked) {
   border-color: var(--leaf);
-  background: rgb(168 199 68 / 9%);
-  box-shadow: 0 8px 24px rgb(110 152 44 / 8%);
+  background: rgb(183 152 36 / 9%);
+  box-shadow: 0 8px 24px rgb(124 132 53 / 8%);
   animation: rsvp-choice-selected 380ms var(--motion-bloom);
 }
 
@@ -2860,9 +2920,9 @@ a {
 .rsvp-plus-one {
   margin-top: 1.7rem;
   padding: 1.25rem;
-  border: 1px dashed rgb(110 152 44 / 35%);
+  border: 1px dashed rgb(124 132 53 / 35%);
   border-radius: 1.25rem;
-  background: rgb(168 199 68 / 6%);
+  background: rgb(183 152 36 / 6%);
 }
 
 .rsvp-meal-options,
@@ -2975,7 +3035,7 @@ a {
 }
 
 .rsvp-household-message-card {
-  background: rgb(168 199 68 / 9%);
+  background: rgb(183 152 36 / 9%);
 }
 
 .rsvp-household-message-card h2,
@@ -3033,7 +3093,7 @@ a {
   border: 1px solid var(--hairline);
   border-radius: 2rem;
   background: rgb(255 253 248 / 78%);
-  box-shadow: 0 24px 75px rgb(68 71 47 / 6%);
+  box-shadow: 0 24px 75px rgb(65 69 31 / 6%);
 }
 
 .rsvp-review > header {
@@ -3100,7 +3160,7 @@ a {
   margin-top: 1rem;
   padding: 0.9rem 1rem;
   border-radius: 0.9rem;
-  background: rgb(168 199 68 / 8%);
+  background: rgb(183 152 36 / 8%);
 }
 
 .rsvp-summary-plus-one p {
@@ -3143,7 +3203,7 @@ a {
   margin-top: 1.5rem;
   padding: 1.15rem 1.25rem;
   border-radius: 1rem;
-  background: rgb(168 199 68 / 9%);
+  background: rgb(183 152 36 / 9%);
 }
 
 .rsvp-household-message-summary span {
@@ -3178,7 +3238,7 @@ a {
   border-radius: 5rem 2rem 5rem 2rem;
   overflow: hidden;
   background: rgb(255 253 248 / 82%);
-  box-shadow: 0 28px 90px rgb(68 71 47 / 8%);
+  box-shadow: 0 28px 90px rgb(65 69 31 / 8%);
   animation: rsvp-confirmation-card-in 850ms var(--motion-bloom) both;
 }
 
@@ -3249,7 +3309,7 @@ a {
   padding-bottom: 7rem;
   overflow: hidden;
   background:
-    radial-gradient(circle at 90% 5%, rgb(248 185 66 / 15%), transparent 28rem), var(--paper);
+    radial-gradient(circle at 90% 5%, rgb(243 189 99 / 15%), transparent 28rem), var(--paper);
 }
 
 .style-board-header {
@@ -3292,7 +3352,7 @@ a {
 .back-link span {
   display: inline-block;
   margin-left: 0.6rem;
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 1rem;
   transition: transform 160ms ease;
 }
@@ -3358,7 +3418,7 @@ a {
 
 .font-option[aria-pressed="true"] {
   border-color: var(--coral);
-  box-shadow: 0 12px 36px rgb(239 83 81 / 10%);
+  box-shadow: 0 12px 36px rgb(254 94 49 / 10%);
 }
 
 .font-option[aria-pressed="true"]::after {
@@ -3370,7 +3430,7 @@ a {
   border-radius: 50%;
   content: "";
   background: var(--poppy);
-  box-shadow: 0 0 0 4px rgb(239 83 81 / 12%);
+  box-shadow: 0 0 0 4px rgb(254 94 49 / 12%);
 }
 
 .font-option-sample {
@@ -3449,7 +3509,7 @@ a {
 .segmented-control button[aria-pressed="true"] {
   color: var(--paper);
   background: var(--olive);
-  box-shadow: 0 5px 16px rgb(68 71 47 / 14%);
+  box-shadow: 0 5px 16px rgb(65 69 31 / 14%);
 }
 
 .style-preview {
@@ -3464,7 +3524,7 @@ a {
   border-radius: 13rem 13rem 2rem 2rem;
   overflow: hidden;
   text-align: center;
-  box-shadow: 0 30px 90px rgb(68 71 47 / 9%);
+  box-shadow: 0 30px 90px rgb(65 69 31 / 9%);
   transition: background-color 240ms ease;
 }
 
@@ -3478,7 +3538,7 @@ a {
 
 .preview-kicker {
   margin: 0 0 1.2rem;
-  color: var(--poppy);
+  color: var(--poppy-text);
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.23em;
@@ -3606,6 +3666,12 @@ a {
 .swatch:nth-child(even) span {
   border-radius: 50% 16% 50% 50%;
   transform: rotate(-5deg);
+}
+
+.swatch[data-role="supporting"] span {
+  width: 72%;
+  margin-top: 0.75rem;
+  opacity: 0.88;
 }
 
 .swatch p {
@@ -4297,6 +4363,8 @@ a {
   }
 
   .hero-copy {
+    width: 100%;
+    max-width: 100%;
     padding: 2rem 0 0;
     text-align: center;
   }
@@ -4306,7 +4374,8 @@ a {
     flex-direction: column;
     align-items: center;
     gap: 0;
-    font-size: clamp(5.2rem, 24vw, 7.2rem);
+    width: 100%;
+    font-size: clamp(4.65rem, 22vw, 6.5rem);
     line-height: 0.69;
   }
 
@@ -4328,13 +4397,17 @@ a {
 
   .hero-details {
     grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    max-width: 100%;
     margin-inline: auto;
     text-align: left;
   }
 
   .hero-details p {
+    min-width: 0;
     padding-right: 0.8rem;
     font-size: 0.92rem;
+    overflow-wrap: anywhere;
   }
 
   .hero-details p + p {

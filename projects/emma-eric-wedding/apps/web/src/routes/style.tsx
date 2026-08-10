@@ -37,14 +37,12 @@ const fontDirections = [
 ] as const;
 
 const palette = [
-  { name: "Warm ivory", hex: "#FBF6EE" },
-  { name: "Pale blush", hex: "#FBEDE8" },
-  { name: "Coral", hex: "#F27B76" },
-  { name: "Poppy", hex: "#EF5351" },
-  { name: "Marigold", hex: "#F8B942" },
-  { name: "Tangerine", hex: "#F58A2A" },
-  { name: "Leaf", hex: "#6E982C" },
-  { name: "Dark olive", hex: "#44472F" },
+  { name: "Garden orange", hex: "#F6863E", role: "Core" },
+  { name: "Sunflower", hex: "#F3BD63", role: "Core" },
+  { name: "Golden ochre", hex: "#B79824", role: "Core" },
+  { name: "Poppy orange", hex: "#FE5E31", role: "Core" },
+  { name: "Dark leaf", hex: "#7C8435", role: "Supporting" },
+  { name: "Petal pink", hex: "#FFA5A3", role: "Supporting" },
 ] as const;
 
 function StyleBoard() {
@@ -169,16 +167,18 @@ function StyleBoard() {
           <p className="eyebrow">The palette</p>
           <h2>Warm flowers on paper.</h2>
           <p className="palette-description">
-            Tulips inspired the color relationships, not the literal motif. The artwork can mix
-            abstract garden forms that feel at home at Botanica.
+            The first four colors carry the design. Dark leaf and petal pink stay available as
+            supporting accents rather than taking over the page.
           </p>
         </div>
         <div className="swatch-grid">
           {palette.map((color) => (
-            <div className="swatch" key={color.hex}>
+            <div className="swatch" data-role={color.role.toLowerCase()} key={color.hex}>
               <span style={{ backgroundColor: color.hex }} />
               <p>{color.name}</p>
-              <small>{color.hex}</small>
+              <small>
+                {color.hex} · {color.role}
+              </small>
             </div>
           ))}
         </div>
@@ -188,7 +188,7 @@ function StyleBoard() {
         <p className="eyebrow">Guardrails</p>
         <div>
           <p>Handwriting for names and expressive moments—not forms or long paragraphs.</p>
-          <p>Original mixed botanicals—not a literal tulip theme and no borrowed Pinterest art.</p>
+          <p>Sunflowers for Kansas and California poppies for Eric, within a mixed garden.</p>
           <p>Ivory and blush paper tones—no blue background.</p>
           <p>Personal copy stays empty until Emma and Eric provide it.</p>
         </div>

@@ -5,23 +5,26 @@
 The site should feel like a joyful garden party drawn by hand: warm, expressive,
 and personal without becoming rustic, overly formal, or generically bridal.
 
-Tulips inspired the color relationships in the original references. They are
-not the literal theme. Use original mixed botanical forms that feel natural for
-Botanica, The Wichita Gardens.
+Use a mixed, hand-drawn garden with two recurring anchors: Kansas sunflowers
+for Emma and California poppies for Eric. Tulips can remain part of the garden,
+but should not become the literal theme.
 
 ## Palette
 
-- Warm ivory: `#FBF6EE`
-- Pale blush: `#FBEDE8`
-- Coral: `#F27B76`
-- Poppy: `#EF5351`
-- Marigold: `#F8B942`
-- Tangerine: `#F58A2A`
-- Leaf: `#6E982C`
-- Dark olive: `#44472F`
+Core colors:
 
-Do not introduce a blue background. Ivory is the primary paper tone; pale blush
-can separate sections.
+- Garden orange: `#F6863E`
+- Sunflower: `#F3BD63`
+- Golden ochre: `#B79824`
+- Poppy orange: `#FE5E31`
+
+Supporting accents:
+
+- Dark leaf: `#7C8435`
+- Petal pink: `#FFA5A3`
+
+Use warm ivory as the paper tone. Keep dark leaf and petal pink secondary, and
+do not introduce a blue background.
 
 ## Typography
 

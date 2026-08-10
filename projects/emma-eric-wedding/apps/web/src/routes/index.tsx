@@ -1,7 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { type RefObject, useEffect, useId, useRef } from "react";
 
-import { BotanicalStamp, GardenArtwork, LineFlourish } from "../components/garden-art";
+import {
+  BotanicalStamp,
+  GardenArtwork,
+  LineFlourish,
+  StateFlowerPair,
+} from "../components/garden-art";
 import { SiteHeader } from "../components/site-header";
 import { type WeddingSection, wedding } from "../content/wedding";
 
@@ -58,7 +63,7 @@ function WeddingHome() {
             <GardenArtwork className="garden-artwork" />
           </div>
 
-          <p className="hero-side-note">A garden celebration · Wichita, Kansas</p>
+          <p className="hero-side-note">California poppies · Kansas sunflowers</p>
         </section>
 
         <section aria-label="Wedding details" className="fact-ribbon" data-reveal>
@@ -90,8 +95,7 @@ function WeddingHome() {
         ))}
 
         <section className="rsvp-preview" data-reveal id={rsvpId}>
-          <BotanicalStamp className="rsvp-stamp rsvp-stamp-left" />
-          <BotanicalStamp className="rsvp-stamp rsvp-stamp-right" />
+          <StateFlowerPair className="rsvp-state-flowers" />
           <p className="eyebrow">Your invitation</p>
           <h2>Save your seat</h2>
           <p>

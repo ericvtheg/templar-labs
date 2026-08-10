@@ -13,6 +13,7 @@ but should not become the literal theme.
 
 Core colors:
 
+- Petal pink: `#FFA5A3`
 - Garden orange: `#F6863E`
 - Sunflower: `#F3BD63`
 - Golden ochre: `#B79824`
@@ -21,10 +22,9 @@ Core colors:
 Supporting accents:
 
 - Dark leaf: `#7C8435`
-- Petal pink: `#FFA5A3`
 
-Use warm ivory as the paper tone. Keep dark leaf and petal pink secondary, and
-do not introduce a blue background.
+Use petal pink prominently in the first viewport. Use warm ivory as the paper
+tone, keep dark leaf secondary, and do not introduce a blue background.
 
 ## Typography
 

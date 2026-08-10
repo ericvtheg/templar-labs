@@ -1164,7 +1164,7 @@ a {
 }
 
 .site-wordmark .monogram-ampersand {
-  color: var(--coral);
+  color: var(--pink);
   font-family: Borel, cursive;
   font-weight: 400;
 }
@@ -1257,7 +1257,7 @@ a {
   height: 80%;
   border-radius: 50% 0 0 50%;
   opacity: 0.55;
-  background: radial-gradient(ellipse at center, var(--blush), transparent 68%);
+  background: radial-gradient(ellipse at center, rgb(255 165 163 / 38%), transparent 68%);
 }
 
 .hero-copy {
@@ -1303,7 +1303,7 @@ a {
   position: relative;
   z-index: 1;
   margin-inline: -0.05em -0.16em;
-  color: var(--coral);
+  color: var(--pink);
   font-family: Borel, cursive;
   font-size: 0.52em;
   font-weight: 400;
@@ -1321,7 +1321,7 @@ a {
 .hero-flourish path,
 .section-flourish path,
 .preview-flourish path {
-  stroke: var(--coral);
+  stroke: var(--pink);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -1538,13 +1538,13 @@ a {
 
 .button-primary {
   color: var(--olive);
-  background: var(--sunflower);
-  box-shadow: 0 10px 30px rgb(254 94 49 / 20%);
+  background: var(--pink);
+  box-shadow: 0 10px 30px rgb(255 165 163 / 34%);
 }
 
 .button-primary:hover,
 .button-primary:focus-visible {
-  background: var(--pink);
+  background: var(--sunflower);
   transform: translateY(-2px);
 }
 
@@ -1637,20 +1637,21 @@ a {
   fill: var(--olive);
 }
 
-.sunflower-petals {
+.sunflower-outer-petals {
   fill: var(--sunflower);
 }
 
-.sunflower-seed-ring {
-  fill: var(--ochre);
+.sunflower-inner-petals {
+  fill: var(--orange);
+  opacity: 0.48;
 }
 
 .sunflower-core {
-  fill: var(--leaf);
+  fill: var(--olive);
 }
 
 .sunflower-seeds {
-  fill: var(--sunflower);
+  fill: var(--ochre);
 }
 
 .poppy-petals {

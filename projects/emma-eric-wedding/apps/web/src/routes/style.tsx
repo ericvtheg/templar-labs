@@ -37,12 +37,12 @@ const fontDirections = [
 ] as const;
 
 const palette = [
+  { name: "Petal pink", hex: "#FFA5A3", role: "Primary" },
   { name: "Garden orange", hex: "#F6863E", role: "Core" },
   { name: "Sunflower", hex: "#F3BD63", role: "Core" },
   { name: "Golden ochre", hex: "#B79824", role: "Core" },
   { name: "Poppy orange", hex: "#FE5E31", role: "Core" },
   { name: "Dark leaf", hex: "#7C8435", role: "Supporting" },
-  { name: "Petal pink", hex: "#FFA5A3", role: "Supporting" },
 ] as const;
 
 function StyleBoard() {
@@ -167,8 +167,8 @@ function StyleBoard() {
           <p className="eyebrow">The palette</p>
           <h2>Warm flowers on paper.</h2>
           <p className="palette-description">
-            The first four colors carry the design. Dark leaf and petal pink stay available as
-            supporting accents rather than taking over the page.
+            Petal pink leads the first impression, supported by four warm floral hues. Dark leaf
+            grounds the artwork without taking over the page.
           </p>
         </div>
         <div className="swatch-grid">

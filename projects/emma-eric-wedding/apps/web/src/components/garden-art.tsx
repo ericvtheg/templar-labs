@@ -14,28 +14,57 @@ type SunflowerBloomProps = {
 function SunflowerBloom({ scale = 1, x, y }: SunflowerBloomProps) {
   return (
     <g className="sunflower-bloom" transform={`translate(${x} ${y}) scale(${scale})`}>
-      <g className="sunflower-petals">
-        <path d="M0-32C-18-50-18-74 1-96c19 23 17 48-1 64Z" />
-        <path d="M0-32C-15-51-12-80 4-91c15 19 12 43-4 59Z" transform="rotate(35)" />
-        <path d="M0-32C-20-48-22-70-4-88c22 14 23 38 4 56Z" transform="rotate(72)" />
-        <path d="M0-32C-17-52-13-77 5-94c17 22 13 47-5 62Z" transform="rotate(109)" />
-        <path d="M0-32C-20-47-19-72-1-90c20 18 19 42 1 58Z" transform="rotate(144)" />
-        <path d="M0-32C-14-53-10-78 7-92c15 22 10 46-7 60Z" transform="rotate(181)" />
-        <path d="M0-32C-19-49-21-73-2-95c20 21 20 46 2 63Z" transform="rotate(218)" />
-        <path d="M0-32C-17-48-14-72 3-88c18 19 15 41-3 56Z" transform="rotate(254)" />
-        <path d="M0-32C-21-51-18-78 2-93c18 22 16 46-2 61Z" transform="rotate(291)" />
-        <path d="M0-32C-15-49-13-74 5-90c17 20 12 43-5 58Z" transform="rotate(327)" />
+      <g className="sunflower-outer-petals">
+        <path d="M0-25C-13-40-14-67 1-91c16 24 14 49-1 66Z" />
+        <path d="M0-25C-15-42-12-70 5-87c13 22 10 47-5 62Z" transform="rotate(23)" />
+        <path d="M0-25C-12-43-15-65-2-89c18 20 18 48 2 64Z" transform="rotate(46)" />
+        <path d="M0-25C-14-39-12-68 4-92c15 25 11 50-4 67Z" transform="rotate(68)" />
+        <path d="M0-25C-16-43-13-69 2-86c16 20 14 45-2 61Z" transform="rotate(91)" />
+        <path d="M0-25C-13-41-15-71 3-90c14 24 12 49-3 65Z" transform="rotate(113)" />
+        <path d="M0-25C-15-39-11-66 6-88c13 24 8 48-6 63Z" transform="rotate(136)" />
+        <path d="M0-25C-12-43-16-68 0-93c17 23 16 50 0 68Z" transform="rotate(159)" />
+        <path d="M0-25C-16-41-13-70 4-87c14 22 11 46-4 62Z" transform="rotate(181)" />
+        <path d="M0-25C-13-40-14-67 1-91c16 24 14 49-1 66Z" transform="rotate(204)" />
+        <path d="M0-25C-15-42-12-70 5-87c13 22 10 47-5 62Z" transform="rotate(226)" />
+        <path d="M0-25C-12-43-15-65-2-89c18 20 18 48 2 64Z" transform="rotate(249)" />
+        <path d="M0-25C-14-39-12-68 4-92c15 25 11 50-4 67Z" transform="rotate(272)" />
+        <path d="M0-25C-16-43-13-69 2-86c16 20 14 45-2 61Z" transform="rotate(294)" />
+        <path d="M0-25C-13-41-15-71 3-90c14 24 12 49-3 65Z" transform="rotate(317)" />
+        <path d="M0-25C-15-39-11-66 6-88c13 24 8 48-6 63Z" transform="rotate(339)" />
       </g>
-      <circle className="sunflower-seed-ring" r="38" />
-      <circle className="sunflower-core" r="27" />
+      <g className="sunflower-inner-petals">
+        <path d="M0-23C-11-35-10-53 2-68c13 16 11 34-2 45Z" transform="rotate(10)" />
+        <path d="M0-23C-12-36-9-55 4-66c11 15 8 32-4 43Z" transform="rotate(40)" />
+        <path d="M0-23C-10-38-12-54 0-70c14 15 13 35 0 47Z" transform="rotate(70)" />
+        <path d="M0-23C-12-34-9-52 4-67c11 17 8 33-4 44Z" transform="rotate(100)" />
+        <path d="M0-23C-11-36-11-55 2-69c12 17 10 35-2 46Z" transform="rotate(130)" />
+        <path d="M0-23C-13-35-9-53 5-66c10 16 7 33-5 43Z" transform="rotate(160)" />
+        <path d="M0-23C-10-37-12-54 1-68c13 16 11 34-1 45Z" transform="rotate(190)" />
+        <path d="M0-23C-12-35-9-55 4-67c11 16 8 33-4 44Z" transform="rotate(220)" />
+        <path d="M0-23C-11-38-11-53 1-69c13 17 11 35-1 46Z" transform="rotate(250)" />
+        <path d="M0-23C-13-34-8-52 5-66c10 16 7 32-5 43Z" transform="rotate(280)" />
+        <path d="M0-23C-10-36-12-55 2-68c12 16 10 34-2 45Z" transform="rotate(310)" />
+        <path d="M0-23C-12-35-9-53 4-67c11 17 8 33-4 44Z" transform="rotate(340)" />
+      </g>
+      <circle className="sunflower-core" r="33" />
       <g className="sunflower-seeds">
-        <circle cx="-10" cy="-10" r="3" />
-        <circle cx="3" cy="-13" r="2.5" />
-        <circle cx="13" cy="-4" r="3" />
-        <circle cx="10" cy="10" r="2.5" />
-        <circle cx="-3" cy="14" r="3" />
-        <circle cx="-14" cy="6" r="2.5" />
-        <circle cx="-1" cy="1" r="2.5" />
+        <circle cx="-8" cy="-17" r="1.8" />
+        <circle cx="4" cy="-18" r="1.5" />
+        <circle cx="15" cy="-12" r="1.7" />
+        <circle cx="20" cy="-2" r="1.5" />
+        <circle cx="16" cy="10" r="1.8" />
+        <circle cx="7" cy="18" r="1.5" />
+        <circle cx="-5" cy="19" r="1.8" />
+        <circle cx="-16" cy="12" r="1.5" />
+        <circle cx="-20" cy="1" r="1.7" />
+        <circle cx="-16" cy="-10" r="1.5" />
+        <circle cx="-5" cy="-7" r="1.6" />
+        <circle cx="7" cy="-8" r="1.5" />
+        <circle cx="12" cy="2" r="1.7" />
+        <circle cx="5" cy="10" r="1.5" />
+        <circle cx="-7" cy="9" r="1.7" />
+        <circle cx="-11" cy="0" r="1.5" />
+        <circle cx="0" cy="1" r="1.8" />
       </g>
     </g>
   );
@@ -84,7 +113,6 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
           className="leaf leaf-light"
           d="M542 651c-4-122 35-213 115-281-5 116-41 210-115 281Z"
         />
-        <path className="leaf leaf-mid" d="M74 737C38 663 28 600 40 548c54 53 78 116 34 189Z" />
       </g>
 
       <g

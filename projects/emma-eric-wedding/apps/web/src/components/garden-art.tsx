@@ -93,8 +93,8 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
       <g className="garden-stems" fill="none" strokeLinecap="round">
         <path className="plant-sway plant-small" d="M118 760C129 605 193 470 296 315" />
         <path className="plant-sway plant-tall" d="M250 760C271 555 327 364 387 180" />
-        <path className="plant-sway plant-mid" d="M389 760C405 590 450 470 500 421" />
-        <path className="plant-sway plant-right" d="M521 760C520 600 557 445 646 292" />
+        <path className="plant-sway plant-mid" d="M389 760C405 590 436 470 480 421" />
+        <path className="plant-sway plant-right" d="M521 760C520 600 543 445 626 292" />
       </g>
 
       <g className="garden-leaves" filter={`url(#${textureId})`}>
@@ -133,25 +133,19 @@ export function GardenArtwork({ className = "", compact = false }: GardenArtwork
         className="flower flower-sunflower flower-mid plant-sway plant-mid"
         filter={`url(#${textureId})`}
       >
-        <SunflowerBloom x={500} y={380} />
+        <SunflowerBloom x={480} y={380} />
       </g>
 
       <g
         className="flower flower-poppy flower-right plant-sway plant-right"
         filter={`url(#${textureId})`}
+        transform="translate(-20)"
       >
         <g className="poppy-petals">
           <path d="M648 289c-33-2-58-22-61-48 18-22 47-12 64 22Z" />
           <path d="M648 273c-25-25-25-57-4-78 28 13 35 47 14 79Z" />
           <path d="M654 273c4-38 24-65 51-67 20 28 3 60-45 78Z" />
           <path d="M657 284c22-30 51-38 62-17-4 29-31 43-65 25Z" />
-        </g>
-        <path className="poppy-cup" d="M633 279c8-8 23-8 34 0-3 12-10 18-18 18-9 0-14-6-16-18Z" />
-        <g className="poppy-stamens">
-          <circle cx="638" cy="277" r="3.5" />
-          <circle cx="645" cy="272" r="3.5" />
-          <circle cx="653" cy="271" r="3.5" />
-          <circle cx="661" cy="276" r="3.5" />
         </g>
       </g>
 
@@ -221,16 +215,6 @@ export function StateFlowerPair({ className = "" }: { readonly className?: strin
           <path d="M149 94c-27-29-26-66-3-89 31 15 38 53 13 90Z" />
           <path d="M156 94c5-43 28-74 58-75 22 31 4 68-51 86Z" />
           <path d="M160 106c25-34 58-42 70-19-5 32-35 48-74 27Z" />
-        </g>
-        <path
-          className="state-poppy-cup"
-          d="M132 101c10-9 28-9 40 0-3 13-12 20-21 20-10 0-17-7-19-20Z"
-        />
-        <g className="state-poppy-stamens">
-          <circle cx="139" cy="98" r="3.5" />
-          <circle cx="147" cy="93" r="3.5" />
-          <circle cx="156" cy="93" r="3.5" />
-          <circle cx="165" cy="98" r="3.5" />
         </g>
       </g>
 

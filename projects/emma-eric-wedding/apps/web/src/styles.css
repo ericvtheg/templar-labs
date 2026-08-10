@@ -1663,14 +1663,6 @@ a {
   fill: var(--orange);
 }
 
-.poppy-stamens {
-  fill: var(--olive);
-}
-
-.poppy-cup {
-  fill: var(--sunflower);
-}
-
 .state-flower-stems {
   fill: none;
   stroke: var(--leaf);
@@ -1688,14 +1680,6 @@ a {
 
 .state-poppy-petals path:nth-child(even) {
   fill: var(--orange);
-}
-
-.state-poppy-cup {
-  fill: var(--sunflower);
-}
-
-.state-poppy-stamens {
-  fill: var(--olive);
 }
 
 .garden-artwork .plant-sway {

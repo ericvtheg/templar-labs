@@ -24,7 +24,7 @@ concurrency:
 jobs:
   destroy:
     name: Destroy ${{ inputs.project }}
-    runs-on: [self-hosted, linux, homelab, templar-labs]
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Require confirmation

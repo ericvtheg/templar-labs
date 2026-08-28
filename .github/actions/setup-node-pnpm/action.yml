@@ -1,5 +1,5 @@
 name: Setup Node + pnpm
-description: Set up Node.js, pnpm, and install dependencies with self-hosted cache.
+description: Set up Node.js and pnpm, restore the pnpm cache, and install dependencies.
 
 runs:
   using: composite
@@ -9,25 +9,16 @@ runs:
       shell: bash
       run: echo "NODE_VERSION=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+
     - name: Setup Node.js
       uses: actions/setup-node@v6
       with:
         node-version: ${{ steps.node-version.outputs.NODE_VERSION }}
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v6
-
-    - name: Configure pnpm store for self-hosted caching
-      shell: bash
-      run: pnpm config set store-dir ~/.pnpm-store
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
 
     - name: Install dependencies
       shell: bash
-      run: |
-        LOCK_HASH=$(sha256sum pnpm-lock.yaml | cut -d' ' -f1)
-        if [ -f node_modules/.lockfile-hash ] && [ "$(cat node_modules/.lockfile-hash)" = "$LOCK_HASH" ]; then
-          echo "node_modules up to date, skipping install"
-        else
-          pnpm install --frozen-lockfile
-          echo "$LOCK_HASH" > node_modules/.lockfile-hash
-        fi
+      run: pnpm install --frozen-lockfile

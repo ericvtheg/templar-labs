@@ -50,7 +50,7 @@ enforces this layout.
 
 ## Deployment
 
-Deploys run from GitHub Actions on the homelab self-hosted runner. Pushing to
+Deploys run from GitHub Actions on GitHub-hosted Ubuntu runners. Pushing to
 `main` runs `pnpm check`, then `pnpm db:migrate:ci`, then
 `pnpm run deploy`. Manual dispatches deploy every project with a project-level
 `deploy` script; pushes to `main` additionally pass `--changed-since` against

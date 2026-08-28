@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     name: Deploy projects
-    runs-on: [self-hosted, linux, homelab, templar-labs]
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code

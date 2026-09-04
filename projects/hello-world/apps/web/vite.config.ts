@@ -10,6 +10,26 @@ const config = defineConfig({
   server: {
     port: devPort("hello-world-web"),
     strictPort: true,
+    proxy: {
+      "/ingest/static": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+      "/ingest/array": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+      "/ingest": {
+        target: "https://us.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+    },
   },
   plugins: [
     // this is the plugin that enables path aliases

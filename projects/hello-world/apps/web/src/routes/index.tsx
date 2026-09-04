@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
+import { usePostHog } from "@posthog/react";
 import { makeBlob } from "@templar/blob";
 import { databaseError, makeDatabase } from "@templar/db";
 import { makeQueue } from "@templar/queue";
@@ -19,7 +20,7 @@ import { Progress } from "@templar/ui/components/progress";
 import { Separator } from "@templar/ui/components/separator";
 import { desc } from "drizzle-orm";
 import { Effect, Option } from "effect";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import * as schema from "../../../../db/schema.ts";
 import { helloEvents, queueEvents } from "../../../../db/schema.ts";
 import { templarBindings } from "../../../../templar-bindings.ts";
@@ -277,6 +278,7 @@ const wait = (milliseconds: number) =>
   });
 
 function Home() {
+  const posthog = usePostHog();
   const incrementCounterFn = useServerFn(incrementCounter);
   const createHelloEventFn = useServerFn(createHelloEvent);
   const listHelloEventsFn = useServerFn(listHelloEvents);
@@ -295,12 +297,24 @@ function Home() {
   const progressValue = Math.min(displayCount * 12, 100);
   const currentUser = Route.useLoaderData();
 
+  // Identify the user with PostHog when session is loaded (syncing with external analytics system)
+  useEffect(() => {
+    if (currentUser) {
+      posthog?.identify(currentUser.id, {
+        name: currentUser.name,
+      });
+    }
+  }, [currentUser, posthog]);
+
   const handleIncrement = () => {
     setError(null);
     startCounterTransition(async () => {
       try {
         const result = await incrementCounterFn();
         setCounter(result.value);
+        posthog?.capture("counter_incremented", {
+          counter_value: result.value,
+        });
       } catch {
         setError("The counter could not be updated.");
       }
@@ -325,6 +339,9 @@ function Home() {
       try {
         const result = await createHelloEventFn();
         setDbEvents(result.events);
+        posthog?.capture("database_row_written", {
+          row_count: result.events.length,
+        });
       } catch {
         setDbError("The database row could not be written.");
       }
@@ -349,6 +366,9 @@ function Home() {
       try {
         const result = await publishQueueEventFn();
         setQueueEventRows(result.events);
+        posthog?.capture("queue_message_published", {
+          message_id: result.messageId,
+        });
 
         const pollForProcessedEvent = async (
           messageId: string,
@@ -468,7 +488,13 @@ function Home() {
                 <Button type="submit">Continue with Google</Button>
               </form>
             ) : (
-              <form action="/api/auth/sign-out?returnTo=/" method="post">
+              <form
+                action="/api/auth/sign-out?returnTo=/"
+                method="post"
+                onSubmit={() => {
+                  posthog?.reset();
+                }}
+              >
                 <Button type="submit" variant="outline">
                   Sign out
                 </Button>

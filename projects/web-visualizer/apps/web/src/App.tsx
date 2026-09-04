@@ -24,14 +24,15 @@ import {
 import { type CSSProperties, useCallback, useEffect, useId, useRef, useState } from "react";
 import { analyzeChannels, chapterAt, formatTime, validateFile } from "./analysis";
 import { AudioEngine, type Track } from "./audio";
+import { previewRhythm, sampleRhythm } from "./rhythm";
 import { Visualizer } from "./visualizer";
 
 const scenes = [
-  { name: "Event horizon", type: "COSMIC / IMMERSIVE", description: "An orbit into the unknown" },
-  { name: "Tidal bloom", type: "ORGANIC / FLUID", description: "An ocean of liquid light" },
-  { name: "Neon voyage", type: "SPATIAL / HYPNOTIC", description: "A passage through infinity" },
+  { name: "Mainstage", type: "LASERS / IMPACT", description: "Every kick hits the rig" },
+  { name: "Hyperspace", type: "SPEED / BASS", description: "Straight into the drop" },
+  { name: "Prism riot", type: "SHARDS / STROBES", description: "Light that hits back" },
 ];
-const palettes = ["Solar flare", "Iridescent", "Glacier"];
+const palettes = ["Neon", "Ultraviolet", "Acid"];
 const emptyAnalysis = analyzeChannels([]);
 const ratios = [
   { name: "16:9", value: 16 / 9 },
@@ -63,10 +64,15 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [scene, setScene] = useState(0);
+  const [activeScene, setActiveScene] = useState(0);
+  const [director, setDirector] = useState(true);
   const [palette, setPalette] = useState(0);
-  const [intensity, setIntensity] = useState(65);
-  const [motion, setMotion] = useState(45);
-  const [grain, setGrain] = useState(true);
+  const [intensity, setIntensity] = useState(90);
+  const [motion, setMotion] = useState(85);
+  const [grain, setGrain] = useState(false);
+  const [flashes, setFlashes] = useState(true);
+  const [beatCount, setBeatCount] = useState(0);
+  const meters = useRef<HTMLElement>(null);
   const [ratioIndex, setRatioIndex] = useState(0);
   const [volume, setVolume] = useState(70);
   const [error, setError] = useState<string | null>(null);
@@ -93,12 +99,14 @@ export function App() {
     grain,
     ratioIndex,
     reducedMotion,
+    flashes,
+    director,
   });
   const ratio = ratios[ratioIndex]?.value ?? 16 / 9;
   const analysis = track?.analysis ?? emptyAnalysis;
   const progress = track ? time / track.duration : 0;
   const chapter = chapterAt(analysis.chapters, progress);
-  const currentScene = scenes[scene] ?? scenes[0];
+  const currentScene = scenes[activeScene] ?? scenes[0];
 
   useEffect(() => {
     settings.current = {
@@ -110,8 +118,21 @@ export function App() {
       grain,
       ratioIndex,
       reducedMotion,
+      flashes,
+      director,
     };
-  }, [track, scene, palette, intensity, motion, grain, ratioIndex, reducedMotion]);
+  }, [
+    track,
+    scene,
+    palette,
+    intensity,
+    motion,
+    grain,
+    ratioIndex,
+    reducedMotion,
+    flashes,
+    director,
+  ]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -140,18 +161,29 @@ export function App() {
       const audio = engine.current;
       const currentTime = audio?.time ?? 0;
       const position = current.track ? currentTime / current.track.duration : 0.3;
-      const levels = audio?.levels() ?? { bass: 0, high: 0 };
-      const energy =
-        current.track?.analysis.energy[Math.min(239, Math.floor(position * 240))] ?? 0.4;
-      const slow = current.reducedMotion ? 0.12 : 1;
+      const rhythm = current.track
+        ? sampleRhythm(current.track.rhythm, currentTime)
+        : previewRhythm(now / 1000);
+      const slow = current.reducedMotion ? 0.15 : 1;
+      const rig =
+        current.director && !current.reducedMotion
+          ? (current.scene + Math.floor(rhythm.beat / 16)) % scenes.length
+          : current.scene;
+      meters.current?.style.setProperty("--kick", String(rhythm.kick));
+      meters.current?.style.setProperty("--snare", String(rhythm.snare));
+      meters.current?.style.setProperty("--high", String(rhythm.high));
       visualizer.render(
         {
+          ...rhythm,
           time: (current.track ? currentTime : now / 1000) * slow,
           progress: position,
-          bass: levels.bass * slow,
-          high: levels.high,
-          energy,
-          scene: current.scene,
+          kick: rhythm.kick * slow,
+          snare: rhythm.snare * slow,
+          drop: rhythm.drop * slow,
+          drive: rhythm.drive * slow,
+          beat: current.reducedMotion ? 0 : rhythm.beat,
+          flash: current.flashes && !current.reducedMotion,
+          scene: rig,
           palette: current.palette,
           intensity: current.intensity / 100,
           motion: current.motion / 100,
@@ -163,6 +195,8 @@ export function App() {
       );
       if (now - lastUpdate > 80) {
         setTime(currentTime);
+        setBeatCount(rhythm.beat);
+        setActiveScene(rig);
         setPlaying(audio?.playing ?? false);
         lastUpdate = now;
         if (recording.current && audio && !audio.playing && currentTime >= audio.duration) {
@@ -455,19 +489,19 @@ export function App() {
         <section className="intro">
           <div>
             <div className="eyebrow">
-              <span className="tiny-star">✳</span> A NEW DIMENSION FOR YOUR MUSIC
+              <span className="tiny-star">✳</span> BUILT FOR THE DROP
             </div>
             <h1>
-              Your sound.
+              Your track.
               <br />
-              <span>A whole new world.</span>
+              <span>The whole mainstage.</span>
             </h1>
           </div>
           <div className="intro-copy">
             <p>
-              Turn your track into a cinematic journey.
+              Turn your track into a full-scale lightshow.
               <br />
-              Every beat, every build, every beautiful in-between.
+              Hard kicks. Laser sweeps. Drops that hit.
             </p>
             <div className="intro-meta">
               <span>
@@ -489,7 +523,13 @@ export function App() {
               </span>
               <div className="preview-options">
                 <span className="preview-quality">
-                  {exporting ? "1080p / 30 FPS" : "REAL-TIME"}
+                  {exporting
+                    ? "1080p / 30 FPS"
+                    : track?.rhythm.bpm
+                      ? `≈ ${track.rhythm.bpm} BPM`
+                      : track
+                        ? "AUDIO LOCKED"
+                        : "128 BPM"}
                 </span>
                 <label className="ratio-select">
                   <span className="sr-only">Aspect ratio</span>
@@ -531,10 +571,10 @@ export function App() {
                     <div className="stage-topline">
                       <span>
                         <span className="record-dot" />{" "}
-                        {track ? "A WORLD FOR YOUR SOUND" : "A GLIMPSE OF WHAT’S POSSIBLE"}
+                        {track ? "DRIVEN BY YOUR AUDIO" : "128 BPM · VISUAL PREVIEW"}
                       </span>
                       <span className="stage-counter">
-                        {String(chapter + 1).padStart(2, "0")} / 05
+                        BEAT {String(beatCount).padStart(3, "0")}
                       </span>
                     </div>
                     <div className="stage-caption">
@@ -565,6 +605,27 @@ export function App() {
               </div>
             </div>
 
+            <section className="signal-strip" ref={meters} aria-label="Live drum response">
+              <span className="signal-title">{track ? "AUDIO → LIGHT" : "DEMO LIGHT RIG"}</span>
+              <span className="drum-meter kick-meter">
+                KICK
+                <i>
+                  <b />
+                </i>
+              </span>
+              <span className="drum-meter snare-meter">
+                SNARE
+                <i>
+                  <b />
+                </i>
+              </span>
+              <span className="drum-meter high-meter">
+                HIGH
+                <i>
+                  <b />
+                </i>
+              </span>
+            </section>
             <div className="transport">
               <div className="transport-left">
                 <button
@@ -770,7 +831,7 @@ export function App() {
                 >
                   Try a demo track <ArrowRight size={13} />
                 </button>
-                <span className="demo-credit">Somewhere, beyond — Afterglow</span>
+                <span className="demo-credit">Voltage / 128 — Afterglow</span>
               </div>
             )}
 
@@ -779,9 +840,7 @@ export function App() {
                 <span className="panel-label">
                   <Waves size={14} /> THE JOURNEY
                 </span>
-                <span>
-                  {track ? "Shaped by your track" : "One track. Five chapters. Endless places."}
-                </span>
+                <span>{track ? "Shaped by your track" : "One track. A full set."}</span>
               </div>
               <div className="chapter-strip">
                 {analysis.chapters.map((item, index) => (
@@ -810,11 +869,11 @@ export function App() {
                       {track
                         ? formatTime(item.start * track.duration)
                         : [
-                            "The first light",
-                            "Find your rhythm",
-                            "Go a little deeper",
-                            "Feel everything",
-                            "Leave an echo",
+                            "Lights on",
+                            "Start the climb",
+                            "Into the tunnel",
+                            "Full pressure",
+                            "One last hit",
                           ][index]}
                     </span>
                   </button>
@@ -835,7 +894,7 @@ export function App() {
               <legend className="sr-only">Visual settings</legend>
               <div className="control-section">
                 <div className="section-heading">
-                  <h3>Choose your world</h3>
+                  <h3>Choose your rig</h3>
                   <span>03</span>
                 </div>
                 <div className="scene-list">
@@ -843,9 +902,13 @@ export function App() {
                     <button
                       key={item.name}
                       type="button"
-                      className={`scene-card ${scene === index ? "selected" : ""}`}
-                      aria-pressed={scene === index}
-                      onClick={() => setScene(index)}
+                      className={`scene-card ${activeScene === index ? "selected" : ""}`}
+                      aria-pressed={activeScene === index}
+                      onClick={() => {
+                        setScene(index);
+                        setActiveScene(index);
+                        setDirector(false);
+                      }}
                     >
                       <span className={`scene-thumbnail scene-${index}`}>
                         <span />
@@ -855,7 +918,7 @@ export function App() {
                         <small>{item.type}</small>
                       </span>
                       <span className="scene-check">
-                        {scene === index ? <Check size={11} strokeWidth={3} /> : null}
+                        {activeScene === index ? <Check size={11} strokeWidth={3} /> : null}
                       </span>
                     </button>
                   ))}
@@ -882,13 +945,13 @@ export function App() {
                   ))}
                 </div>
                 <div className="color-labels">
-                  <span>Warm & otherworldly</span>
-                  <span>Cool & weightless</span>
+                  <span>Electric & saturated</span>
+                  <span>Acid & high voltage</span>
                 </div>
               </div>
               <div className="control-section dynamics-section">
                 <div className="slider-heading">
-                  <label htmlFor={`${id}-intensity`}>Intensity</label>
+                  <label htmlFor={`${id}-intensity`}>Impact</label>
                   <output htmlFor={`${id}-intensity`}>
                     {intensity}
                     <span>%</span>
@@ -905,11 +968,11 @@ export function App() {
                   onChange={(event) => setIntensity(Number(event.target.value))}
                 />
                 <div className="slider-endpoints">
-                  <span>Subtle</span>
-                  <span>Supernova</span>
+                  <span>Punchy</span>
+                  <span>Full send</span>
                 </div>
                 <div className="slider-heading motion-heading">
-                  <label htmlFor={`${id}-motion`}>Motion</label>
+                  <label htmlFor={`${id}-motion`}>Velocity</label>
                   <output htmlFor={`${id}-motion`}>
                     {motion}
                     <span>%</span>
@@ -926,9 +989,27 @@ export function App() {
                   onChange={(event) => setMotion(Number(event.target.value))}
                 />
                 <div className="slider-endpoints">
-                  <span>Slow drift</span>
-                  <span>Full flight</span>
+                  <span>Cruise</span>
+                  <span>Warp speed</span>
                 </div>
+              </div>
+              <div className="grain-row director-row">
+                <div>
+                  <label htmlFor={`${id}-auto-director`}>Auto director</label>
+                  <span>Switch rigs every 16 kicks.</span>
+                </div>
+                <button
+                  id={`${id}-auto-director`}
+                  className={`switch ${director && !reducedMotion ? "on" : ""}`}
+                  role="switch"
+                  aria-checked={director && !reducedMotion}
+                  aria-label="Auto director"
+                  type="button"
+                  disabled={reducedMotion}
+                  onClick={() => setDirector(!director)}
+                >
+                  <span />
+                </button>
               </div>
               <div className="grain-row">
                 <div>
@@ -947,13 +1028,31 @@ export function App() {
                   <span />
                 </button>
               </div>
+              <div className="grain-row flash-row">
+                <div>
+                  <label htmlFor={`${id}-impact-flashes`}>Impact flashes</label>
+                  <span>Transient hits. No free-running strobe.</span>
+                </div>
+                <button
+                  id={`${id}-impact-flashes`}
+                  className={`switch ${flashes && !reducedMotion ? "on" : ""}`}
+                  role="switch"
+                  aria-checked={flashes && !reducedMotion}
+                  aria-label="Impact flashes"
+                  type="button"
+                  disabled={reducedMotion}
+                  onClick={() => setFlashes(!flashes)}
+                >
+                  <span />
+                </button>
+              </div>
             </fieldset>
             <div className="inspector-note">
               <span className="note-spark">✳</span>
               <p>
-                Your music is the director.
+                Your kick runs the rig.
                 <br />
-                <span>The visuals follow its lead.</span>
+                <span>Every hit changes the picture.</span>
               </p>
             </div>
           </aside>
@@ -1022,8 +1121,9 @@ export function App() {
             <span className="eyebrow">SOUND BECOMES A PLACE</span>
             <h2 id={`${id}-dialog-title`}>Follow your sound.</h2>
             <p>
-              Drop in an MP3 or WAV and press play. Afterglow reads your track’s energy to shape a
-              five-chapter journey, while the bass and high frequencies bring every frame to life.
+              Drop in an MP3 or WAV. Kicks punch the camera, midrange transients fire snare sweeps,
+              and high frequencies light up the rig. Auto director switches rigs every 16 detected
+              kicks.
             </p>
             <ol className="help-steps">
               <li>
@@ -1032,7 +1132,7 @@ export function App() {
               </li>
               <li>
                 <strong>Set the feeling.</strong>
-                <span>Choose a world, a color story, and how far you want to drift.</span>
+                <span>Choose a rig, a palette, and how hard you want it to hit.</span>
               </li>
               <li>
                 <strong>Take it with you.</strong>

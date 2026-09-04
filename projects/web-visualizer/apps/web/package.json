@@ -9,7 +9,7 @@
     "dev": "vite --host 127.0.0.1",
     "lint": "biome lint . && oxlint .",
     "serve": "vite preview --host 127.0.0.1",
-    "test": "node --test test/analysis.test.ts",
+    "test": "node --test test/*.test.ts",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },

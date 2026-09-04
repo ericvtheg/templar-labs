@@ -10,7 +10,7 @@ export interface TrackAnalysis {
   chapters: Chapter[];
 }
 
-export const chapterNames = ["Awakening", "Departure", "Drift", "Ascension", "Afterglow"];
+export const chapterNames = ["Ignition", "Lift-off", "Warp", "Overdrive", "Finale"];
 
 export function clamp(value: number, min = 0, max = 1): number {
   return Math.min(max, Math.max(min, value));
@@ -56,11 +56,11 @@ export function analyzeChannels(channels: Float32Array[], bins = 240): TrackAnal
     waveform: waveform.map((value) => value / maxPeak),
     energy,
     chapters: [
-      { name: "Awakening", start: 0, description: "A world comes into focus" },
-      { name: "Departure", start: 0.16, description: "Follow the first movement" },
-      { name: "Drift", start: 0.36, description: "Lose yourself in the details" },
-      { name: "Ascension", start: peakPosition, description: "Everything opens up" },
-      { name: "Afterglow", start: 0.88, description: "Let the light linger" },
+      { name: "Ignition", start: 0, description: "Bring the rig online" },
+      { name: "Lift-off", start: 0.16, description: "Let the pressure build" },
+      { name: "Warp", start: 0.36, description: "Straight through the sound" },
+      { name: "Overdrive", start: peakPosition, description: "Everything at full power" },
+      { name: "Finale", start: 0.88, description: "One last hit" },
     ],
   };
 }

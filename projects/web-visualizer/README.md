@@ -1,6 +1,6 @@
 # Afterglow
 
-A browser music visualizer that turns an MP3 or WAV into a continuous cinematic journey.
+A browser EDM lightshow with drum-driven lasers, camera punches, shockwaves, and drop impacts.
 
 ## Run
 
@@ -11,18 +11,23 @@ pnpm install
 pnpm dev web-visualizer
 ```
 
-Open [localhost:5184](http://localhost:5184). Choose a track, drop a file onto the upload area, or try the original synthesized demo. Playback starts after analysis. Space toggles playback; chapter buttons and the waveform seek through the track.
+Open [localhost:5184](http://localhost:5184). Choose a track, drop a file onto the upload area, or try **Voltage / 128**, the original 128 BPM EDM demo. Playback starts after analysis. Space toggles playback; chapter buttons and the waveform seek through the track.
 
 ## Experience
 
-- Three procedural WebGL worlds: Event horizon, Tidal bloom, and Neon voyage
-- Five chapters, with the ascension positioned around a sustained energy peak
-- Live bass and high-frequency response, camera movement, and opening/closing fades
-- Three palettes, intensity, motion, film grain, fullscreen, and landscape/portrait/square framing
+- Three WebGL rigs: Mainstage laser banks, Hyperspace gates, and Prism riot shards
+- Kick-triggered camera punches and shockwaves, mid-transient snare sweeps, and high-frequency light trails
+- Pattern and palette changes counted from detected kicks; larger impacts when drums return or sustained energy jumps
+- Auto director switches rigs every 16 detected kicks; selecting a rig manually locks it until auto mode is enabled again
+- Five journey chapters, with Overdrive placed around a sustained energy peak
+- Neon, Ultraviolet, and Acid palettes; impact, velocity, film grain, fullscreen, and three aspect ratios
+- Optional impact flashes and live kick/snare/high response meters
 - Stereo waveform analysis, playback volume, pause, seek, restart, and track replacement
 - Local processing: audio is never sent to a server; limits are 150 MB and 30 minutes
 
-Reduced-motion preferences slow the visual motion and reduce the bass response. WebGL and Web Audio support are required. The interface loads fonts from Google Fonts with system fallbacks.
+The filter bank uses the decoded sample rate and measures energy every 10 ms. Separate onset envelopes have short decays, keeping drum attacks sharp. Features are precomputed against the audio clock, so seeking and exporting reproduce the same light cues; pausing holds the frame. BPM is an estimate and only appears when kick intervals are sufficiently consistent.
+
+Reduced-motion preferences damp motion and transients, disable flashes, and stop beat-count camera cuts. WebGL and Web Audio support are required. The interface loads fonts from Google Fonts with system fallbacks.
 
 ## Export
 
@@ -41,7 +46,7 @@ pnpm --filter web-visualizer-web exec playwright install chromium
 pnpm --filter web-visualizer-web test:e2e
 ```
 
-Tests live in `apps/web/test/`. Browser tests cover rendered pixels, mobile layout, controls, MP3/WAV decoding, drag-and-drop, playback, chapter seeking, corrupt-file recovery, real video/audio export, and cancellation. Headless Chromium uses its software GPU. The MP3 fixture is an original generated sine tone; demo audio is synthesized locally.
+Tests live in `apps/web/test/`. Audio tests cover onset timing across sample rates, quiet masters, stereo phase inversion, tempo, silence, repeatable seeking, and the demo's drops and breakdown. Browser tests compare rendered impacts at a fixed time and level, verify pause and reduced-motion behavior, and cover mobile layout, MP3/WAV import, playback, export, and cancellation. Headless Chromium uses its software GPU. The MP3 fixture is an original generated sine tone; demo audio is synthesized locally.
 
 ## Deploy
 

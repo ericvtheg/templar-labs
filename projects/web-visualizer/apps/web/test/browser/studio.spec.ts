@@ -29,7 +29,9 @@ test("renders a living preview and supports visual controls on desktop and mobil
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Your sound. A whole new world." })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your track. The whole mainstage." }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Export film" })).toBeDisabled();
   await expect(page.locator(".visual-error")).toHaveCount(0);
   await expect
@@ -54,17 +56,21 @@ test("renders a living preview and supports visual controls on desktop and mobil
     )
     .toBeGreaterThan(1000);
   await page.screenshot({ path: "test/results/desktop.png", fullPage: true });
-  await page.getByRole("button", { name: /Tidal bloom/ }).click();
-  await expect(page.getByRole("button", { name: /Tidal bloom/ })).toHaveAttribute(
+  await page.getByRole("button", { name: /Hyperspace/ }).click();
+  await expect(page.getByRole("button", { name: /Hyperspace/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  await expect(page.locator(".stage-caption h2")).toHaveText("Tidal bloom.");
-  await page.getByRole("button", { name: "Glacier", exact: true }).click();
-  await page.getByRole("switch", { name: "Film grain" }).click();
+  await expect(page.locator(".stage-caption h2")).toHaveText("Hyperspace.");
+  await page.getByRole("button", { name: "Acid", exact: true }).click();
   await expect(page.getByRole("switch", { name: "Film grain" })).toHaveAttribute(
     "aria-checked",
     "false",
+  );
+  await page.getByRole("switch", { name: "Film grain" }).click();
+  await expect(page.getByRole("switch", { name: "Film grain" })).toHaveAttribute(
+    "aria-checked",
+    "true",
   );
   await page.getByLabel("Aspect ratio").selectOption("1");
   await expect(page.locator(".stage-shell")).toHaveClass(/portrait/);
@@ -89,8 +95,8 @@ test("decodes uploads, plays, pauses, seeks through chapters, and recovers from 
   const paused = await page.getByRole("slider", { name: "Track position" }).inputValue();
   await page.waitForTimeout(400);
   expect(await page.getByRole("slider", { name: "Track position" }).inputValue()).toBe(paused);
-  await page.getByRole("button", { name: /05.*Afterglow/ }).click();
-  await expect(page.locator(".stage-caption h2")).toHaveText("Afterglow.");
+  await page.getByRole("button", { name: /05.*Finale/ }).click();
+  await expect(page.locator(".stage-caption h2")).toHaveText("Finale.");
   expect(
     Number(await page.getByRole("slider", { name: "Track position" }).inputValue()),
   ).toBeCloseTo(17.6, 1);
@@ -110,7 +116,7 @@ test("decodes uploads, plays, pauses, seeks through chapters, and recovers from 
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible({
     timeout: 8000,
   });
-  await expect(page.locator(".stage-caption h2")).toHaveText("Afterglow.");
+  await expect(page.locator(".stage-caption h2")).toHaveText("Finale.");
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
 });
@@ -143,7 +149,7 @@ test("exports a full film with video and audio tracks", async ({ page }) => {
 test("the synthesized demo starts without a file or network audio", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Try a demo track" }).click();
-  await expect(page.locator(".track-title strong")).toHaveText("Somewhere, beyond");
+  await expect(page.locator(".track-title strong")).toHaveText("Voltage / 128");
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
@@ -196,4 +202,119 @@ test("cancelling a render preserves the track and unlocks the studio", async ({ 
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   expect(downloads).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test("a detected kick visibly punches every rig at the same time and loudness", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const measurements = await page.evaluate(async () => {
+    const visualPath = "/src/visualizer.ts";
+    const rhythmPath = "/src/rhythm.ts";
+    const { Visualizer } = await import(visualPath);
+    const { analyzeRhythm, sampleRhythm } = await import(rhythmPath);
+    const pcm = Float32Array.from({ length: 22050 }, (_, i) => {
+      const phase = i / 22050 - 0.25;
+      return phase >= 0 ? Math.sin(phase * 65 * Math.PI * 2) * Math.exp(-phase * 26) * 0.8 : 0;
+    });
+    const response = sampleRhythm(analyzeRhythm([pcm], 22050), 0.27);
+    const canvas = document.createElement("canvas");
+    canvas.style.width = "384px";
+    canvas.style.height = "216px";
+    document.body.append(canvas);
+    const visualizer = new Visualizer(canvas);
+    const gl = canvas.getContext("webgl");
+    if (!gl) {
+      throw new Error("WebGL is unavailable");
+    }
+    const capture = () => {
+      const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+      gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      return pixels;
+    };
+    const results = [];
+    for (let scene = 0; scene < 3; scene++) {
+      const frame = {
+        ...response,
+        snare: 0,
+        drop: 0,
+        time: 2.7,
+        progress: 0.4,
+        scene,
+        palette: 0,
+        intensity: 0.9,
+        motion: 0.85,
+        grain: false,
+        flash: false,
+        loaded: true,
+      };
+      visualizer.render({ ...frame, kick: 0, snare: 0, drop: 0 }, 16 / 9);
+      const steady = capture();
+      visualizer.render(frame, 16 / 9);
+      const impact = capture();
+      let before = 0;
+      let after = 0;
+      let changed = 0;
+      for (let i = 0; i < steady.length; i += 4) {
+        const a = (steady[i] ?? 0) + (steady[i + 1] ?? 0) + (steady[i + 2] ?? 0);
+        const b = (impact[i] ?? 0) + (impact[i + 1] ?? 0) + (impact[i + 2] ?? 0);
+        before += a;
+        after += b;
+        if (Math.abs(a - b) > 45) {
+          changed++;
+        }
+      }
+      results.push({
+        scene,
+        brightnessRatio: after / Math.max(1, before),
+        changedFraction: changed / (steady.length / 4),
+      });
+    }
+    visualizer.dispose();
+    canvas.remove();
+    return results;
+  });
+  for (const measurement of measurements) {
+    expect(measurement.brightnessRatio, JSON.stringify(measurement)).toBeGreaterThan(1.35);
+    expect(measurement.changedFraction, JSON.stringify(measurement)).toBeGreaterThan(0.15);
+  }
+});
+
+test("pausing holds the lighting frame and reduced motion disables impact flashes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Try a demo track" }).click();
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page.waitForTimeout(200);
+  const before = await page
+    .locator("canvas")
+    .evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+  await page.waitForTimeout(350);
+  const after = await page
+    .locator("canvas")
+    .evaluate((canvas: HTMLCanvasElement) => canvas.toDataURL());
+  expect(after).toBe(before);
+  await page.getByRole("button", { name: /02.*Lift-off/ }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "aria-label",
+    "Hyperspace audio-reactive visual",
+  );
+  await page.getByRole("button", { name: /Mainstage LASERS/ }).click();
+  await expect(page.getByRole("switch", { name: "Auto director" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+  await page.getByRole("button", { name: /03.*Warp/ }).click();
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "aria-label",
+    "Mainstage audio-reactive visual",
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.getByRole("switch", { name: "Impact flashes" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+  await expect(page.getByRole("switch", { name: "Impact flashes" })).toBeDisabled();
 });

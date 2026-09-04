@@ -4,13 +4,21 @@ export interface VisualFrame {
   time: number;
   progress: number;
   bass: number;
+  mid: number;
   high: number;
-  energy: number;
+  level: number;
+  kick: number;
+  snare: number;
+  drop: number;
+  build: number;
+  drive: number;
+  beat: number;
   scene: number;
   palette: number;
   intensity: number;
   motion: number;
   grain: boolean;
+  flash: boolean;
   loaded: boolean;
 }
 
@@ -22,116 +30,145 @@ void main() { gl_Position = vec4(position, 0., 1.); }
 const fragmentSource = `
 precision highp float;
 uniform vec2 resolution;
-uniform float time, progress, bass, high, energy, scene, palette, intensity, motion, grain, loaded;
+uniform float time, progress, bass, mid, high, level, kick, snare, drop, build, drive, beat;
+uniform float scene, palette, intensity, motion, grain, flash, loaded;
 #define PI 3.14159265359
+#define TAU 6.28318530718
 
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p), f = fract(p);
-  f = f * f * (3. - 2. * f);
-  return mix(mix(hash(i), hash(i + vec2(1,0)), f.x), mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), f.x), f.y);
+float hash(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+mat2 rotate(float a) { return mat2(cos(a),-sin(a),sin(a),cos(a)); }
+vec3 ink(float n) {
+  vec3 a = vec3(.025,.85,1.), b = vec3(1.,.035,.48);
+  if (palette > .5 && palette < 1.5) { a = vec3(.55,.12,1.); b = vec3(1.,.24,.025); }
+  if (palette > 1.5) { a = vec3(.65,1.,.025); b = vec3(.02,.9,.75); }
+  return mix(a,b,.5+.5*sin(n*TAU));
 }
-float fbm(vec2 p) {
-  float n = 0., a = .5;
-  mat2 turn = mat2(.8,-.6,.6,.8);
-  for (int i = 0; i < 5; i++) {
-    n += a * noise(p);
-    p = turn * p * 2.03 + 13.2;
-    a *= .5;
-  }
-  return n;
+float line(float d, float width) {
+  return exp(-abs(d)/width) + .20*exp(-abs(d)/(width*12.));
 }
-vec3 color(float n) {
-  vec3 dark = vec3(.18,.12,.43), light = vec3(1.,.47,.19);
-  if (palette > .5 && palette < 1.5) { dark = vec3(.29,.07,.53); light = vec3(.47,.74,1.); }
-  if (palette > 1.5) { dark = vec3(.015,.25,.32); light = vec3(.52,1.,.81); }
-  return mix(dark, light, clamp(n, 0., 1.));
+float polygon(vec2 p, float sides, float angle) {
+  float a = atan(p.y,p.x)+angle;
+  return cos(floor(.5+a/(TAU/sides))*(TAU/sides)-a)*length(p);
+}
+float beam(vec2 p, vec2 origin, vec2 direction, float width) {
+  vec2 q = p-origin;
+  vec2 n = normalize(direction);
+  return line(q.x*n.y-q.y*n.x,width)*smoothstep(0.,.08,dot(q,n));
 }
 void main() {
-  vec2 uv = (gl_FragCoord.xy - resolution * .5) / resolution.y;
-  float t = time * (.08 + motion * .18);
-  float travel = smoothstep(.0,.75,progress) - smoothstep(.82,1.,progress)*.55;
-  float audio = bass * intensity;
-  float zoom = 1. + travel * .32 + audio * .025;
-  uv /= zoom;
-  uv += vec2(sin(t*.17)*.022,cos(t*.21)*.016);
-  float radius = length(uv);
-  vec3 col = vec3(.007,.009,.021);
-
-  // Slowly drifting nebula behind every world.
-  float fog = fbm(uv * 3. + vec2(t*.08,-t*.06));
-  float cloud = pow(fbm(uv * 5. + fog * 2. + vec2(0,t*.04)), 3.);
-  col += color(.12) * cloud * .45;
+  vec2 uv = (gl_FragCoord.xy-resolution*.5)/resolution.y;
+  float impact = .35+intensity*1.65;
+  float punch = kick*impact;
+  float snap = snare*impact;
+  float speed = .4+motion*1.8;
+  float t = time*speed;
+  float flight = drive*speed;
+  float phrase = floor(beat/8.);
+  float hue = floor(beat/4.)*.21;
+  float activity = mix(.9,clamp(max(level,kick*.8)*1.35,0.,1.),loaded);
+  float aperture = .14 + .48*activity + .6*punch;
+  vec2 shake = vec2(hash(beat)-.5,hash(beat+79.)-.5)*punch*.035*motion;
+  vec2 p = (uv+shake)/(1.+punch*.23+drop*.22);
+  p = rotate(sin(t*.35)*.04*motion + snap*.035)*p;
+  vec3 col = vec3(.001,.002,.007);
 
   if (scene < .5) {
-    // Turbulent accretion rings: a tilted, luminous orbit around a dark core.
-    float angle = -.38 + sin(t*.18)*.12 + travel*.25;
-    mat2 rot = mat2(cos(angle),-sin(angle),sin(angle),cos(angle));
-    vec2 p = rot * uv;
-    p.y *= 1.35 + sin(t*.12)*.15;
-    float r = length(p);
-    float a = atan(p.y,p.x);
-    vec2 circular = vec2(cos(a),sin(a));
-    float turbulence = fbm(circular * 3. + vec2(r * 8. - t*.55, t*.16));
-    float ringR = .295 + sin(a*3.+t*.3)*.008;
-    float distortion = (turbulence-.5) * .15;
-    float d = r - ringR + distortion;
-    float wisps = fbm(vec2(r*20. + turbulence*4. - t*.22, a*2. + t*.12));
-    float threads = pow(.5+.5*sin(r*170. + turbulence*19. - t*1.8), 5.);
-    float halo = exp(-abs(d)*8.);
-    float ribbon = exp(-abs(d)*34.);
-    float edge = exp(-abs(d+.015)*110.);
-    float side = .5 + .5 * sin(a + .6);
-    col += color(side) * halo * (.12 + .12*energy);
-    col += color(side) * ribbon * (wisps*.95 + threads*.65) * (1.25 + audio*.45);
-    col += mix(color(side),vec3(1.,.94,.83),.65) * edge * (.22+threads*.6);
-    col += color(.55) * exp(-abs(p.y + .045)*65.) * exp(-abs(p.x)*2.8) * .065;
-    float core = smoothstep(.20,.29,r + distortion*.55);
-    col *= .055 + core*.945;
-    // Broad lens bloom at the two ends of the orbit.
-    col += color(.9) * .075 / (1. + dot((p-vec2(-.28,.055))*17.,(p-vec2(-.28,.055))*17.));
-  } else if (scene < 1.5) {
-    // A field of liquid silk folds whose scale opens through the track.
-    vec2 p = uv * (2.2-travel*.5);
-    float n = fbm(p + vec2(t*.08,t*.1));
+    // Concert rig: two banks of moving-head lasers, a flying floor, and an LED core.
+    vec2 center = vec2(sin(t*.6)*.045,.10+mid*.025);
+    vec2 q = p-center;
+    float floorDepth = .15/max(-q.y,.007);
+    float floorMask = 1.-smoothstep(-.035,.0,q.y);
+    float gx = abs(fract(q.x*floorDepth*9.+.5)-.5);
+    float gy = abs(fract(floorDepth*5.-flight*1.7)-.5);
+    col += ink(.05+hue)*line(gx,.008)*floorMask*min(1.,-q.y*2.)*(.2+bass*.55);
+    col += ink(.65+hue)*line(gy,.012)*floorMask*(.1+punch*.9);
+    for (int i = 0; i < 12; i++) {
+      float fi = float(i);
+      float spread = (fi-5.5)*(.105+build*.045);
+      float sweep = sin(t*.85+fi*.19+phrase)*.55;
+      vec2 left = vec2(-.65,-.39);
+      vec2 right = vec2(.65,-.39);
+      float bank = beam(p,left,vec2(.55+spread+sweep,.8),.0014);
+      bank += beam(p,right,vec2(-.55-spread+sweep,.8),.0014);
+      float chase = .2+.8*pow(.5+.5*sin(fi*1.7+beat*1.3),2.);
+      col += ink(fi*.09+hue)*bank*chase*aperture*(1.+snap*.6);
+    }
+    float turn = t*.22+floor(beat/4.)*PI*.25;
     for (int i = 0; i < 4; i++) {
       float fi = float(i);
-      float y = p.y + sin(p.x*2.2 + t*.3 + fi*.5)*.35 + n*.65 - .32;
-      float wave = sin(y*12. + fbm(p*3.+t*.1)*6. + fi*1.1);
-      float fold = pow(.5+.5*wave, 12.);
-      col += color(fi/3.) * fold * (.14 + .12*audio) / (1.+abs(p.y)*1.5);
-      p = mat2(.94,-.342,.342,.94)*p;
+      float size = .13+fi*.057+bass*.025;
+      float edge = polygon(q,6.,turn+fi*.18+kick*.3)-size;
+      col += ink(fi*.19+hue)*line(edge,.0022)*(0.28+activity*.35+punch*.8);
     }
-    col += color(.5) * exp(-radius*3.)*.1;
+    float core = polygon(rotate(-turn*1.7)*q,3.,0.);
+    col += ink(hue+.35)*line(core-(.055+mid*.045),.002)*(1.+snap);
+    col += ink(hue)*exp(-length(q)*8.)*punch*.38;
+    // White hot fixtures anchor the laser fans in space.
+    col += vec3(.8,.95,1.)*exp(-length(p-vec2(-.65,-.39))*70.)*(.4+punch);
+    col += vec3(1.,.7,.9)*exp(-length(p-vec2(.65,-.39))*70.)*(.4+punch);
+    float blinders = exp(-abs(abs(p.x)-.63)*160.)*exp(-abs(p.y)*3.);
+    col += vec3(.65,.85,1.)*blinders*snap*2.;
+  } else if (scene < 1.5) {
+    // A beat-punched flight through polygon gates. Distance advances with the audio.
+    vec2 q = rotate(t*.13+floor(beat/8.)*.65)*p;
+    q += vec2(sin(t*.65),cos(t*.48))*.045*motion;
+    float radius = max(polygon(q,6.,.2),.018);
+    float depth = -log(radius)*2.;
+    float gate = abs(fract(depth-flight*1.55)-.5);
+    float angle = atan(q.y,q.x);
+    float ribs = abs(sin(angle*6.+sin(depth*.4+flight*.13)*.45));
+    float mask = smoothstep(.018,.09,radius)*(1.-smoothstep(.8,1.4,radius));
+    col += ink(depth*.14+hue)*line(gate,.018)*mask*(.35+activity*.5+punch*1.5);
+    col += ink(.45+hue)*line(ribs,.014)*mask*(.2+bass*.45);
+    float tunnel = abs(fract(depth*.5-flight*.4)-.5);
+    col += ink(.8+hue)*line(tunnel,.06)*mask*high*.3;
+    col += ink(hue+.2)*exp(-length(q)*17.)*(.4+drop*2.);
+    // Light trails pass the camera as the bass pushes it forward.
+    for (int i = 0; i < 24; i++) {
+      float fi = float(i);
+      float a = hash(fi+4.)*TAU + t*.04;
+      float r = .04+fract(hash(fi+63.)+flight*(.15+hash(fi)*.1))*1.1;
+      vec2 star = vec2(cos(a),sin(a))*r;
+      vec2 delta = rotate(-a)*(q-star);
+      col += ink(fi*.12+hue)*exp(-abs(delta.y)*700.-abs(delta.x)*35.)*(.18+high+punch*.8);
+    }
   } else {
-    // A continuous flight through a twisting, luminous tunnel.
-    vec2 p = uv + vec2(sin(t*.25),cos(t*.17))*.04;
-    float r = max(length(p),.015);
-    float a = atan(p.y,p.x);
-    float depth = .23/r + t*.6;
-    float twist = a + depth*.2 + sin(depth*.25)*.6;
-    float ribs = pow(.5+.5*cos(twist*8.),20.);
-    float rings = pow(.5+.5*cos(depth*9.),28.);
-    float glow = ribs*.3 + rings*.22;
-    col += color(.5+.5*sin(depth*.7+a)) * glow * smoothstep(.015,.18,r) * (1.+audio*.5);
-    col += color(.8) * exp(-r*9.)*.5;
+    // Mirrored prism blades, snapping on bars and breathing on every drum hit.
+    vec2 q = rotate(t*.22+floor(beat/4.)*PI*.2)*p;
+    float radius = length(q);
+    float angle = atan(q.y,q.x);
+    float sectors = 6.+2.*mod(phrase,3.);
+    float folded = abs(mod(angle+PI/sectors,TAU/sectors)-PI/sectors);
+    vec2 shard = vec2(cos(folded),sin(folded))*radius;
+    for (int i = 0; i < 7; i++) {
+      float fi = float(i);
+      float offset = .07+fi*.065+bass*.035;
+      float blade = shard.y*.9 + shard.x*.36 - offset + sin(t+fi)*.018;
+      float facet = abs(shard.x-offset*1.8)-(.025+kick*.035);
+      col += ink(fi*.13+hue)*line(blade,.0017)*(.4+activity*.55+punch);
+      col += ink(fi*.13+hue+.3)*line(facet,.0012)*exp(-shard.y*5.)*(.2+snap*.9);
+    }
+    col += ink(hue)*line(polygon(q,3.,-t*.7)-(.17+kick*.08),.003)*(.6+punch);
+    col += ink(hue+.4)*pow(max(0.,1.-folded*sectors/PI),18.)*exp(-radius*2.)*high*.32;
   }
 
-  // Fine stars with soft diffraction, no flashing strobes.
-  vec2 starUV = uv*vec2(170.,170.) + vec2(t*.12,t*.06);
-  vec2 cell = floor(starUV);
-  float star = hash(cell);
-  vec2 point = fract(starUV)-.5;
-  float sparkle = exp(-length(point)*24.) * step(.983,star);
-  col += vec3(.6,.7,.85) * sparkle * (.3+high*.6) * smoothstep(.25,.6,radius);
-  col *= 1.-smoothstep(.3,1.2,radius)*.6;
-  float exposure = .8 + intensity*.35;
-  col = vec3(1.) - exp(-col * exposure * 1.7);
-  col = pow(max(col,vec3(0.)),vec3(.82));
-  col += (hash(gl_FragCoord.xy + floor(time*24.))-.5) * .027 * grain;
-  float fadeIn = smoothstep(0.,.025,progress);
-  float fadeOut = 1.-smoothstep(.95,1.,progress);
-  col *= mix(1., fadeIn*fadeOut, loaded);
+  // Expanding shock fronts and a narrow snare sweep across all three rigs.
+  float shock = length(p)-(.10+(1.-kick)*.78);
+  col += mix(ink(hue+.5),vec3(1.),.4)*line(shock,.004)*kick*impact*.85;
+  col += ink(hue)*line(length(p)-(.2+(1.-drop)*1.2),.009)*drop*1.4;
+  col += vec3(.7,.9,1.)*line(p.y-(.45-snare*.9),.0015)*snap*.9;
+  // Discrete LED strobes are driven by detected transients, never a free-running timer.
+  float led = step(.82,fract((uv.x+.9)*24.));
+  float top = line(abs(uv.y)-.465,.003);
+  col += ink(floor(uv.x*12.)*.1+hue)*led*top*(.15+snap*2.);
+  col *= (.055+activity*.945);
+  col += flash*(snare*.035+drop*.065)*activity;
+  col = vec3(1.)-exp(-col*(1.+intensity*.9));
+  col *= 1.-smoothstep(.65,1.25,length(uv))*.35;
+  col += (hash(dot(gl_FragCoord.xy,vec2(1.,117.))+floor(time*30.))-.5)*.016*grain*activity;
+  float fadeIn = smoothstep(0.,.002,progress);
+  float fadeOut = 1.-smoothstep(.985,1.,progress);
+  col *= mix(1.,fadeIn*fadeOut,loaded);
   gl_FragColor = vec4(max(col,vec3(0.)),1.);
 }
 `;
@@ -201,8 +238,16 @@ export class Visualizer {
       "time",
       "progress",
       "bass",
+      "mid",
       "high",
-      "energy",
+      "level",
+      "kick",
+      "snare",
+      "drop",
+      "build",
+      "drive",
+      "beat",
+      "flash",
       "scene",
       "palette",
       "intensity",

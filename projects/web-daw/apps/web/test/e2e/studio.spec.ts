@@ -7,6 +7,11 @@ test("opens a ready demo, plays real audio, and persists an edited groove", asyn
   await page.goto("/");
   await expect(page.getByLabel("Session name")).toHaveValue("Afterglow");
   await expect(page.getByText("Saved on this device")).toBeVisible();
+  const tempo = page.getByLabel("Tempo", { exact: true });
+  await tempo.fill("");
+  await tempo.pressSequentially("118");
+  await tempo.press("Enter");
+  await expect(tempo).toHaveValue("118");
   await page.screenshot({ path: "/tmp/web-daw-desktop.png", fullPage: true });
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();

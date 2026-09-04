@@ -698,13 +698,23 @@ export function Studio() {
           <label className="tempo">
             <input
               aria-label="Tempo"
+              key={session.bpm}
               type="number"
               min={50}
               max={200}
-              value={session.bpm}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                if (value >= 50 && value <= 200) {
+              defaultValue={session.bpm}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
+              onBlur={(event) => {
+                const entered = event.currentTarget.valueAsNumber;
+                const value = Number.isFinite(entered)
+                  ? Math.max(50, Math.min(200, entered))
+                  : session.bpm;
+                event.currentTarget.value = String(value);
+                if (value !== session.bpm) {
                   edit({ ...session, bpm: value });
                 }
               }}

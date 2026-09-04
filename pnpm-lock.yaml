@@ -1009,6 +1009,37 @@ importers:
         specifier: ^4.2.4
         version: 4.2.4
 
+  projects/little-chaos:
+    dependencies:
+      '@templar/deploy':
+        specifier: workspace:*
+        version: link:../../packages/deploy
+    devDependencies:
+      alchemy:
+        specifier: ^0.93.7
+        version: 0.93.7(@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260514.1)))(kysely@0.28.17)(stripe@18.5.0(@types/node@24.12.4))(vite@7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  projects/little-chaos/apps/web:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.58.2
+        version: 1.60.0
+      '@templar/dev-ports':
+        specifier: workspace:*
+        version: link:../../../../tools/dev-ports
+      '@types/node':
+        specifier: ^24.12.4
+        version: 24.12.4
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^7.1.9
+        version: 7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.9.0)
+
   projects/swedish-fifty:
     dependencies:
       '@templar/auth':

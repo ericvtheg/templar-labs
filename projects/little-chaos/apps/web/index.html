@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101014" />
+    <title>Little Chaos — Order is optional.</title>
+    <meta name="description" content="32,000 particles. A little order. A little chaos. An interactive playground you can pull apart and make your own." />
+    <meta property="og:title" content="Little Chaos — Order is optional." />
+    <meta property="og:description" content="I made you a tiny universe. Go ahead. Break it." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://little-chaos.ericventor.com/social.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Little Chaos — Order is optional." />
+    <meta name="twitter:description" content="32,000 particles, waiting for you to make a little chaos." />
+    <meta name="twitter:image" content="https://little-chaos.ericventor.com/social.jpg" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="universe" aria-label="An interactive sculpture made of 32,000 particles. Hold to scatter them and release to rebuild." tabindex="0"></canvas>
+      <div class="grain" aria-hidden="true"></div>
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Little Chaos home"><span class="brand-icon" aria-hidden="true">✳</span> little chaos<span class="brand-period">01</span></a>
+        <span class="edition">AN INTERACTIVE PLAYGROUND <span> / </span> VOL. 001</span>
+        <button class="button share-button" id="share" type="button">Share your universe <span aria-hidden="true">↗</span></button>
+      </header>
+
+      <section class="intro" aria-labelledby="title">
+        <p class="eyebrow"><span class="live-dot"></span> A SMALL EXPERIMENT IN LETTING GO</p>
+        <h1 id="title">Order is<br /><em>optional.</em><span class="title-star" aria-hidden="true">✳</span></h1>
+        <p class="description">32,000 particles. A little order. A little chaos.<br />The rest is in your hands.</p>
+      </section>
+
+      <div class="specimen-label" aria-hidden="true"><span class="specimen-line"></span><div><span id="specimen-number">FIG. 001</span><strong id="specimen-name">A pale blue thought</strong><span id="specimen-caption">SATURN · 32,000 POINTS IN SPACE</span></div></div>
+
+      <aside class="side-controls" aria-label="Appearance">
+        <span class="vertical-label">CHANGE THE MOOD</span>
+        <div class="palette-options" role="group" aria-label="Color palette">
+          <button type="button" class="swatch" data-palette="dusk" aria-label="Dusk palette" aria-pressed="true" style="--swatch: linear-gradient(135deg, #f3b496, #b9a0fa)"></button>
+          <button type="button" class="swatch" data-palette="ocean" aria-label="Ocean palette" aria-pressed="false" style="--swatch: linear-gradient(135deg, #bbffd6, #6bb9ee)"></button>
+          <button type="button" class="swatch" data-palette="ember" aria-label="Ember palette" aria-pressed="false" style="--swatch: linear-gradient(135deg, #ffe0a0, #fc6953)"></button>
+          <button type="button" class="swatch" data-palette="silver" aria-label="Silver palette" aria-pressed="false" style="--swatch: linear-gradient(135deg, #fff, #8d9aa8)"></button>
+        </div>
+      </aside>
+
+      <div class="interaction-hint" id="interaction-hint"><span class="pointer-icon" aria-hidden="true">↖</span><span>Press & hold to make a little chaos.<small>Let go. It all comes back.</small></span></div>
+      <div class="chaos-meter" aria-hidden="true"><span>ORDER</span><div><i id="chaos-fill"></i></div><span>CHAOS</span></div>
+
+      <section class="control-deck" aria-label="Sculpture controls">
+        <div class="shape-section"><span class="control-label">01 / PICK A FORM</span>
+          <div class="shape-options" role="group" aria-label="Particle form">
+            <button type="button" class="shape-button" data-shape="saturn" aria-pressed="true"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="6"/><ellipse cx="14" cy="14" rx="13" ry="4" transform="rotate(-30 14 14)"/></svg><span>Saturn</span></button>
+            <button type="button" class="shape-button" data-shape="galaxy" aria-pressed="false"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 14c-3-4 3-7 6-3s-1 11-8 10S2 12 7 6s15-2 17 4M14 14c3 4-3 7-6 3s1-11 8-10"/></svg><span>Galaxy</span></button>
+            <button type="button" class="shape-button" data-shape="bloom" aria-pressed="false"><svg viewBox="0 0 28 28" aria-hidden="true"><ellipse cx="14" cy="14" rx="5" ry="12"/><ellipse cx="14" cy="14" rx="5" ry="12" transform="rotate(60 14 14)"/><ellipse cx="14" cy="14" rx="5" ry="12" transform="rotate(120 14 14)"/></svg><span>Bloom</span></button>
+            <button type="button" class="shape-button" data-shape="helix" aria-pressed="false"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M7 2c0 10 14 14 14 24M21 2c0 10-14 14-14 24M8 6h12M10 10h8M10 18h8M8 22h12"/></svg><span>Helix</span></button>
+            <button type="button" class="shape-button" data-shape="word" aria-pressed="false"><span class="type-icon" aria-hidden="true">Aa</span><span>Your word</span></button>
+          </div>
+        </div>
+        <div class="motion-section"><label class="control-label" for="energy">02 / TURN UP THE FEELING <output id="energy-value">35%</output></label><div class="range-row"><span aria-hidden="true">−</span><input id="energy" type="range" min="0" max="100" value="35" aria-label="Motion intensity" /><span aria-hidden="true">+</span></div></div>
+        <div class="capture-section"><span class="control-label">03 / KEEP A LITTLE PIECE</span><div class="capture-actions"><button class="button" id="snapshot" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l1-2h6l1 2h5v15H3V5z"/><circle cx="12" cy="12" r="4"/></svg>Save image</button><button class="record-button" id="record" type="button"><span class="record-dot"></span><span id="record-label">Record 8s</span></button></div></div>
+      </section>
+
+      <footer class="footer"><span>MADE OF NOTHING. FEELS LIKE SOMETHING.</span><div><button id="pause" type="button" aria-label="Pause animation" aria-pressed="false">Ⅱ <span>Pause</span></button><span class="footer-divider"></span><button id="tour" type="button" aria-pressed="false">▷ <span>Take a trip</span></button><span class="footer-divider"></span><button id="focus" type="button" aria-pressed="false">⛶ <span>Hide UI</span></button></div><a href="https://ericventor.com" target="_blank" rel="noreferrer">AN EXPERIMENT BY ERIC VENTOR <span>↗</span></a></footer>
+      <button class="exit-focus button" id="exit-focus" type="button">↙ Show controls</button>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="fallback" class="fallback" hidden><h2>A little more power, please.</h2><p>This playground needs WebGL. Try enabling hardware acceleration or opening it in another browser.</p></div>
+      <dialog id="word-dialog"><form id="word-form"><button type="button" class="dialog-close" id="close-dialog" aria-label="Close">×</button><span class="eyebrow">SOMETHING WORTH HOLDING ON TO</span><h2>Give your chaos<br />a little meaning.</h2><label for="word-input">A word. A name. A tiny thought.</label><input id="word-input" name="word" type="text" maxlength="12" value="HELLO" autocomplete="off" required /><div class="dialog-bottom"><span>UP TO 12 CHARACTERS</span><button class="button" type="submit">Make it matter <span aria-hidden="true">↗</span></button></div></form></dialog>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

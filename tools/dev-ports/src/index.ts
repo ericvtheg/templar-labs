@@ -6,6 +6,7 @@ export const devPorts = {
   "emma-eric-wedding-web": 5180,
   "hello-world-web": 5173,
   "launch-room-web": 5175,
+  "little-chaos-web": 5186,
   "loan-payment-calculator-web": 5176,
   "swedish-fifty-web": 5178,
   "templar-auth-web": 5181,

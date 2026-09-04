@@ -65,3 +65,5 @@ Tests live in `apps/web/test/`. Audio tests cover onset timing across sample rat
 ## Deploy
 
 `pnpm --filter web-visualizer deploy` uses the repository’s Alchemy profile to deploy the static Vite app to Cloudflare. No database or backend is required.
+
+Hosted at [web-visualizer.ericventor.com](https://web-visualizer.ericventor.com). The Workers subdomain is disabled.

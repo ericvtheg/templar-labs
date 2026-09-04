@@ -15,7 +15,25 @@
 - Undo/redo, browser autosave, 12 named local sessions, and compressed session links
 - Stereo 44.1 kHz / 16-bit WAV export, including three seconds of effect tails
 
-Select a clip and choose **Make unique** to edit its pattern independently. Other clips share their track's pattern. The arrangement supports 24 tracks and up to 64 bars.
+Each clip edits independently, including duplicated clips. The arrangement supports 24 tracks and up to 64 bars; MIDI patterns span one, two, or four bars with a grid down to 1/32.
+
+## Editing
+
+| Action | Gesture |
+| --- | --- |
+| Insert a note | Double-click empty piano-roll space, or press **B** for draw mode |
+| Select notes | Drag a marquee; Shift-click to add or remove a note |
+| Move / copy notes | Drag / Alt-drag |
+| Resize notes or clips | Drag the right edge; clips also have a left trim handle |
+| Transpose notes | ↑/↓; Shift + ↑/↓ for an octave |
+| Move / resize selected notes | ←/→ / Shift + ←/→ |
+| Copy, cut, paste, duplicate | ⌘/Ctrl C, X, V, D in the focused editor |
+| Delete | Delete or Backspace |
+| Undo / redo | ⌘/Ctrl Z / ⌘/Ctrl Shift Z |
+| Set a loop | Drag the arrangement loop brace, or select a clip and press ⌘/Ctrl L |
+| Switch notes / devices | Shift + Tab |
+
+Click the piano ruler to place the note paste cursor. Click empty arrangement space to place the clip paste cursor. Clips can move between instrument tracks; their notes play through the destination instrument. Drag the divider above the note editor to give the piano roll more space.
 
 ## Develop
 

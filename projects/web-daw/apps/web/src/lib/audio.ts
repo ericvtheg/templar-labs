@@ -367,11 +367,20 @@ export class AudioEngine {
       }
     }
   }
+  mapStep(step: number) {
+    const start = (this.session.loop?.start ?? 0) * 16;
+    const end = (this.session.loop?.end ?? this.session.bars) * 16;
+    if (this.loop && step >= end) {
+      return start + ((step - end) % Math.max(16, end - start));
+    }
+    return step % (this.session.bars * 16);
+  }
   position() {
     return this.playing && this.context
-      ? (this.startStep +
-          Math.max(0, this.context.currentTime - this.startTime) / (60 / this.session.bpm / 4)) %
-          (this.session.bars * 16)
+      ? this.mapStep(
+          this.startStep +
+            Math.max(0, this.context.currentTime - this.startTime) / (60 / this.session.bpm / 4),
+        )
       : this.startStep;
   }
   async play(step = 0) {
@@ -434,7 +443,7 @@ export class AudioEngine {
       if (!this.loop && absolute >= total) {
         break;
       }
-      const step = absolute % total;
+      const step = this.mapStep(absolute);
       const time = Math.max(
         context.currentTime,
         this.startTime +
@@ -445,7 +454,15 @@ export class AudioEngine {
         const graph = this.graphs.get(track.id);
         if (graph) {
           for (const note of notesAtStep(track, step)) {
-            trigger(context, graph.input, track, note, time, duration, this.buffers);
+            trigger(
+              context,
+              graph.input,
+              track,
+              note,
+              time + (note.step % 1) * duration,
+              duration,
+              this.buffers,
+            );
           }
         }
       }
@@ -521,7 +538,7 @@ export class AudioEngine {
             graph.input,
             track,
             note,
-            0.01 + step * duration + (step % 2 ? session.swing * duration : 0),
+            0.01 + (step + (note.step % 1)) * duration + (step % 2 ? session.swing * duration : 0),
             duration,
             this.buffers,
           );

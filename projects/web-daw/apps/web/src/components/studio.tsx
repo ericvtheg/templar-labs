@@ -2,7 +2,6 @@ import {
   ArrowDownToLine,
   AudioLines,
   Check,
-  ChevronDown,
   Circle,
   CircleHelp,
   Copy,
@@ -25,7 +24,6 @@ import {
   Trash2,
   Undo2,
   Volume2,
-  Waves,
   X,
 } from "lucide-react";
 import {
@@ -45,12 +43,13 @@ import {
   demos,
   encodeSession,
   makeTrack,
-  moveClip,
   type Session,
   sessionSchema,
   type Track,
   uid,
 } from "../lib/session";
+import { ArrangementClip } from "./arrangement-clip";
+import { LoopBrace } from "./loop-brace";
 import { Browser, Devices, Mixer, NoteEditor } from "./panels";
 
 const positions = (length: number) => Array.from({ length }, (_, position) => position);
@@ -132,31 +131,6 @@ function Modal({
     </dialog>
   );
 }
-function ClipPreview({ track }: { track: Track }) {
-  return (
-    <svg
-      className="clip-preview"
-      viewBox="0 0 200 22"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      {track.notes.map((note) => (
-        <rect
-          key={`${note.step}-${note.pitch}`}
-          x={(note.step / track.length) * 198}
-          y={
-            soundById(track.sound).kind === "sample"
-              ? 2 + (1 - note.velocity) * 10
-              : 18 - ((note.pitch % 24) / 24) * 17
-          }
-          width={Math.max(2, (note.duration / track.length) * 190)}
-          height={soundById(track.sound).kind === "sample" ? note.velocity * 16 : 2.4}
-          rx=".5"
-        />
-      ))}
-    </svg>
-  );
-}
 export function Studio() {
   const [session, setSession] = useState<Session>(() => demoSession());
   const latest = useRef(session);
@@ -168,11 +142,15 @@ export function Studio() {
   const [starting, setStarting] = useState(false);
   const [position, setPosition] = useState(0);
   const positionRef = useRef(0);
+  const [arrangeCursor, setArrangeCursor] = useState(0);
+  const clipClipboard = useRef<Clip | null>(null);
   const [meters, setMeters] = useState<Record<string, number> & { master?: number }>({});
   const [loop, setLoop] = useState(true);
   const [metronome, setMetronome] = useState(false);
   const [record, setRecord] = useState(false);
-  const [panel, setPanel] = useState("Devices");
+  const [panel, setPanel] = useState("Note editor");
+  const [panelHeight, setPanelHeight] = useState(390);
+  const panelDrag = useRef<{ y: number; height: number } | null>(null);
   const [modal, setModal] = useState<"new" | "help" | "share" | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -186,7 +164,7 @@ export function Studio() {
   const engine = useRef<AudioEngine | null>(null);
   const generation = useRef(0);
   const track = session.tracks.find((t) => t.id === selected) ?? session.tracks[0]!;
-  const activeClip = track.clips.find((clip) => clip.id === selectedClip);
+  const activeClip = track.clips.find((clip) => clip.id === selectedClip) ?? track.clips[0];
   const editorTrack = activeClip?.pattern ? { ...track, ...activeClip.pattern } : track;
   const message = useCallback((text: string) => setToast(text), []);
   const error = useCallback(
@@ -222,7 +200,7 @@ export function Studio() {
   }, []);
   const editPattern = useCallback(
     (next: Track) => {
-      if (activeClip?.pattern) {
+      if (activeClip) {
         editTrack({
           ...track,
           clips: track.clips.map((clip) =>
@@ -467,7 +445,69 @@ export function Studio() {
         stop();
         return;
       }
+      if (event.shiftKey && event.key === "Tab") {
+        event.preventDefault();
+        setPanel((current) => (current === "Note editor" ? "Devices" : "Note editor"));
+        return;
+      }
+      const clip = track.clips.find((c) => c.id === selectedClip);
+      if ((event.key === "Delete" || event.key === "Backspace") && clip) {
+        event.preventDefault();
+        editTrack({ ...track, clips: track.clips.filter((c) => c.id !== clip.id) });
+        setSelectedClip(null);
+        return;
+      }
       if (event.metaKey || event.ctrlKey) {
+        const key = event.key.toLowerCase();
+        if ((key === "c" || key === "x") && clip) {
+          event.preventDefault();
+          clipClipboard.current = structuredClone({
+            ...clip,
+            pattern: clip.pattern ?? { length: track.length, notes: track.notes },
+          });
+          if (key === "x") {
+            editTrack({ ...track, clips: track.clips.filter((c) => c.id !== clip.id) });
+            setSelectedClip(null);
+          }
+        }
+        if (key === "d" || key === "v") {
+          event.preventDefault();
+          const original = key === "d" ? clip : clipClipboard.current;
+          if (!original) {
+            return;
+          }
+          const start = key === "d" ? original.start + original.bars : arrangeCursor;
+          if (
+            start + original.bars > latest.current.bars ||
+            track.clips.some((c) => start < c.start + c.bars && start + original.bars > c.start)
+          ) {
+            message("Choose an empty area for the copied clip.");
+            return;
+          }
+          const next = {
+            ...original,
+            id: uid(),
+            start,
+            pattern: original.pattern ?? { length: track.length, notes: track.notes },
+          };
+          editTrack({ ...track, clips: [...track.clips, next] });
+          setSelectedClip(next.id);
+          setArrangeCursor(start + next.bars);
+        }
+        if (key === "l" && clip) {
+          event.preventDefault();
+          edit({ ...latest.current, loop: { start: clip.start, end: clip.start + clip.bars } });
+          setLoop(true);
+          const step = clip.start * 16;
+          positionRef.current = step;
+          setPosition(step);
+          if (engine.current) {
+            engine.current.startStep = step;
+            if (engine.current.playing) {
+              void engine.current.play(step).catch(error);
+            }
+          }
+        }
         if (event.key.toLowerCase() === "z") {
           event.preventDefault();
           if (event.shiftKey) {
@@ -492,38 +532,50 @@ export function Studio() {
         audition(pitch);
         if (record && engine.current?.playing) {
           const songStep = Math.floor(engine.current.position());
-          const clip = track.clips.find(
+          const recordingClip = track.clips.find(
             (item) => songStep >= item.start * 16 && songStep < (item.start + item.bars) * 16,
           );
-          if (!clip) {
+          if (!recordingClip) {
             message("Add a clip at this position before recording notes.");
             return;
           }
-          const pattern = clip.pattern ?? track;
-          const step = (songStep - clip.start * 16) % pattern.length;
+          const pattern = recordingClip.pattern ?? track;
+          const step =
+            (songStep - recordingClip.start * 16 + (recordingClip.offset ?? 0)) % pattern.length;
           const notes = [
             ...pattern.notes.filter((n) => n.step !== step || n.pitch !== pitch),
             { step, pitch, duration: Math.min(2, pattern.length - step), velocity: 0.8 },
           ];
-          editTrack(
-            clip.pattern
-              ? {
-                  ...track,
-                  clips: track.clips.map((item) =>
-                    item.id === clip.id ? { ...item, pattern: { ...pattern, notes } } : item,
-                  ),
-                }
-              : {
-                  ...track,
-                  notes: [...notes],
-                },
-          );
+          editTrack({
+            ...track,
+            clips: track.clips.map((item) =>
+              item.id === recordingClip.id
+                ? { ...item, pattern: { length: pattern.length, notes } }
+                : item,
+            ),
+          });
         }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [play, stop, undo, redo, archive, track, audition, record, editTrack, modal, message]);
+  }, [
+    play,
+    stop,
+    undo,
+    redo,
+    archive,
+    track,
+    audition,
+    record,
+    editTrack,
+    modal,
+    message,
+    selectedClip,
+    arrangeCursor,
+    edit,
+    error,
+  ]);
   const exportAudio = async () => {
     if (!engine.current) {
       return;
@@ -549,7 +601,8 @@ export function Studio() {
       error(cause);
     }
   };
-  const seek = (bar: number) => {
+  function seek(bar: number) {
+    setArrangeCursor(bar);
     const step = bar * 16;
     positionRef.current = step;
     setPosition(step);
@@ -559,15 +612,19 @@ export function Studio() {
         void engine.current.play(step).catch(error);
       }
     }
-  };
+  }
   const addClip = (target: Track, start: number) => {
     const bars = Math.min(target.length / 16, session.bars - start);
     if (target.clips.some((c) => start < c.start + c.bars && start + bars > c.start)) {
       return;
     }
-    editTrack({ ...target, clips: [...target.clips, { id: uid(), start, bars }] });
+    const clip = { id: uid(), start, bars, pattern: { length: target.length, notes: [] } };
+    editTrack({ ...target, clips: [...target.clips, clip] });
+    setSelected(target.id);
+    setSelectedClip(clip.id);
+    setPanel("Note editor");
   };
-  const duplicateClip = () => {
+  function duplicateClip() {
     const clip = track.clips.find((c) => c.id === selectedClip);
     if (!clip) {
       return;
@@ -580,10 +637,15 @@ export function Studio() {
       message("Leave space after this clip before duplicating it.");
       return;
     }
-    const next = { ...clip, id: uid(), start };
+    const next = {
+      ...clip,
+      pattern: clip.pattern ?? { length: track.length, notes: track.notes },
+      id: uid(),
+      start,
+    };
     editTrack({ ...track, clips: [...track.clips, next] });
     setSelectedClip(next.id);
-  };
+  }
   return (
     <main className="studio">
       <header className="app-header">
@@ -767,21 +829,6 @@ export function Studio() {
           onLoad={load}
         />
         <div className="main-workspace">
-          <section className="welcome-strip">
-            <div className="welcome-art">
-              <Waves size={31} />
-            </div>
-            <div>
-              <span className="eyebrow">A LITTLE INSPIRATION. A LOT OF POSSIBILITY.</span>
-              <h1>
-                Make something that moves you<span>.</span>
-              </h1>
-              <p>Your session is ready. Hit play, find a sound, make it yours.</p>
-            </div>
-            <button type="button" onClick={() => setModal("new")}>
-              Explore sessions <ChevronDown size={14} />
-            </button>
-          </section>
           <div className="arrangement-toolbar">
             <div>
               <LayoutList size={15} />
@@ -789,28 +836,6 @@ export function Studio() {
               <span>{session.tracks.length} TRACKS</span>
             </div>
             <div>
-              <button
-                type="button"
-                disabled={!activeClip || Boolean(activeClip.pattern)}
-                title="Give this clip its own editable pattern"
-                onClick={() => {
-                  editTrack({
-                    ...track,
-                    clips: track.clips.map((clip) =>
-                      clip.id === selectedClip
-                        ? {
-                            ...clip,
-                            pattern: { length: track.length, notes: structuredClone(track.notes) },
-                          }
-                        : clip,
-                    ),
-                  });
-                  setPanel("Note editor");
-                  message("This clip now has its own pattern. Other clips keep their notes.");
-                }}
-              >
-                Make unique
-              </button>
               {activeClip && (
                 <select
                   aria-label="Selected clip length"
@@ -871,6 +896,14 @@ export function Studio() {
                     edit({
                       ...session,
                       bars,
+                      ...(session.loop
+                        ? {
+                            loop: {
+                              start: Math.min(session.loop.start, bars - 1),
+                              end: Math.min(session.loop.end, bars),
+                            },
+                          }
+                        : {}),
                       tracks: session.tracks.map((t) => ({
                         ...t,
                         clips: t.clips
@@ -939,15 +972,13 @@ export function Studio() {
                 <div className="track-column">
                   <span className="subtle">{loop ? "LOOP ON" : "ONE PASS"}</span>
                 </div>
-                <div className="sections">
-                  {["INTRO", "IN THE POCKET", "OPEN IT UP", "ONE MORE TIME"].map((name, i) => (
-                    <span key={name}>
-                      <i />
-                      {name}
-                      <small>{String(i + 1).padStart(2, "0")}</small>
-                    </span>
-                  ))}
-                </div>
+                <LoopBrace
+                  start={session.loop?.start ?? 0}
+                  end={session.loop?.end ?? session.bars}
+                  bars={session.bars}
+                  enabled={loop}
+                  onChange={(start, end) => edit({ ...session, loop: { start, end } })}
+                />
               </div>
               {session.tracks.map((item, i) => (
                 <div
@@ -1021,20 +1052,68 @@ export function Studio() {
                       }
                       e.preventDefault();
                       e.stopPropagation();
-                      const data = JSON.parse(raw) as { trackId: string; id: string };
-                      if (data.trackId !== item.id) {
-                        message("Move clips within their instrument track.");
+                      const data = JSON.parse(raw) as {
+                        trackId: string;
+                        id: string;
+                        offset?: number;
+                        copy?: boolean;
+                      };
+                      const source = session.tracks.find((t) => t.id === data.trackId);
+                      const original = source?.clips.find((c) => c.id === data.id);
+                      if (!source || !original) {
                         return;
                       }
                       const box = e.currentTarget.getBoundingClientRect();
-                      const start = Math.min(
-                        session.bars - 1,
-                        Math.max(
-                          0,
-                          Math.floor(((e.clientX - box.left) / box.width) * session.bars),
+                      const start = Math.max(
+                        0,
+                        Math.min(
+                          session.bars - original.bars,
+                          Math.floor(((e.clientX - box.left) / box.width) * session.bars) -
+                            (data.offset ?? 0),
                         ),
                       );
-                      editTrack(moveClip(item, data.id, start, session.bars));
+                      const copy = data.copy || e.altKey;
+                      if (
+                        item.clips.some(
+                          (c) =>
+                            (copy || c.id !== original.id) &&
+                            start < c.start + c.bars &&
+                            start + original.bars > c.start,
+                        )
+                      ) {
+                        message("That space is occupied. Move the clip to an empty area.");
+                        return;
+                      }
+                      const moved = {
+                        ...original,
+                        id: copy ? uid() : original.id,
+                        start,
+                        pattern: original.pattern ?? { length: source.length, notes: source.notes },
+                      };
+                      edit({
+                        ...session,
+                        tracks: session.tracks.map((t) => {
+                          const clips =
+                            !copy && t.id === source.id
+                              ? t.clips.filter((c) => c.id !== original.id)
+                              : t.clips;
+                          return { ...t, clips: t.id === item.id ? [...clips, moved] : clips };
+                        }),
+                      });
+                      setSelected(item.id);
+                      setSelectedClip(moved.id);
+                      setArrangeCursor(start);
+                    }}
+                    onClick={(e) => {
+                      if (e.target !== e.currentTarget) {
+                        return;
+                      }
+                      const box = e.currentTarget.getBoundingClientRect();
+                      setArrangeCursor(
+                        Math.floor(((e.clientX - box.left) / box.width) * session.bars),
+                      );
+                      setSelected(item.id);
+                      setSelectedClip(null);
                     }}
                     onDoubleClick={(e) => {
                       if (e.target !== e.currentTarget) {
@@ -1048,38 +1127,42 @@ export function Studio() {
                     }}
                   >
                     {item.clips.map((clip: Clip) => (
-                      <button
-                        type="button"
+                      <ArrangementClip
                         key={clip.id}
-                        aria-label={`${item.name} clip at bar ${clip.start + 1}`}
-                        className={`arrangement-clip ${selectedClip === clip.id ? "selected" : ""}`}
-                        style={{
-                          left: `${(clip.start / session.bars) * 100}%`,
-                          width: `calc(${(clip.bars / session.bars) * 100}% - 4px)`,
-                        }}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData(
-                            "application/clip",
-                            JSON.stringify({ trackId: item.id, id: clip.id }),
-                          );
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        onClick={() => {
+                        clip={clip}
+                        track={item}
+                        bars={session.bars}
+                        selected={selectedClip === clip.id}
+                        onSelect={() => {
                           setSelected(item.id);
                           setSelectedClip(clip.id);
+                          setArrangeCursor(clip.start);
                         }}
-                        onDoubleClick={() => {
+                        onOpen={() => {
                           setSelected(item.id);
+                          setSelectedClip(clip.id);
                           setPanel("Note editor");
                         }}
-                      >
-                        <span>
-                          {item.name}
-                          {clip.start === 0 && <small>{item.length / 16} BAR PATTERN</small>}
-                        </span>
-                        <ClipPreview track={clip.pattern ? { ...item, ...clip.pattern } : item} />
-                      </button>
+                        onResize={(next) => {
+                          if (next.start === clip.start && next.bars === clip.bars) {
+                            return;
+                          }
+                          if (
+                            item.clips.some(
+                              (c) =>
+                                c.id !== clip.id &&
+                                next.start < c.start + c.bars &&
+                                next.start + next.bars > c.start,
+                            )
+                          ) {
+                            return;
+                          }
+                          editTrack({
+                            ...item,
+                            clips: item.clips.map((c) => (c.id === clip.id ? next : c)),
+                          });
+                        }}
+                      />
                     ))}
                     <div
                       className="playhead"
@@ -1119,7 +1202,47 @@ export function Studio() {
               </div>
             </div>
           </section>
-          <section className="bottom-panel">
+          <section
+            className="bottom-panel"
+            style={panel === "Note editor" ? { height: panelHeight } : undefined}
+          >
+            {panel === "Note editor" && (
+              <button
+                type="button"
+                className="panel-resizer"
+                aria-label="Resize note editor"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowUp") {
+                    setPanelHeight(Math.min(650, panelHeight + 30));
+                  }
+                  if (event.key === "ArrowDown") {
+                    setPanelHeight(Math.max(250, panelHeight - 30));
+                  }
+                }}
+                onPointerDown={(event) => {
+                  panelDrag.current = { y: event.clientY, height: panelHeight };
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  if (panelDrag.current) {
+                    setPanelHeight(
+                      Math.max(
+                        250,
+                        Math.min(
+                          window.innerHeight * 0.72,
+                          panelDrag.current.height + panelDrag.current.y - event.clientY,
+                        ),
+                      ),
+                    );
+                  }
+                }}
+                onPointerUp={() => {
+                  panelDrag.current = null;
+                }}
+              />
+            )}
+
             <div className="panel-tabs">
               <div>
                 {["Note editor", "Devices", "Mixer"].map((name, i) => (
@@ -1191,7 +1314,14 @@ export function Studio() {
               <NoteEditor
                 key={`${track.id}-${selectedClip ?? "pattern"}`}
                 track={editorTrack}
-                position={position}
+                position={
+                  activeClip
+                    ? position >= activeClip.start * 16 &&
+                      position < (activeClip.start + activeClip.bars) * 16
+                      ? position - activeClip.start * 16 + (activeClip.offset ?? 0)
+                      : -1
+                    : position
+                }
                 onChange={editPattern}
                 onPreview={audition}
               />
@@ -1290,15 +1420,19 @@ export function Studio() {
               <h3>01 / Make it yours</h3>
               <p>
                 Press Space to play. Preview a sound with ▶, then click + to add it. Double-click a
-                clip to open its note editor. Clips repeat their track’s pattern; select Make unique
-                to edit one clip independently.
+                clip to open its note editor. Each clip edits independently. Drag clips between
+                tracks, drag their edges to resize, and use ⌘/Ctrl C, V, D to copy, paste, or
+                duplicate.
               </p>
             </section>
             <section>
               <h3>02 / Find your groove</h3>
               <p>
-                Click steps for drums, or draw notes in the piano roll. Drag notes to move them.
-                Double-click a note to erase it. Select a note to change its length and velocity.
+                Double-click to insert notes, or press B for draw mode. Drag empty space to select a
+                group; Shift-click adds to the selection. Drag notes to move them, their right edges
+                to resize, or Alt-drag to copy. Arrow keys move and transpose; Shift + ↑/↓ moves an
+                octave. Delete erases the selection. Drag the loop brace or use ⌘/Ctrl L on a clip
+                to loop it.
               </p>
             </section>
             <section>

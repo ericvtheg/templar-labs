@@ -64,9 +64,10 @@ test("adds an instrument, edits notes, shares the result, and renders a stereo W
   await page.getByRole("button", { name: "Preview FM Bell", exact: true }).click();
   await page.getByRole("button", { name: "Add FM Bell", exact: true }).click();
   const grid = page.getByRole("application", { name: /Piano roll/ });
-  await grid.click({ position: { x: 70, y: 70 } });
-  await expect(page.locator(".midi-note")).toHaveCount(1);
-  await page.locator(".midi-note").click();
+  await grid.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".producer-note")).toHaveCount(1);
+  await page.locator(".producer-note").click();
   await page.getByLabel("Note length", { exact: true }).selectOption("4");
   await page.getByRole("button", { name: "Devices", exact: false }).click();
   await page.getByRole("button", { name: "Enable Echo", exact: true }).click();
@@ -141,7 +142,7 @@ test("switches demos, isolates tracks, records keyboard notes, and stays usable 
   await page.getByRole("button", { name: "Record computer keyboard", exact: true }).click();
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.keyboard.press("a");
-  await expect(page.locator(".midi-note")).toHaveCount(1);
+  await expect(page.locator(".producer-note")).toHaveCount(1);
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: "/tmp/web-daw-mobile.png", fullPage: true });
@@ -156,7 +157,7 @@ test("edits an independent clip, moves notes, and preserves local changes after 
   await page.goto("/");
   await expect(page.getByText("Saved on this device")).toBeVisible();
   await page.getByRole("button", { name: "Deep Kick clip at bar 1", exact: true }).click();
-  await page.getByRole("button", { name: "Make unique", exact: true }).click();
+  await page.getByRole("button", { name: /Note editor/, exact: false }).click();
   await page.getByRole("button", { name: "Step 2", exact: true }).click();
   await expect(page.getByRole("button", { name: "Step 2", exact: true })).toHaveAttribute(
     "aria-pressed",
@@ -168,11 +169,17 @@ test("edits an independent clip, moves notes, and preserves local changes after 
     "false",
   );
   await page.getByRole("button", { name: "Velvet Keys clip at bar 1", exact: true }).dblclick();
-  const note = page.locator(".midi-note").first();
+  const note = page.locator(".producer-note").first();
   const old = await note.getAttribute("aria-label");
-  await note.dragTo(page.getByRole("application", { name: /Piano roll/ }), {
-    targetPosition: { x: 100, y: 36 },
-  });
+  await note.scrollIntoViewIfNeeded();
+  const box = await note.boundingBox();
+  if (!box) {
+    throw new Error("Expected a visible note");
+  }
+  await page.mouse.move(box.x + 12, box.y + 6);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 42, box.y - 8, { steps: 5 });
+  await page.mouse.up();
   await expect(page.getByRole("button", { name: old as string, exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Share", exact: true }).click();
   const link = await page.getByLabel("Share URL").inputValue();

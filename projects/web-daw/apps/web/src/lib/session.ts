@@ -7,9 +7,9 @@ const patternLength = z.union([z.literal(16), z.literal(32), z.literal(64)]);
 const noteList = z
   .array(
     z.object({
-      step: z.number().int().min(0).max(63),
+      step: z.number().multipleOf(0.5).min(0).max(63.5),
       pitch: z.number().int().min(24).max(96),
-      duration: z.number().int().min(1).max(64),
+      duration: z.number().multipleOf(0.5).min(0.5).max(64),
       velocity: finite(0.05, 1),
     }),
   )
@@ -31,6 +31,9 @@ export const sessionSchema = z
     swing: finite(0, 0.45),
     bars: z.number().int().min(4).max(64),
     master: finite(0, 1),
+    loop: z
+      .object({ start: z.number().int().min(0).max(63), end: z.number().int().min(1).max(64) })
+      .optional(),
     tracks: z
       .array(
         z.object({
@@ -51,6 +54,7 @@ export const sessionSchema = z
                 start: z.number().int().min(0).max(63),
                 bars: z.number().int().min(1).max(64),
                 pattern: patternSchema.optional(),
+                offset: z.number().int().min(0).max(63).optional(),
               }),
             )
             .max(64),
@@ -67,6 +71,12 @@ export const sessionSchema = z
       .max(24),
   })
   .superRefine((session, context) => {
+    if (
+      session.loop &&
+      (session.loop.start >= session.loop.end || session.loop.end > session.bars)
+    ) {
+      context.addIssue({ code: "custom", message: "Invalid loop region" });
+    }
     const ids = new Set<string>();
     for (const track of session.tracks) {
       if (
@@ -251,8 +261,8 @@ export function notesAtStep(track: Track, step: number): Note[] {
     return [];
   }
   const pattern = clip.pattern ?? track;
-  const local = (step - clip.start * 16) % pattern.length;
-  return pattern.notes.filter((note) => note.step === local);
+  const local = (step - clip.start * 16 + (clip.offset ?? 0)) % pattern.length;
+  return pattern.notes.filter((note) => Math.floor(note.step) === local);
 }
 export function toggleNote(
   track: Track,

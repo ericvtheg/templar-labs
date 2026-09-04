@@ -24,15 +24,14 @@ import {
 import { type CSSProperties, useCallback, useEffect, useId, useRef, useState } from "react";
 import { analyzeChannels, chapterAt, formatTime, validateFile } from "./analysis";
 import { AudioEngine, type Track } from "./audio";
+import { sampleChoreography } from "./choreography";
+import { Footage } from "./footage";
+import { colorPresets, type ShowColors } from "./identity";
+import { profiles } from "./profiles";
 import { previewRhythm, sampleRhythm } from "./rhythm";
 import { Visualizer } from "./visualizer";
 
-const scenes = [
-  { name: "Mainstage", type: "LASERS / IMPACT", description: "Every kick hits the rig" },
-  { name: "Hyperspace", type: "SPEED / BASS", description: "Straight into the drop" },
-  { name: "Prism riot", type: "SHARDS / STROBES", description: "Light that hits back" },
-];
-const palettes = ["Neon", "Ultraviolet", "Acid"];
+const palettes = colorPresets.map((preset) => preset.name);
 const emptyAnalysis = analyzeChannels([]);
 const ratios = [
   { name: "16:9", value: 16 / 9 },
@@ -63,11 +62,21 @@ export function App() {
   const [time, setTime] = useState(0);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [profile, setProfile] = useState(0);
+  const showProfile = profiles[profile] ?? profiles[0];
+  const scenes = showProfile.worlds;
   const [scene, setScene] = useState(0);
   const [activeScene, setActiveScene] = useState(0);
   const [director, setDirector] = useState(true);
-  const [palette, setPalette] = useState(0);
-  const [intensity, setIntensity] = useState(90);
+  const [palette, setPalette] = useState(-1);
+  const [artist, setArtist] = useState("");
+  const [footage, setFootage] = useState<Footage | null>(null);
+  const [footageLoading, setFootageLoading] = useState(false);
+  const footageRequest = useRef(0);
+  const footageRef = useRef<Footage | null>(null);
+  const footageInput = useRef<HTMLInputElement>(null);
+  const [colors, setColors] = useState<ShowColors>(profiles[0].colors);
+  const [intensity, setIntensity] = useState(95);
   const [motion, setMotion] = useState(85);
   const [grain, setGrain] = useState(false);
   const [flashes, setFlashes] = useState(true);
@@ -93,7 +102,11 @@ export function App() {
   const settings = useRef({
     track,
     scene,
+    profile,
     palette,
+    artist,
+    colors,
+    footage,
     intensity,
     motion,
     grain,
@@ -106,13 +119,19 @@ export function App() {
   const analysis = track?.analysis ?? emptyAnalysis;
   const progress = track ? time / track.duration : 0;
   const chapter = chapterAt(analysis.chapters, progress);
-  const currentScene = scenes[activeScene] ?? scenes[0];
+  const currentScene = footage
+    ? { name: "Your animation", description: footage.name }
+    : (scenes[activeScene] ?? scenes[0]);
 
   useEffect(() => {
     settings.current = {
       track,
       scene,
+      profile,
       palette,
+      artist,
+      colors,
+      footage,
       intensity,
       motion,
       grain,
@@ -124,7 +143,11 @@ export function App() {
   }, [
     track,
     scene,
+    profile,
     palette,
+    artist,
+    colors,
+    footage,
     intensity,
     motion,
     grain,
@@ -172,9 +195,26 @@ export function App() {
       meters.current?.style.setProperty("--kick", String(rhythm.kick));
       meters.current?.style.setProperty("--snare", String(rhythm.snare));
       meters.current?.style.setProperty("--high", String(rhythm.high));
+      const clip = current.footage;
+      clip?.sync(
+        current.track ? currentTime : now / 1000,
+        current.track ? Boolean(audio?.playing) : true,
+      );
+      if (clip?.error) {
+        setError(clip.error);
+        clip.dispose();
+        footageRef.current = null;
+        setFootage(null);
+      }
       visualizer.render(
         {
           ...rhythm,
+          ...sampleChoreography(
+            current.track?.rhythm ?? null,
+            current.track ? currentTime : now / 1000,
+            rhythm.beat,
+            current.reducedMotion,
+          ),
           time: (current.track ? currentTime : now / 1000) * slow,
           progress: position,
           kick: rhythm.kick * slow,
@@ -184,7 +224,12 @@ export function App() {
           beat: current.reducedMotion ? 0 : rhythm.beat,
           flash: current.flashes && !current.reducedMotion,
           scene: rig,
+          profile: current.profile,
+          footageFrame: clip?.version ?? 0,
           palette: current.palette,
+          artist: current.artist,
+          footage: clip?.video,
+          colors: current.colors,
           intensity: current.intensity / 100,
           motion: current.motion / 100,
           grain: current.grain,
@@ -232,7 +277,7 @@ export function App() {
       visualizer.dispose();
       renderer.current = null;
     };
-  }, []);
+  }, [scenes.length]);
 
   useEffect(
     () => () => {
@@ -244,6 +289,8 @@ export function App() {
         }
         active.release();
       }
+      footageRequest.current++;
+      footageRef.current?.dispose();
       engine.current?.dispose();
       engine.current = null;
     },
@@ -330,6 +377,38 @@ export function App() {
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, [togglePlayback, modal, handleFailure]);
+
+  async function loadFootage(file: File) {
+    const request = ++footageRequest.current;
+    setFootageLoading(true);
+    try {
+      const next = await Footage.load(file);
+      if (request !== footageRequest.current) {
+        next.dispose();
+        return;
+      }
+      footageRef.current?.dispose();
+      footageRef.current = next;
+      setFootage(next);
+      setError(null);
+    } catch (cause) {
+      if (request === footageRequest.current) {
+        handleFailure(cause);
+      }
+    } finally {
+      if (request === footageRequest.current) {
+        setFootageLoading(false);
+      }
+    }
+  }
+
+  function removeFootage() {
+    footageRequest.current++;
+    footageRef.current?.dispose();
+    footageRef.current = null;
+    setFootage(null);
+    setFootageLoading(false);
+  }
 
   async function seek(next: number) {
     if (!recording.current) {
@@ -477,7 +556,7 @@ export function App() {
           <button
             className="button button-light export-button"
             type="button"
-            disabled={!track || loading || exporting || Boolean(visualError)}
+            disabled={!track || loading || footageLoading || exporting || Boolean(visualError)}
             onClick={() => setModal("export")}
           >
             <ArrowDownToLine size={15} /> Export film <span className="export-arrow">↗</span>
@@ -514,6 +593,46 @@ export function App() {
           </div>
         </section>
 
+        <fieldset className="profile-picker" disabled={exporting}>
+          <legend>CHOOSE YOUR SHOW</legend>
+          <div className="profile-options">
+            {profiles.map((item, index) => (
+              <button
+                type="button"
+                key={item.name}
+                aria-label={`${item.name} profile`}
+                aria-pressed={profile === index}
+                className={`profile-card profile-${index} ${profile === index ? "selected" : ""}`}
+                onClick={() => {
+                  removeFootage();
+                  setProfile(index);
+                  setScene(0);
+                  setActiveScene(0);
+                  setDirector(true);
+                  setColors(item.colors);
+                  setPalette(-1);
+                  setIntensity(item.impact);
+                  setMotion(item.velocity);
+                }}
+              >
+                <span
+                  className="profile-art"
+                  style={{ backgroundImage: `url(/worlds/${index}-0.webp)` }}
+                />
+                <span className="profile-copy">
+                  <small>{item.inspiration}</small>
+                  <strong>{item.name}</strong>
+                  <span>{item.description}</span>
+                </span>
+                {profile === index && <Check size={14} />}
+              </button>
+            ))}
+          </div>
+          <p>
+            Original show profiles inspired by live visual production. Each sets the worlds,
+            choreography, lighting, and palette.
+          </p>
+        </fieldset>
         <div className="studio-grid">
           <section className="workspace" aria-label="Visual preview and track">
             <div className="panel-top">
@@ -892,9 +1011,26 @@ export function App() {
             </div>
             <fieldset disabled={exporting}>
               <legend className="sr-only">Visual settings</legend>
+              <div className="control-section artist-section">
+                <label htmlFor={`${id}-artist`}>Artist name</label>
+                <input
+                  id={`${id}-artist`}
+                  type="text"
+                  maxLength={40}
+                  value={artist}
+                  onChange={(event) => setArtist(event.target.value)}
+                  placeholder="YOUR NAME HERE"
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-describedby={`${id}-artist-hint`}
+                />
+                <p id={`${id}-artist-hint`}>
+                  Your name follows the show cues. Play to see your entrance.
+                </p>
+              </div>
               <div className="control-section">
                 <div className="section-heading">
-                  <h3>Choose your rig</h3>
+                  <h3>Choose your world</h3>
                   <span>03</span>
                 </div>
                 <div className="scene-list">
@@ -902,32 +1038,91 @@ export function App() {
                     <button
                       key={item.name}
                       type="button"
-                      className={`scene-card ${activeScene === index ? "selected" : ""}`}
-                      aria-pressed={activeScene === index}
+                      className={`scene-card ${!footage && activeScene === index ? "selected" : ""}`}
+                      aria-pressed={!footage && activeScene === index}
                       onClick={() => {
+                        removeFootage();
                         setScene(index);
                         setActiveScene(index);
                         setDirector(false);
                       }}
                     >
-                      <span className={`scene-thumbnail scene-${index}`}>
-                        <span />
-                      </span>
+                      <span
+                        className="scene-thumbnail"
+                        style={{ backgroundImage: `url(/worlds/${profile}-${index}.webp)` }}
+                      />
                       <span className="scene-card-copy">
                         <strong>{item.name}</strong>
                         <small>{item.type}</small>
                       </span>
                       <span className="scene-check">
-                        {activeScene === index ? <Check size={11} strokeWidth={3} /> : null}
+                        {!footage && activeScene === index ? (
+                          <Check size={11} strokeWidth={3} />
+                        ) : null}
                       </span>
                     </button>
                   ))}
                 </div>
               </div>
+              <div className="control-section footage-section">
+                <div className="section-heading">
+                  <h3>Your animation</h3>
+                  <span>OPTIONAL</span>
+                </div>
+                <input
+                  ref={footageInput}
+                  className="sr-only"
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                  aria-label="Upload animation"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) {
+                      void loadFootage(file);
+                    }
+                  }}
+                />
+                {footage ? (
+                  <div className="footage-file">
+                    <Film size={15} />
+                    <span>{footage.name}</span>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label="Remove animation"
+                      onClick={removeFootage}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="footage-upload"
+                  disabled={footageLoading}
+                  onClick={() => footageInput.current?.click()}
+                >
+                  {footageLoading ? (
+                    <LoaderCircle size={14} className="spin" />
+                  ) : (
+                    <Upload size={14} />
+                  )}
+                  {footageLoading
+                    ? "Loading animation…"
+                    : footage
+                      ? "Replace animation"
+                      : "Add animation clip"}
+                </button>
+                <p>
+                  Bring your own CGI or VJ loop. MP4 / WebM / MOV · stays on your device. Clips loop
+                  for the full track with your title and lighting.
+                </p>
+              </div>
               <div className="control-section color-section">
                 <div className="section-heading">
                   <h3>Color story</h3>
-                  <span>{palettes[palette]}</span>
+                  <span>{palettes[palette] ?? "Custom"}</span>
                 </div>
                 <div className="palette-options">
                   {palettes.map((item, index) => (
@@ -937,16 +1132,37 @@ export function App() {
                       key={item}
                       aria-label={item}
                       aria-pressed={palette === index}
-                      onClick={() => setPalette(index)}
+                      onClick={() => {
+                        setPalette(index);
+                        const preset = colorPresets[index];
+                        if (preset) {
+                          setColors(preset.colors);
+                        }
+                      }}
                     >
                       <span />
                       {palette === index && <Check size={12} />}
                     </button>
                   ))}
                 </div>
-                <div className="color-labels">
-                  <span>Electric & saturated</span>
-                  <span>Acid & high voltage</span>
+                <div className="custom-colors">
+                  {["Primary", "Secondary", "Accent"].map((label, index) => (
+                    <label key={label}>
+                      <span>{label}</span>
+                      <input
+                        type="color"
+                        aria-label={`${label} color`}
+                        value={colors[index]}
+                        onChange={(event) => {
+                          const next = [...colors] as [string, string, string];
+                          next[index] = event.target.value;
+                          setColors(next);
+                          setPalette(-1);
+                        }}
+                      />
+                      <span className="color-hex">{colors[index]}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
               <div className="control-section dynamics-section">
@@ -996,7 +1212,7 @@ export function App() {
               <div className="grain-row director-row">
                 <div>
                   <label htmlFor={`${id}-auto-director`}>Auto director</label>
-                  <span>Switch rigs every 16 kicks.</span>
+                  <span>Switch worlds every 16 kicks.</span>
                 </div>
                 <button
                   id={`${id}-auto-director`}
@@ -1050,9 +1266,9 @@ export function App() {
             <div className="inspector-note">
               <span className="note-spark">✳</span>
               <p>
-                Your kick runs the rig.
+                Your show. Your signature.
                 <br />
-                <span>Every hit changes the picture.</span>
+                <span>Animation, lighting, and identity.</span>
               </p>
             </div>
           </aside>
@@ -1122,8 +1338,8 @@ export function App() {
             <h2 id={`${id}-dialog-title`}>Follow your sound.</h2>
             <p>
               Drop in an MP3 or WAV. Kicks punch the camera, midrange transients fire snare sweeps,
-              and high frequencies light up the rig. Auto director switches rigs every 16 detected
-              kicks.
+              and high frequencies light up the lasers. Auto director switches worlds every 16
+              detected kicks.
             </p>
             <ol className="help-steps">
               <li>
@@ -1132,7 +1348,7 @@ export function App() {
               </li>
               <li>
                 <strong>Set the feeling.</strong>
-                <span>Choose a rig, a palette, and how hard you want it to hit.</span>
+                <span>Add your artist name, choose a world, and make the lighting your own.</span>
               </li>
               <li>
                 <strong>Take it with you.</strong>
@@ -1156,6 +1372,22 @@ export function App() {
               included.
             </p>
             <div className="export-summary">
+              <div>
+                <span>Profile</span>
+                <strong>{showProfile.name}</strong>
+              </div>
+              {footage && (
+                <div>
+                  <span>Animation</span>
+                  <strong>{footage.name}</strong>
+                </div>
+              )}
+              {artist.trim() && (
+                <div>
+                  <span>Artist</span>
+                  <strong>{artist.trim()}</strong>
+                </div>
+              )}
               <div>
                 <span>Track</span>
                 <strong>{track?.name}</strong>

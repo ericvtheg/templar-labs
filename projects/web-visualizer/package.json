@@ -1,0 +1,22 @@
+{
+  "name": "web-visualizer",
+  "displayName": "Afterglow · Music visualizer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter web-visualizer-web build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "pnpm --filter web-visualizer-web dev",
+    "lint": "pnpm --filter web-visualizer-web lint",
+    "test": "pnpm --filter web-visualizer-web test",
+    "typecheck": "tsc --noEmit && pnpm --filter web-visualizer-web typecheck"
+  },
+  "dependencies": {
+    "@templar/deploy": "workspace:*"
+  },
+  "devDependencies": {
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3"
+  }
+}

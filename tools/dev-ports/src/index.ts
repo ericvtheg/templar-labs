@@ -11,6 +11,7 @@ export const devPorts = {
   "templar-auth-web": 5181,
   "ui-showcase-web": 5174,
   "utils-web": 5179,
+  "web-visualizer-web": 5184,
   "your-shopper-web": 5182,
 } as const;
 

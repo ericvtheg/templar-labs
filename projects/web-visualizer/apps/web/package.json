@@ -1,0 +1,31 @@
+{
+  "name": "web-visualizer-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "pnpm --dir ../.. deploy",
+    "dev": "vite --host 127.0.0.1",
+    "lint": "biome lint . && oxlint .",
+    "serve": "vite preview --host 127.0.0.1",
+    "test": "node --test test/analysis.test.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/dev-ports": "workspace:*",
+    "lucide-react": "^1.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "6.0.3",
+    "vite": "^7.1.9"
+  }
+}

@@ -16,7 +16,7 @@ Open http://localhost:5186. The app runs entirely in the browser with TypeScript
 - Hold the canvas or focus it and hold Space to scatter the sculpture
 - Choose a form, one of four palettes, and motion intensity
 - Select **Your word** to sculpt up to 12 characters
-- **Take a trip** cycles through the forms every six seconds
+- **Take a trip** cycles through the forms every three seconds
 - **Hide UI** centers the sculpture; Escape brings the controls back
 - **Save image** downloads a branded 1200 × 1200 PNG
 - **Record 8s** downloads a square scatter-and-rebuild clip, preferring MP4 when the browser supports it and falling back to WebM

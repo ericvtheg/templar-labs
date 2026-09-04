@@ -96,7 +96,7 @@ function start() {
     if (enabled) {
       renderer.paused = false;
       updatePause();
-      notify("A new form every 6 seconds. Sit back for a moment.");
+      notify("A new form every 3 seconds. Sit back for a moment.");
     }
   }
 
@@ -363,7 +363,7 @@ function start() {
     if (!document.hidden) {
       if (trip && !renderer.paused) {
         tripElapsed += dt;
-        if (tripElapsed >= 6) {
+        if (tripElapsed >= 3) {
           tripElapsed = 0;
           tripIndex = (tripIndex + 1) % FORM_NAMES.length;
           selectForm(FORM_NAMES[tripIndex] ?? "saturn", true);

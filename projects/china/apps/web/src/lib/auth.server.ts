@@ -1,5 +1,5 @@
 import { createTemplarAuthApp } from "@templar/auth/app";
-import { isCrew } from "./access.ts";
+import { canAccessChina } from "./access.ts";
 export type Bindings = {
   AUTH_SECRET: string;
   TEMPLAR_AUTH_ISSUER: string;
@@ -13,7 +13,7 @@ export function getAuth(request: Request, bindings: Bindings) {
     secret: bindings.AUTH_SECRET,
     integration: {
       onAuthenticated: ({ user }) => {
-        if (!isCrew(user.email, user.emailVerified, bindings.CREW_EMAILS ?? "")) {
+        if (!canAccessChina(user, bindings.CREW_EMAILS ?? "")) {
           return Promise.reject(new Error("This account is not on the crew list."));
         }
         return Promise.resolve();

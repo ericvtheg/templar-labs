@@ -13,6 +13,7 @@ async function testCookie(
   email = "gavin@example.com",
   emailVerified = true,
   expiresAt = Date.now() + 60_000,
+  admin = false,
 ) {
   const encoder = new TextEncoder();
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(secret));
@@ -25,7 +26,7 @@ async function testCookie(
     email,
     emailVerified,
     image: null,
-    admin: false,
+    admin,
     createdAt: Date.now(),
     expiresAt,
   };
@@ -101,7 +102,23 @@ describe("private trip API against real SQLite and encrypted SSO cookies", () =>
       expect(response.headers.get("cache-control")).toContain("no-store");
     }
   });
-  it("empty allowlists and revoked accounts lose access even with a valid old session", async () => {
+  it("honors verified central platform owners without inviting their separate SSO email", async () => {
+    env.CREW_EMAILS = "";
+    const owner = await testCookie("owner", "owner@example.com", true, Date.now() + 60_000, true);
+    expect((await call("state", undefined, owner)).status).toBe(200);
+    expect((await call("profile", { name: "Owner" }, owner)).status).toBe(200);
+    const unverified = await testCookie(
+      "owner",
+      "owner@example.com",
+      false,
+      Date.now() + 60_000,
+      true,
+    );
+    expect((await call("state", undefined, unverified)).status).toBe(403);
+    const ordinary = await testCookie("outsider", "owner@example.com");
+    expect((await call("profile", { name: "Impostor", admin: true }, ordinary)).status).toBe(403);
+  });
+  it("empty allowlists and revoked guest accounts lose access even with a valid old session", async () => {
     env.CREW_EMAILS = "";
     expect((await call("state")).status).toBe(403);
     expect((await call("profile", { name: "Gavin" })).status).toBe(403);

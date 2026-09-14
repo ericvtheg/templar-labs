@@ -61,6 +61,23 @@ const accounts = await Promise.all(
   }),
 );
 console.log(JSON.stringify({ accounts }, null, 2));
+const { platformAdminEmails } = await import("../../templar-auth/apps/web/src/lib/access.ts");
+const owners = await Promise.all(
+  [...platformAdminEmails].map(async (email) => {
+    const result = await cf(`d1/database/${db}/query`, {
+      sql: "SELECT email_verified AS verified, (SELECT COUNT(*) FROM session s WHERE s.user_id = u.id AND s.expires_at > ?) AS active_sessions FROM user u WHERE lower(email) = lower(?)",
+      params: [Date.now(), email],
+    });
+    const user = result[0]?.results[0];
+    return {
+      platformAdminExists: Boolean(user),
+      emailVerified: user?.verified,
+      activeSessions: user?.active_sessions,
+      includedInChinaInvites: emails.some((invite) => invite.toLowerCase() === email.toLowerCase()),
+    };
+  }),
+);
+console.log(JSON.stringify({ owners }, null, 2));
 const jwks = await fetch("https://auth.breli.app/api/auth/jwks");
 const keys = await jwks.json();
 console.log(

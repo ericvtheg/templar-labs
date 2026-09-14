@@ -1,4 +1,4 @@
-import { isCrew, sameOrigin } from "./access.ts";
+import { canAccessChina, sameOrigin } from "./access.ts";
 import { type Bindings, getAuth } from "./auth.server.ts";
 import { crew, fieldNotes, missions } from "./curriculum.ts";
 import { grade, nextReview } from "./learning.ts";
@@ -19,7 +19,7 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
   if (!session) {
     return json({ error: "Sign in with an invited Google account." }, 401);
   }
-  if (!isCrew(session.user.email, session.user.emailVerified, env.CREW_EMAILS ?? "")) {
+  if (!canAccessChina(session.user, env.CREW_EMAILS ?? "")) {
     return json(
       { error: "This Google account is not on the crew list. Ask the groom to add it." },
       403,

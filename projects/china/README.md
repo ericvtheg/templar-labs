@@ -9,8 +9,9 @@ Private Mandarin clubhouse for the bachelor trip to Beijing and Shanghai. Deploy
 - Set GitHub Actions repository secret **`CHINA_CREW_EMAILS`** to the invited Google emails
   (comma-, semicolon-, or whitespace-separated)
 - The deploy workflow passes the secret to Alchemy, which binds it as encrypted `CREW_EMAILS`
-- Missing/empty allowlists deny everyone. Verified email and membership are checked on **every**
-  private API request, not just sign-in; removing an email takes effect after redeployment
+- Verified central Templar administrators retain owner access through the signed SSO admin claim
+- Missing/empty allowlists deny all other accounts. Verified email and guest membership are checked
+  on **every** private API request, not just sign-in; removing an invite takes effect after redeployment
 - Existing `TEMPLAR_AUTH_SECRET` and Cloudflare/Alchemy secrets remain required; no AI or voice
   provider key is needed
 - D1 migrations run through the existing `d1Database` deployment resource
@@ -40,7 +41,11 @@ pnpm --filter china-web exec playwright install chromium
 pnpm --filter china-web test:e2e
 ```
 
-Unit tests cover real SQLite queries, encrypted SSO sessions, revocation, CSRF, grading,
+The **China auth diagnostics** workflow reads deployed issuer/binding metadata and reports account
+verification/access checks without logging emails, user IDs, cookies, or tokens. Callback failures
+show a fixed diagnostic stage instead of blaming every failure on the invite list.
+
+Unit tests cover real SQLite queries, encrypted SSO sessions, signed owner access, guest revocation, CSRF, grading,
 idempotent progress, cheers, UI flows, and microphone cleanup. Browser tests cover desktop/mobile,
 the real unauthenticated endpoint, lessons, and escaped offline downloads. Authenticated browser
 fixtures exist only in test request interception—there is no production auth bypass.

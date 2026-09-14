@@ -73,6 +73,69 @@ test("an app verifies the central handoff through the issuer JWKS", async () => 
   ]);
 });
 
+test("handoff failures identify safe stages without leaking errors or issuing a session", async () => {
+  const issuer = "https://auth.breli.app";
+  const origin = "https://china.ericventor.com";
+  const { privateKey, publicKey } = await generateKeyPair("EdDSA");
+  const jwk = { ...(await exportJWK(publicKey)), kid: "live-algorithm-test", alg: "EdDSA" };
+  const token = await new SignJWT({ email: "invited@example.com", email_verified: true })
+    .setProtectedHeader({ alg: "EdDSA", kid: jwk.kid })
+    .setSubject("test-user")
+    .setIssuer(issuer)
+    .setAudience(templarFirstPartyAudience)
+    .setExpirationTime("1m")
+    .sign(privateKey);
+  for (const stage of ["exchange", "verification", "access"] as const) {
+    const app = createTemplarAuthApp({
+      issuer,
+      baseURL: origin,
+      secret: "test-only-secret",
+      fetch: (input) => {
+        const url = requestURL(input);
+        if (url.pathname.endsWith("/exchange")) {
+          return Promise.resolve(
+            stage === "exchange"
+              ? new Response("private upstream diagnostic", { status: 500 })
+              : Response.json({ token: stage === "verification" ? "invalid-token" : token }),
+          );
+        }
+        return Promise.resolve(Response.json({ keys: [jwk] }));
+      },
+      integration: { onAuthenticated: () => Promise.reject(new Error("private account detail")) },
+    });
+    const begin = await app.handler(new Request(`${origin}/api/auth/sign-in`));
+    const authorize = new URL(requiredHeader(begin.headers, "location"));
+    const callback = new URL(`${origin}/api/auth/callback`);
+    callback.searchParams.set("code", "single-use-code");
+    callback.searchParams.set("state", requiredSearchParameter(authorize, "state"));
+    const result = await app.handler(
+      new Request(callback, {
+        headers: { cookie: cookiePair(requiredHeader(begin.headers, "set-cookie")) },
+      }),
+    );
+    const location = requiredHeader(result.headers, "location");
+    assert.equal(new URL(location).searchParams.get("auth_reason"), stage);
+    assert.equal(new URL(location).searchParams.get("error"), "auth");
+    assert.doesNotMatch(location, /private|invited/);
+    assert.doesNotMatch(requiredHeader(result.headers, "set-cookie"), /templar.auth.session/);
+  }
+});
+
+test("missing transaction cookies are distinguishable from account denial", async () => {
+  const app = createTemplarAuthApp({
+    baseURL: "https://china.ericventor.com",
+    issuer: "https://auth.breli.app",
+    secret: "test-only-secret",
+  });
+  const response = await app.handler(
+    new Request("https://china.ericventor.com/api/auth/callback?code=bad&state=bad"),
+  );
+  assert.equal(
+    new URL(requiredHeader(response.headers, "location")).searchParams.get("auth_reason"),
+    "missing_transaction",
+  );
+});
+
 function requestURL(input: RequestInfo | URL): URL {
   if (typeof input === "string") {
     return new URL(input);

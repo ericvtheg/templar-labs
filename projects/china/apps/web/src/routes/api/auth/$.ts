@@ -8,6 +8,15 @@ async function handle(request: Request) {
   }
   const { env } = await import("cloudflare:workers");
   const response = await getAuth(request, env as unknown as Bindings).handler(request);
+  const location = response.headers.get("location");
+  if (new URL(request.url).pathname === "/api/auth/callback" && location !== null) {
+    const destination = new URL(location, request.url);
+    if (destination.searchParams.get("error") === "auth") {
+      const failure = new URL("/auth-error", request.url);
+      failure.searchParams.set("reason", destination.searchParams.get("auth_reason") ?? "unknown");
+      response.headers.set("location", failure.href);
+    }
+  }
   response.headers.set("cache-control", "private, no-store");
   return response;
 }

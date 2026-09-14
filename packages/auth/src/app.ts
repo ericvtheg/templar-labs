@@ -137,26 +137,37 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
   async function callback(request: Request): Promise<Response> {
     const transactionValue = readCookie(request.headers, transactionCookie);
     if (transactionValue === undefined) {
-      return authErrorResponse(baseURL, "/", transactionCookie);
+      return authErrorResponse(baseURL, "/", transactionCookie, "missing_transaction");
     }
 
     let transaction: StoredTransaction;
     try {
       transaction = await decryptCookie<StoredTransaction>(transactionValue, config.secret);
       if (transaction.expiresAt <= now()) {
-        return authErrorResponse(baseURL, transaction.returnTo, transactionCookie);
+        return authErrorResponse(
+          baseURL,
+          transaction.returnTo,
+          transactionCookie,
+          "expired_transaction",
+        );
       }
     } catch {
-      return authErrorResponse(baseURL, "/", transactionCookie);
+      return authErrorResponse(baseURL, "/", transactionCookie, "invalid_transaction");
     }
 
     const callbackParameters = new URL(request.url).searchParams;
     const code = callbackParameters.get("code");
     const state = callbackParameters.get("state");
     if (code === null || state !== transaction.state) {
-      return authErrorResponse(baseURL, transaction.returnTo, transactionCookie);
+      return authErrorResponse(
+        baseURL,
+        transaction.returnTo,
+        transactionCookie,
+        callbackParameters.get("error") === "oauth" ? "provider" : "invalid_callback",
+      );
     }
 
+    let failureStage: "exchange" | "verification" | "session" | "access" = "exchange";
     try {
       const exchangeResponse = await fetchImplementation(new URL(firstPartyExchangePath, issuer), {
         method: "POST",
@@ -172,6 +183,7 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
         throw new Error("Authorization code exchange returned no token.");
       }
 
+      failureStage = "verification";
       const { payload: claims } = await jwtVerify<FirstPartyClaims>(exchange.token, jwks, {
         issuer,
         audience: templarFirstPartyAudience,
@@ -192,10 +204,12 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
         createdAt,
         expiresAt: createdAt + sessionExpiresInSeconds * 1_000,
       };
+      failureStage = "session";
       const sessionValue = await encryptCookie(stored, config.secret);
       const authenticatedRequest = requestWithSession(request, sessionCookie, sessionValue);
 
       if (config.integration !== undefined) {
+        failureStage = "access";
         await config.integration.onAuthenticated({
           request: authenticatedRequest,
           auth,
@@ -211,7 +225,7 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
       headers.append("set-cookie", clearCookie(transactionCookie, baseURL));
       return new Response(null, { status: 302, headers });
     } catch {
-      return authErrorResponse(baseURL, transaction.returnTo, transactionCookie);
+      return authErrorResponse(baseURL, transaction.returnTo, transactionCookie, failureStage);
     }
   }
 
@@ -275,9 +289,16 @@ function requestWithSession(request: Request, name: string, value: string): Requ
   return new Request(request, { headers });
 }
 
-function authErrorResponse(baseURL: string, returnTo: string, transactionCookie: string): Response {
+function authErrorResponse(
+  baseURL: string,
+  returnTo: string,
+  transactionCookie: string,
+  reason: string,
+): Response {
   const destination = new URL(`${baseURL}${safeReturnTo(returnTo)}`);
   destination.searchParams.set("error", "auth");
+  // Fixed stage names only: never put upstream error messages, credentials, or tokens in the URL.
+  destination.searchParams.set("auth_reason", reason);
   const headers = new Headers({ location: destination.href });
   headers.append("set-cookie", clearCookie(transactionCookie, baseURL));
   return new Response(null, { status: 302, headers });

@@ -30,6 +30,7 @@ import {
   UserXIcon,
 } from "lucide-react";
 import {
+  type CSSProperties,
   type ReactNode,
   type SyntheticEvent,
   useCallback,
@@ -301,12 +302,12 @@ function TripRoute() {
   return (
     <main className="cardiff-shell min-h-screen">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:px-6 lg:px-8">
-        <header className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-3 shadow-sm sm:p-4">
+        <header className="rounded-lg border border-border bg-paper/92 p-3 shadow-sm sm:p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <Link
                 aria-label="Go to Cardiff Split home"
-                className="shrink-0 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-[#126C5A]/50"
+                className="shrink-0 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-primary/50"
                 to="/"
               >
                 <img
@@ -316,30 +317,30 @@ function TripRoute() {
                 />
               </Link>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-[#52645E]">Cardiff Split</p>
-                <h1 className="truncate text-2xl font-semibold tracking-normal text-[#12343B]">
+                <p className="truncate text-sm font-medium text-muted-foreground">Cardiff Split</p>
+                <h1 className="truncate text-2xl font-semibold tracking-normal text-secondary-foreground">
                   {snapshot.trip.name}
                 </h1>
               </div>
             </div>
             <div className="grid shrink-0 grid-cols-1 gap-3 text-right sm:grid-cols-2 sm:gap-5">
               <div>
-                <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
+                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
                   Total spent
                 </p>
-                <p className="text-xl font-semibold tabular-nums text-[#12343B]">
+                <p className="text-xl font-semibold tabular-nums text-secondary-foreground">
                   {formatCurrency(snapshot.totalSpentCents)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-normal text-[#52645E]">
+                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
                   Amount left to settle
                 </p>
                 <p
                   className={
                     snapshot.amountLeftToSettleCents === 0
-                      ? "text-xl font-semibold tabular-nums text-[#126C5A]"
-                      : "text-xl font-semibold tabular-nums text-[#B94F36]"
+                      ? "text-xl font-semibold tabular-nums text-primary"
+                      : "text-xl font-semibold tabular-nums text-destructive-foreground"
                   }
                 >
                   {formatCurrency(snapshot.amountLeftToSettleCents)}
@@ -352,7 +353,7 @@ function TripRoute() {
         <ViewNav activeView={activeView} onChange={handleViewChange} />
 
         {error === null ? null : (
-          <div className="rounded-lg border border-[#E76F51]/30 bg-[#E76F51]/10 px-3 py-2 text-sm text-[#B94F36]">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
             {error}
           </div>
         )}
@@ -419,8 +420,8 @@ function TripRoute() {
         ) : null}
 
         {!hasParticipants && activeView !== "people" ? (
-          <div className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
-            <p className="font-medium text-[#12343B]">Add people to start splitting.</p>
+          <div className="rounded-lg border border-border bg-paper p-4">
+            <p className="font-medium text-secondary-foreground">Add people to start splitting.</p>
             <Button className="mt-3" onClick={() => setActiveView("people")} type="button">
               <UsersIcon aria-hidden="true" className="size-4" />
               People
@@ -435,16 +436,16 @@ function TripRoute() {
 function TripNotFound() {
   return (
     <main className="cardiff-shell grid min-h-screen place-items-center px-4">
-      <section className="w-full max-w-md rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-6 text-center shadow-sm">
+      <section className="w-full max-w-md rounded-lg border border-border bg-paper/92 p-6 text-center shadow-sm">
         <img
           alt="Cardiff Split"
           className="mx-auto size-14 rounded-xl"
           src="/cardiff-split-mark.svg"
         />
-        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-[#12343B]">
+        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-secondary-foreground">
           Trip not found
         </h1>
-        <p className="mt-2 text-sm leading-6 text-[#52645E]">
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           This Cardiff Split link may be incomplete, expired, or no longer available.
         </p>
         <Button asChild className="mt-5">
@@ -458,16 +459,16 @@ function TripNotFound() {
 function TripLoadError() {
   return (
     <main className="cardiff-shell grid min-h-screen place-items-center px-4">
-      <section className="w-full max-w-md rounded-lg border border-[#D9D1C3] bg-[#FFFDF8]/92 p-6 text-center shadow-sm">
+      <section className="w-full max-w-md rounded-lg border border-border bg-paper/92 p-6 text-center shadow-sm">
         <img
           alt="Cardiff Split"
           className="mx-auto size-14 rounded-xl"
           src="/cardiff-split-mark.svg"
         />
-        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-[#12343B]">
+        <h1 className="mt-5 text-2xl font-semibold tracking-normal text-secondary-foreground">
           Could not load this trip
         </h1>
-        <p className="mt-2 text-sm leading-6 text-[#52645E]">
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
           Refresh the page and try again. If the problem continues, create a new private trip link.
         </p>
         <Button asChild className="mt-5">
@@ -543,11 +544,13 @@ function OverviewView({
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
+      <section className="rounded-lg border border-border bg-paper p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold tracking-normal text-[#12343B]">Balances</h2>
-            <p className="text-sm text-[#52645E]">USD only</p>
+            <h2 className="text-lg font-semibold tracking-normal text-secondary-foreground">
+              Balances
+            </h2>
+            <p className="text-sm text-muted-foreground">USD only</p>
           </div>
           <Button onClick={onSettle} type="button" variant="outline">
             <ArrowLeftRightIcon aria-hidden="true" className="size-4" />
@@ -557,7 +560,7 @@ function OverviewView({
 
         <div className="mt-4 grid gap-2">
           {snapshot.participants.length === 0 ? (
-            <p className="rounded-md bg-[#ECE7DB] px-3 py-3 text-sm text-[#52645E]">
+            <p className="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
               No people yet.
             </p>
           ) : (
@@ -572,7 +575,7 @@ function OverviewView({
 
               return (
                 <div
-                  className="flex items-center justify-between gap-3 rounded-md border border-[#ECE7DB] bg-white/70 px-3 py-3"
+                  className="flex items-center justify-between gap-3 rounded-md border border-muted bg-white/70 px-3 py-3"
                   data-testid={`balance-${participant.name}`}
                   key={participant.id}
                 >
@@ -584,12 +587,12 @@ function OverviewView({
                           ? "balance-positive"
                           : balance.balanceCents < 0
                             ? "balance-negative"
-                            : "text-[#52645E]"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {formatSignedCurrency(balance.balanceCents)}
                     </p>
-                    <p className="text-xs text-[#52645E]">
+                    <p className="text-xs text-muted-foreground">
                       {balance.balanceCents > 0
                         ? "gets back"
                         : balance.balanceCents < 0
@@ -604,11 +607,13 @@ function OverviewView({
         </div>
       </section>
 
-      <section className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
+      <section className="rounded-lg border border-border bg-paper p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold tracking-normal text-[#12343B]">Expenses</h2>
-            <p className="text-sm text-[#52645E]">{snapshot.expenses.length} ledger items</p>
+            <h2 className="text-lg font-semibold tracking-normal text-secondary-foreground">
+              Expenses
+            </h2>
+            <p className="text-sm text-muted-foreground">{snapshot.expenses.length} ledger items</p>
           </div>
           <Button
             data-testid="add-expense-open"
@@ -623,7 +628,7 @@ function OverviewView({
 
         <div className="mt-4 grid gap-2">
           {snapshot.expenses.length === 0 ? (
-            <p className="rounded-md bg-[#ECE7DB] px-3 py-3 text-sm text-[#52645E]">
+            <p className="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
               No expenses yet.
             </p>
           ) : (
@@ -660,20 +665,20 @@ function ExpenseRow({
   const payerName = participantNameById(participants, expense.payerParticipantId);
 
   return (
-    <article className="rounded-md border border-[#ECE7DB] bg-white/75 p-3">
+    <article className="rounded-md border border-muted bg-white/75 p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold text-[#12343B]">{expense.title}</h3>
-          <p className="text-sm text-[#52645E]">
+          <h3 className="truncate font-semibold text-secondary-foreground">{expense.title}</h3>
+          <p className="text-sm text-muted-foreground">
             {payerName} paid on {formatDate(expense.expenseDate)}
           </p>
-          <p className="mt-1 text-xs text-[#52645E]">
+          <p className="mt-1 text-xs text-muted-foreground">
             Split between {expense.splits.length}{" "}
             {expense.splits.length === 1 ? "person" : "people"}
           </p>
         </div>
         <div className="text-right">
-          <p className="font-semibold tabular-nums text-[#12343B]">
+          <p className="font-semibold tabular-nums text-secondary-foreground">
             {formatCurrency(expense.amountCents)}
           </p>
           <Badge className="mt-1 capitalize" variant="secondary">
@@ -725,7 +730,7 @@ function PeopleView({
       <AddParticipantForm isPending={isPending} onAddParticipant={onAddParticipant} />
       <div className="grid gap-3">
         {participants.length === 0 ? (
-          <div className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4 text-sm text-[#52645E]">
+          <div className="rounded-lg border border-border bg-paper p-4 text-sm text-muted-foreground">
             Add at least one person before adding expenses.
           </div>
         ) : (
@@ -767,10 +772,7 @@ function AddParticipantForm({
   };
 
   return (
-    <form
-      className="h-fit rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4"
-      onSubmit={handleSubmit}
-    >
+    <form className="h-fit rounded-lg border border-border bg-paper p-4" onSubmit={handleSubmit}>
       <div className="space-y-3">
         <div className="space-y-2">
           <Label htmlFor={nameId}>Name</Label>
@@ -830,7 +832,7 @@ function ParticipantEditor({
   };
 
   return (
-    <form className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4" onSubmit={handleSubmit}>
+    <form className="rounded-lg border border-border bg-paper p-4" onSubmit={handleSubmit}>
       <div className="flex items-start gap-3">
         <ParticipantAvatar
           participant={{
@@ -1077,16 +1079,16 @@ function ExpenseForm({
 
   return (
     <form
-      className="mx-auto grid w-full max-w-3xl gap-4 rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4"
+      className="mx-auto grid w-full max-w-3xl gap-4 rounded-lg border border-border bg-paper p-4"
       noValidate
       onSubmit={handleSubmit}
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold tracking-normal text-[#12343B]">
+          <h2 className="text-xl font-semibold tracking-normal text-secondary-foreground">
             {expense === null ? "Add expense" : "Edit expense"}
           </h2>
-          <p className="text-sm text-[#52645E]">{splitSummary ?? "Split between"}</p>
+          <p className="text-sm text-muted-foreground">{splitSummary ?? "Split between"}</p>
         </div>
         <Button onClick={onCancel} type="button" variant="outline">
           Cancel
@@ -1183,7 +1185,7 @@ function ExpenseForm({
 
             return (
               <div
-                className="grid gap-2 rounded-md border border-[#ECE7DB] bg-white/70 p-2 sm:grid-cols-[1fr_10rem]"
+                className="grid gap-2 rounded-md border border-muted bg-white/70 p-2 sm:grid-cols-[1fr_10rem]"
                 key={participant.id}
               >
                 <Button
@@ -1237,7 +1239,7 @@ function ExpenseForm({
       </div>
 
       {formError === null ? null : (
-        <p className="rounded-md border border-[#E76F51]/30 bg-[#E76F51]/10 px-3 py-2 text-sm text-[#B94F36]">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
           {formError}
         </p>
       )}
@@ -1275,30 +1277,34 @@ function SettleView({
 }) {
   return (
     <section className="grid gap-4 lg:grid-cols-[1fr_0.9fr]">
-      <div className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
+      <div className="rounded-lg border border-border bg-paper p-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-normal text-[#12343B]">Settle up</h2>
-          <p className="text-sm text-[#52645E]">Recommendations update after each payment.</p>
+          <h2 className="text-xl font-semibold tracking-normal text-secondary-foreground">
+            Settle up
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Recommendations update after each payment.
+          </p>
         </div>
 
         <div className="mt-4 grid gap-3">
           {settlementRecommendations.length === 0 ? (
-            <div className="rounded-md bg-[#E8DDC8] px-3 py-4 text-center font-medium text-[#12343B]">
+            <div className="rounded-md bg-secondary px-3 py-4 text-center font-medium text-secondary-foreground">
               Everyone is settled
             </div>
           ) : (
             settlementRecommendations.map((recommendation) => (
               <article
-                className="rounded-md border border-[#ECE7DB] bg-white/75 p-3"
+                className="rounded-md border border-muted bg-white/75 p-3"
                 key={`${recommendation.fromParticipantId}-${recommendation.toParticipantId}-${recommendation.amountCents}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-[#12343B]">
+                    <p className="font-semibold text-secondary-foreground">
                       {participantNameById(participants, recommendation.fromParticipantId)} pays{" "}
                       {participantNameById(participants, recommendation.toParticipantId)}
                     </p>
-                    <p className="text-sm text-[#52645E]">
+                    <p className="text-sm text-muted-foreground">
                       {formatCurrency(recommendation.amountCents)}
                     </p>
                   </div>
@@ -1335,28 +1341,28 @@ function SettleView({
           />
         )}
 
-        <div className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
-          <h3 className="text-lg font-semibold tracking-normal text-[#12343B]">
+        <div className="rounded-lg border border-border bg-paper p-4">
+          <h3 className="text-lg font-semibold tracking-normal text-secondary-foreground">
             Recorded payments
           </h3>
           <div className="mt-3 grid gap-2">
             {settlements.length === 0 ? (
-              <p className="rounded-md bg-[#ECE7DB] px-3 py-3 text-sm text-[#52645E]">
+              <p className="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
                 No payments recorded.
               </p>
             ) : (
               settlements.map((settlement) => (
                 <article
-                  className="rounded-md border border-[#ECE7DB] bg-white/75 p-3"
+                  className="rounded-md border border-muted bg-white/75 p-3"
                   key={settlement.id}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-[#12343B]">
+                      <p className="font-medium text-secondary-foreground">
                         {participantNameById(participants, settlement.fromParticipantId)} paid{" "}
                         {participantNameById(participants, settlement.toParticipantId)}
                       </p>
-                      <p className="text-sm text-[#52645E]">
+                      <p className="text-sm text-muted-foreground">
                         {formatCurrency(settlement.amountCents)} on{" "}
                         {formatDate(settlement.createdAt)}
                       </p>
@@ -1435,8 +1441,10 @@ function SettlementForm({
   };
 
   return (
-    <form className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4" onSubmit={handleSubmit}>
-      <h3 className="text-lg font-semibold tracking-normal text-[#12343B]">Edit payment</h3>
+    <form className="rounded-lg border border-border bg-paper p-4" onSubmit={handleSubmit}>
+      <h3 className="text-lg font-semibold tracking-normal text-secondary-foreground">
+        Edit payment
+      </h3>
       <div className="mt-3 grid gap-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
@@ -1477,7 +1485,7 @@ function SettlementForm({
           />
         </div>
         {formError === null ? null : (
-          <p className="rounded-md border border-[#E76F51]/30 bg-[#E76F51]/10 px-3 py-2 text-sm text-[#B94F36]">
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
             {formError}
           </p>
         )}
@@ -1496,25 +1504,28 @@ function SettlementForm({
 
 function ActivityView({ snapshot }: { readonly snapshot: TripSnapshot }) {
   return (
-    <section className="rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
-      <h2 className="text-xl font-semibold tracking-normal text-[#12343B]">Activity</h2>
+    <section className="rounded-lg border border-border bg-paper p-4">
+      <h2 className="text-xl font-semibold tracking-normal text-secondary-foreground">Activity</h2>
       <div className="mt-4 grid gap-2" data-testid="activity-list">
         {snapshot.activityEvents.length === 0 ? (
-          <p className="rounded-md bg-[#ECE7DB] px-3 py-3 text-sm text-[#52645E]">
+          <p className="rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground">
             No activity yet.
           </p>
         ) : (
           snapshot.activityEvents.map((event) => (
             <article
-              className="rounded-md border border-[#ECE7DB] bg-white/75 px-3 py-3"
+              className="rounded-md border border-muted bg-white/75 px-3 py-3"
               key={event.id}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-[#12343B]">{event.summary}</p>
-                  <p className="text-sm text-[#52645E]">{event.actorLabel}</p>
+                  <p className="font-medium text-secondary-foreground">{event.summary}</p>
+                  <p className="text-sm text-muted-foreground">{event.actorLabel}</p>
                 </div>
-                <time className="text-right text-xs text-[#52645E]" dateTime={event.createdAt}>
+                <time
+                  className="text-right text-xs text-muted-foreground"
+                  dateTime={event.createdAt}
+                >
                   {formatDate(event.createdAt)}
                 </time>
               </div>
@@ -1552,19 +1563,21 @@ function ShareView({
   };
 
   return (
-    <section className="mx-auto grid w-full max-w-2xl gap-4 rounded-lg border border-[#D9D1C3] bg-[#FFFDF8] p-4">
+    <section className="mx-auto grid w-full max-w-2xl gap-4 rounded-lg border border-border bg-paper p-4">
       <div>
-        <h2 className="text-xl font-semibold tracking-normal text-[#12343B]">Share trip</h2>
-        <p className="text-sm text-[#52645E]">{tripName}</p>
+        <h2 className="text-xl font-semibold tracking-normal text-secondary-foreground">
+          Share trip
+        </h2>
+        <p className="text-sm text-muted-foreground">{tripName}</p>
       </div>
-      <div className="rounded-md border border-[#ECE7DB] bg-white/75 p-3">
-        <p className="break-all text-sm text-[#12343B]">{shareUrl}</p>
+      <div className="rounded-md border border-muted bg-white/75 p-3">
+        <p className="break-all text-sm text-secondary-foreground">{shareUrl}</p>
       </div>
       <Button className="h-12" onClick={() => void handleCopy()} type="button">
         <CopyIcon aria-hidden="true" className="size-4" />
         {copied ? "Copied" : "Copy link"}
       </Button>
-      <p className="rounded-md bg-[#E8DDC8] px-3 py-3 text-sm leading-6 text-[#12343B]">
+      <p className="rounded-md bg-secondary px-3 py-3 text-sm leading-6 text-secondary-foreground">
         Anyone with this private link can view and edit the trip.
       </p>
     </section>
@@ -1575,12 +1588,14 @@ function ParticipantAvatar({ participant }: { readonly participant: Participant 
   return (
     <span className="flex min-w-0 items-center gap-3">
       <span
-        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white"
-        style={{ backgroundColor: participant.color }}
+        className="grid size-9 shrink-0 place-items-center rounded-full bg-(--participant-color) text-sm font-semibold text-white"
+        style={{ "--participant-color": participant.color } as CSSProperties}
       >
         {participant.avatarValue}
       </span>
-      <span className="min-w-0 truncate font-medium text-[#12343B]">{participant.name}</span>
+      <span className="min-w-0 truncate font-medium text-secondary-foreground">
+        {participant.name}
+      </span>
     </span>
   );
 }

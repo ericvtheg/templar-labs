@@ -6,7 +6,9 @@
     "jsx": "react-jsx",
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "#components": ["./src/components"],
+      "#components/*": ["./src/components/*"]
     }
   }
 }

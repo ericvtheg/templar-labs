@@ -24,6 +24,11 @@
   --radius: 0.5rem;
 }
 
+@theme inline {
+  --color-swedish-ink-soft: #33444d;
+  --color-swedish-muted-strong: #4d5d66;
+}
+
 * {
   box-sizing: border-box;
 }

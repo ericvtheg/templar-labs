@@ -18,10 +18,17 @@
   --accent: #8ecae6;
   --accent-foreground: #12343b;
   --destructive: #e76f51;
+  --destructive-foreground: #b94f36;
   --border: #d9d1c3;
   --input: #d9d1c3;
   --ring: #126c5a;
   --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-paper: #fffdf8;
+  --shadow-panel: 0 18px 50px rgba(18, 52, 59, 0.1);
 }
 
 * {
@@ -68,20 +75,10 @@ textarea {
   animation: trip-name-placeholder-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.people-textarea {
-  min-height: calc((1.5rem * 4) + 1rem + 2px);
-}
-
 .people-name-placeholder-window {
   --people-name-placeholder-step: 25%;
 
   overflow: hidden;
-}
-
-@media (width >= 48rem) {
-  .people-textarea {
-    min-height: calc((1.25rem * 4) + 1rem + 2px);
-  }
 }
 
 .people-name-placeholder-stack {

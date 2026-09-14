@@ -6,6 +6,79 @@
     "perf": "warn"
   },
   "plugins": ["oxc", "typescript", "unicorn", "promise"],
+  "jsPlugins": ["@shadcn/lint"],
+  "settings": {
+    "shadcn": {
+      "ui": "@templar/ui/components",
+      "componentImports": ["^@templar/ui/components(?:/|$)"]
+    }
+  },
+  "overrides": [
+    {
+      "files": [
+        "packages/ui/src/**/*.{ts,tsx}",
+        "projects/cardiff-split/apps/web/src/**/*.{ts,tsx}",
+        "projects/hello-world/apps/web/src/**/*.{ts,tsx}",
+        "projects/swedish-fifty/apps/web/src/**/*.{ts,tsx}",
+        "projects/ui-showcase/apps/web/src/**/*.{ts,tsx}",
+        "projects/utils/apps/web/src/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "shadcn/no-restyle": [
+          "error",
+          {
+            "allow": ["layout"],
+            "contracts": [
+              { "pattern": "^Button$", "allow": ["layout", "text-base"] },
+              { "pattern": "^CardTitle$", "allow": ["layout", "typography"] },
+              { "pattern": "^CardDescription$", "allow": ["layout", "typography"] },
+              { "pattern": "^CardContent$", "allow": ["layout", "spacing"] },
+              { "pattern": "^CardFooter$", "allow": ["layout", "spacing"] },
+              { "pattern": "^TabsContent$", "allow": ["layout", "spacing"] },
+              { "pattern": "^Label$", "allow": ["layout", "typography"] },
+              { "pattern": "^TableCell$", "allow": ["layout", "typography"] },
+              {
+                "pattern": "^Input$",
+                "allow": ["layout", "p-1", "placeholder:text-transparent"]
+              },
+              {
+                "pattern": "^Textarea$",
+                "allow": ["layout", "typography", "placeholder:text-transparent"]
+              },
+              { "pattern": "^Badge$", "allow": ["layout", "capitalize"] }
+            ]
+          }
+        ],
+        "shadcn/no-raw-colors": ["error", { "allow": ["shadow-panel"] }],
+        "shadcn/no-arbitrary-values": ["error", { "allow": ["layout"] }],
+        "shadcn/no-inline-styles": "error",
+        "shadcn/no-unknown-classes": [
+          "error",
+          {
+            "allow": [
+              "cardiff-shell",
+              "balance-positive",
+              "balance-negative",
+              "trip-name-placeholder",
+              "people-name-placeholder-window",
+              "people-name-placeholder-stack",
+              "people-name-placeholder",
+              "toaster"
+            ]
+          }
+        ],
+        "shadcn/require-static-classes": "error"
+      }
+    },
+    {
+      "files": ["packages/ui/src/components/**"],
+      "rules": {
+        "shadcn/no-restyle": "off",
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    }
+  ],
   "options": {
     "reportUnusedDisableDirectives": "deny"
   },

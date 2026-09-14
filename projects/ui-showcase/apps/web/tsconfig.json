@@ -6,7 +6,9 @@
     "baseUrl": ".",
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@templar/ui/components": ["../../../../packages/ui/src/components"],
+      "@templar/ui/components/*": ["../../../../packages/ui/src/components/*"]
     },
     "types": ["vite/client", "@cloudflare/workers-types"]
   }

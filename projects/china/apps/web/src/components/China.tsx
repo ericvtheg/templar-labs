@@ -2,6 +2,8 @@ import { useCallback, useEffect, useId, useState } from "react";
 import type { Mission } from "../lib/curriculum.ts";
 import type { AnswerResult, TripData } from "../lib/types.ts";
 import { ChinaFlag } from "./ChinaFlag.tsx";
+import { HelloPrimer } from "./HelloPrimer.tsx";
+import { MissionExperience } from "./MissionExperience.tsx";
 import { VoicePractice } from "./VoicePractice.tsx";
 
 type Tab = "missions" | "review" | "crew" | "field";
@@ -264,10 +266,12 @@ export function China() {
         {!data.user.name ? (
           <Profile data={data} onSaved={refresh} />
         ) : active ? (
-          <Study
+          <MissionExperience
             key={active.id}
             mission={active}
-            beginner={data.missions.indexOf(active) < 3}
+            mastery={data.mastery}
+            completed={data.completed.includes(active.id)}
+            completedCount={data.completed.length}
             onBack={() => setSelected(null)}
             onRefresh={refresh}
           />
@@ -374,13 +378,16 @@ function Missions({
             More <em>你好.</em>
           </h1>
           <p>
-            Learn enough Mandarin to feed yourselves, find your way, and make questionable memories.
-            In that order.
+            A living trip simulator, not an owl’s homework assignment. Match the signs, hear the
+            locals, speak for the boys, and improvise when the itinerary goes to shit.
           </p>
           <button className="primary" type="button" onClick={() => next && onSelect(next.id)}>
             {data.completed.length ? "Pick up where you left off" : "Start from absolute zero"} ↗
           </button>
-          <small>5–10 minutes a mission. No hearts. No owl. No bullshit.</small>
+          <button type="button" className="foundation-entry" onClick={() => onSelect("basics")}>
+            Start here: how the hell does 你好 work? →
+          </button>
+          <small>Short encounters. Different ways to play. Actual progression. No hearts.</small>
         </div>
         <div className="hero-art">
           <div className="hero-china" lang="zh-CN">
@@ -485,54 +492,7 @@ function Missions({
   );
 }
 function Primer() {
-  return (
-    <div className="primer">
-      <span className="eyebrow">CHINESE, FROM LITERALLY ZERO</span>
-      <h2>Three lines. One useful thing to say.</h2>
-      <div className="primer-example">
-        <span lang="zh-CN">你好</span>
-        <strong lang="zh-Latn-pinyin">Nǐ hǎo</strong>
-        <small>Hello</small>
-      </div>
-      <p>
-        <strong>Characters</strong> are the writing. <strong>Pinyin</strong> is a pronunciation
-        guide in Latin letters. <strong>English</strong> tells you the meaning. You don’t need to
-        handwrite characters; start by hearing and saying the words.
-      </p>
-      <h3>Your voice changes the word.</h3>
-      <p>
-        Mandarin uses four main pitch patterns and a light neutral tone. It’s pitch, not loudness.
-        Listen to the model; don’t read pinyin as English.
-      </p>
-      <div className="tones">
-        {[
-          ["ā", "→", "1 · high & level"],
-          ["á", "↗", "2 · rising"],
-          ["ǎ", "⌄", "3 · low / dipping"],
-          ["à", "↘", "4 · falling"],
-          ["a", "·", "neutral · light"],
-        ].map(([syllable, shape, label]) => (
-          <div key={label}>
-            <strong>{syllable}</strong>
-            <span>{shape}</span>
-            <small>{label}</small>
-          </div>
-        ))}
-      </div>
-      <p className="fine-print">
-        In normal speech, the third tone is often just low. Tones also change in combinations; copy
-        the whole phrase. No need to master the theory before saying hello.
-      </p>
-      <details>
-        <summary>Before the sign drills: your first visual landmarks</summary>
-        <p>
-          <span lang="zh-CN">卫生间</span> = restroom · <span lang="zh-CN">地铁</span> = subway ·{" "}
-          <span lang="zh-CN">入口</span> = entrance · <span lang="zh-CN">出口</span> = exit. Look
-          for the same shapes. You’re learning to recognize, not handwrite.
-        </p>
-      </details>
-    </div>
-  );
+  return <HelloPrimer />;
 }
 function Study({
   mission,

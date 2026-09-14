@@ -1,3 +1,5 @@
+import { type MatchCard, matchingFor } from "./activity-content.ts";
+import { hypeFor, type TripHype } from "./trip-hype.ts";
 export type Phrase = { hanzi: string; pinyin: string; english: string; tip: string };
 export type Mission = {
   id: string;
@@ -7,6 +9,8 @@ export type Mission = {
   icon: string;
   story: string;
   phrases: Phrase[];
+  matches?: MatchCard[];
+  hype?: TripHype[];
   question: string;
   options: string[];
   answer: number;
@@ -418,13 +422,99 @@ missions.push({
   explanation:
     "120 = ambulance in mainland China. 110 = police. 119 = fire. Give the exact location and seek immediate help.",
 });
+missions.push({
+  id: "groom",
+  title: "Eric is very handsome. Allegedly.",
+  city: "Groom-approved curriculum",
+  label: "COMPLIMENTS & BACHELOR PROPAGANDA",
+  icon: "帅",
+  story:
+    "Eric has reviewed the curriculum and identified a critical omission: his own face. Gavin calls it propaganda. Kendall demands a peer review. The boys will learn compliments, because apparently the groom now controls the fucking syllabus.",
+  phrases: [
+    {
+      hanzi: "帅！",
+      pinyin: "Shuài!",
+      english: "Handsome!",
+      tip: "One syllable, one falling tone. 帅 describes a handsome or cool-looking person. This is vocabulary, not an independent review of the groom.",
+    },
+    {
+      hanzi: "你很帅。",
+      pinyin: "Nǐ hěn shuài.",
+      english: "You’re handsome.",
+      tip: "你 = you. 很 is commonly used before an adjective in a neutral statement; it doesn’t always strongly mean ‘very’. Mandarin doesn’t need an English-style ‘are’ here.",
+    },
+    {
+      hanzi: "埃里克非常帅。",
+      pinyin: "Āilǐkè fēicháng shuài.",
+      english: "Eric is very handsome.",
+      tip: "埃里克 is Eric written phonetically in Chinese. 非常 makes the ‘very’ explicit. Swap the name or pronoun and you have a reusable compliment—not just groom propaganda.",
+    },
+  ],
+  question: "Which part explicitly means VERY in 埃里克非常帅?",
+  options: ["埃里克", "非常", "帅"],
+  answer: 1,
+  explanation:
+    "非常 = very. 埃里克 = Eric; 帅 = handsome. The grammar is legitimate. The editorial independence is nonexistent.",
+});
+missions.push({
+  id: "market",
+  title: "Carlo is negotiating against himself.",
+  city: "Markets, not every checkout",
+  label: "PRICES, BARGAINING & KEEPING YOUR MONEY",
+  icon: "价",
+  story:
+    "Eric wants a souvenir. Carlo has somehow raised his own offer twice. Seth thinks every QR code is a coupon. Learn the price, check whether bargaining is welcome, make one calm counteroffer, and leave with a thing you actually wanted—not a fucking financial incident.",
+  phrases: [
+    {
+      hanzi: "一个多少钱？",
+      pinyin: "Yí ge duōshao qián?",
+      english: "How much for one?",
+      tip: "Ask for the unit price before negotiating. One item, one person, one portion, and the full group are different prices. Confirm the currency is RMB / yuan.",
+    },
+    {
+      hanzi: "一共多少钱？",
+      pinyin: "Yígòng duōshao qián?",
+      english: "How much altogether?",
+      tip: "一共 = altogether. Confirm the complete price and what it includes before accepting goods, a tasting, a ride, or a service. A low per-person price can become a large crew total.",
+    },
+    {
+      hanzi: "可以便宜一点吗？",
+      pinyin: "Kěyǐ piányi yìdiǎn ma?",
+      english: "Could it be a little cheaper?",
+      tip: "Useful when a market stall welcomes bargaining. Smile and ask; accept a no. Supermarkets, posted-price chains, restaurants, transit, and most app checkouts are not a bargaining game.",
+    },
+    {
+      hanzi: "一百元可以吗？",
+      pinyin: "Yìbǎi yuán kěyǐ ma?",
+      english: "Would 100 yuan work?",
+      tip: "An example counteroffer, not a claim about a fair price. Compare a few sellers, choose your own limit, and negotiate only for something you might genuinely buy. No universal ‘offer 10 percent’ trick.",
+    },
+    {
+      hanzi: "不用了，谢谢。",
+      pinyin: "Bú yòng le, xièxie.",
+      english: "No thanks, I’ll pass.",
+      tip: "A polite exit is a skill. No insults, fake outrage, or obligation to buy. If pressured into an unsolicited tea/bar/art outing, decline and choose your own reviewed venue; agree prices first.",
+    },
+  ],
+  question: "Where is a polite counteroffer appropriate?",
+  options: [
+    "A souvenir stall whose seller welcomes bargaining",
+    "A fixed-price supermarket checkout",
+    "Every restaurant bill and taxi meter",
+  ],
+  answer: 0,
+  explanation:
+    "Bargaining is situational, not a rule for all Chinese commerce. Respect fixed prices, confirm unit versus total price, and walk away calmly if the deal doesn’t work. Verify unfamiliar QR destinations, merchant names, and the payment amount before authorizing anything.",
+});
 // Learning order deliberately differs from travel order: short requests before full situations.
 const learningOrder = [
   "basics",
   "arrival",
+  "groom",
   "wall",
   "feast",
   "payment",
+  "market",
   "palace",
   "train",
   "night",
@@ -432,6 +522,10 @@ const learningOrder = [
   "rescue",
 ];
 missions.sort((a, b) => learningOrder.indexOf(a.id) - learningOrder.indexOf(b.id));
+for (const mission of missions) {
+  mission.matches = matchingFor(mission.id);
+  mission.hype = hypeFor(mission.id);
+}
 export const fieldNotes = [
   {
     hanzi: "我要结婚了。",

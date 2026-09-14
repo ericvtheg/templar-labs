@@ -1,3 +1,5 @@
+@import "./interactive.css";
+
 :root {
   font-family: "DM Sans", system-ui, -apple-system, sans-serif;
   color: #30221d;

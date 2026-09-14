@@ -8,6 +8,13 @@
       "when": 1789356510650,
       "tag": "0000_brief_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789398975274,
+      "tag": "0001_fearless_komodo",
+      "breakpoints": true
     }
   ]
 }

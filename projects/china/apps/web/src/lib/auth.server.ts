@@ -1,6 +1,8 @@
 import { createTemplarAuthApp } from "@templar/auth/app";
 import { canAccessChina } from "./access.ts";
-export type Bindings = {
+import type { VoiceBindings } from "./voice.server.ts";
+export type Bindings = VoiceBindings & {
+  OPENROUTER_API_TOKEN?: string;
   AUTH_SECRET: string;
   TEMPLAR_AUTH_ISSUER: string;
   CREW_EMAILS: string;

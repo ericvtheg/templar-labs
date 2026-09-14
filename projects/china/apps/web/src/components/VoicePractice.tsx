@@ -1,37 +1,45 @@
 import { useEffect, useRef, useState } from "react";
+import { stopSpeechPlayback } from "../lib/audio.ts";
+import { SpeechPlayer } from "./SpeechPlayer.tsx";
 
 function stopTracks(media: MediaStream | null) {
   for (const track of media?.getTracks() ?? []) {
     track.stop();
   }
 }
-
-export function VoicePractice({ text }: { text: string }) {
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+async function audioBase64(blob: Blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+  }
+  return btoa(binary);
+}
+export function VoicePractice({
+  text,
+  missionId,
+  onTranscript,
+}: {
+  text: string;
+  missionId?: string;
+  onTranscript?: (text: string) => void;
+}) {
   const [recording, setRecording] = useState(false);
   const [pending, setPending] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [audio, setAudio] = useState<string | null>(null);
+  const [blob, setBlob] = useState<Blob | null>(null);
   const [message, setMessage] = useState("");
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const alive = useRef(false);
+  const upload = useRef<AbortController | null>(null);
   useEffect(() => {
     alive.current = true;
-    const update = () =>
-      setVoices(
-        "speechSynthesis" in window
-          ? window.speechSynthesis
-              .getVoices()
-              .filter((voice) => /^zh[-_]?(CN|Hans|SG)/i.test(voice.lang) || voice.lang === "zh")
-          : [],
-      );
-    update();
-    window.speechSynthesis?.addEventListener("voiceschanged", update);
     return () => {
       alive.current = false;
-      window.speechSynthesis?.removeEventListener("voiceschanged", update);
-      window.speechSynthesis?.cancel();
+      upload.current?.abort();
       if (timer.current) {
         clearTimeout(timer.current);
       }
@@ -49,29 +57,6 @@ export function VoicePractice({ text }: { text: string }) {
     },
     [audio],
   );
-  function listen(rate: number) {
-    const voice = voices[0];
-    if (!voice) {
-      setMessage(
-        "No Mandarin voice is installed. Add a Mandarin / Chinese (China) voice in your device’s speech settings, then reload. The text and recorder still work.",
-      );
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "zh-CN";
-    utterance.voice = voice;
-    utterance.rate = rate;
-    utterance.addEventListener("error", () => {
-      if (alive.current) {
-        setMessage(
-          "Audio couldn’t play. Check your device’s speech settings or try another browser.",
-        );
-      }
-    });
-    setMessage("");
-    window.speechSynthesis.speak(utterance);
-  }
   async function record() {
     if (recording) {
       recorder.current?.stop();
@@ -79,21 +64,21 @@ export function VoicePractice({ text }: { text: string }) {
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setMessage(
-        "Recording needs HTTPS and a browser with microphone support. Try Safari or Chrome, or simply repeat aloud.",
+        "Recording needs HTTPS and microphone support. Try Safari or Chrome, or use the text answer instead.",
       );
       return;
     }
     setPending(true);
     setMessage("");
+    stopSpeechPlayback();
     try {
-      window.speechSynthesis?.cancel();
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (!alive.current) {
         stopTracks(media);
         return;
       }
       stream.current = media;
-      const instance = new MediaRecorder(media);
+      const instance = new MediaRecorder(media, { audioBitsPerSecond: 64_000 });
       recorder.current = instance;
       const chunks: BlobPart[] = [];
       instance.ondataavailable = (event) => {
@@ -109,7 +94,9 @@ export function VoicePractice({ text }: { text: string }) {
         if (alive.current) {
           setRecording(false);
           if (chunks.length) {
-            setAudio(URL.createObjectURL(new Blob(chunks, { type: instance.mimeType })));
+            const recordingBlob = new Blob(chunks, { type: instance.mimeType });
+            setBlob(recordingBlob);
+            setAudio(URL.createObjectURL(recordingBlob));
           }
         }
       };
@@ -117,7 +104,7 @@ export function VoicePractice({ text }: { text: string }) {
         stopTracks(media);
         if (alive.current) {
           setRecording(false);
-          setMessage("Recording failed. You can still practice aloud.");
+          setMessage("Recording failed. You can still answer in text.");
         }
       });
       instance.start();
@@ -131,7 +118,7 @@ export function VoicePractice({ text }: { text: string }) {
       stopTracks(stream.current);
       if (alive.current) {
         setMessage(
-          "Microphone unavailable or permission denied. Allow microphone access in browser settings, or practice aloud without recording.",
+          "Microphone unavailable or permission denied. Allow it in browser settings, or use the text answer.",
         );
       }
     } finally {
@@ -140,36 +127,108 @@ export function VoicePractice({ text }: { text: string }) {
       }
     }
   }
+  async function transcribe() {
+    if (!blob || !missionId || !onTranscript) {
+      return;
+    }
+    if (blob.size > 600_000) {
+      setMessage("That recording is too large. Try a shorter take, under 20 seconds.");
+      return;
+    }
+    setTranscribing(true);
+    setMessage("");
+    const controller = new AbortController();
+    upload.current = controller;
+    try {
+      const response = await fetch("/api/trip/transcribe", {
+        method: "POST",
+        credentials: "same-origin",
+        signal: controller.signal,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          missionId,
+          audioBase64: await audioBase64(blob),
+          contentType: blob.type,
+        }),
+      });
+      const result = (await response.json()) as { text?: string; error?: string };
+      if (!response.ok || !result.text) {
+        throw new Error(result.error ?? "No speech was recognized. Try a shorter, clearer take.");
+      }
+      if (alive.current) {
+        onTranscript(result.text);
+        setMessage(
+          "Words transcribed. Check what it heard before submitting—this is not a pronunciation or tone score.",
+        );
+      }
+    } catch (cause) {
+      if (alive.current) {
+        setMessage(
+          cause instanceof Error
+            ? cause.message
+            : "Transcription failed. You can answer in text instead.",
+        );
+      }
+    } finally {
+      if (alive.current) {
+        setTranscribing(false);
+      }
+    }
+  }
   return (
     <div className="voice-practice">
-      <div className="button-row">
-        <button type="button" disabled={recording || pending} onClick={() => listen(0.85)}>
-          ▶ Listen
-        </button>
-        <button type="button" disabled={recording || pending} onClick={() => listen(0.6)}>
-          ▶ Slower
-        </button>
+      <SpeechPlayer text={text} disabled={recording || pending || transcribing}>
         <button
           type="button"
           className={recording ? "recording" : ""}
-          disabled={pending}
+          disabled={pending || transcribing}
           onClick={() => void record()}
         >
           {pending ? "Allow microphone…" : recording ? "■ Stop recording" : "● Record yourself"}
         </button>
-      </div>
+      </SpeechPlayer>
+      {recording && (
+        <div className="mic-live" role="status">
+          <span aria-hidden="true">● ▂ ▅ ▇ ▅ ▂</span> Recording · stops after 20 seconds
+        </div>
+      )}
       {audio && (
         <div className="playback">
-          {/* biome-ignore lint/a11y/useMediaCaption: Local learner audio is untranscribed; captions must not misrepresent the target phrase as what was actually said. */}
-          <audio controls src={audio} aria-label="Your practice recording" />
-          <button type="button" onClick={() => setAudio(null)}>
+          {/* biome-ignore lint/a11y/useMediaCaption: Local learner audio is untranscribed; a target phrase is not an accurate caption of what was said. */}
+          <audio
+            controls
+            src={audio}
+            aria-label="Your practice recording"
+            onPlay={stopSpeechPlayback}
+          />
+          <button
+            type="button"
+            disabled={transcribing}
+            onClick={() => {
+              setAudio(null);
+              setBlob(null);
+            }}
+          >
             Delete
           </button>
         </div>
       )}
+      {blob && onTranscript && missionId && (
+        <button
+          type="button"
+          className="primary"
+          disabled={recording || pending || transcribing}
+          onClick={() => void transcribe()}
+        >
+          {transcribing ? "Listening to your take…" : "Check what I said →"}
+        </button>
+      )}
       <p className="fine-print">
-        Listen twice → repeat → record → compare. Recordings stay in this tab and disappear when you
-        leave this phrase. No fake pronunciation scores.
+        Your recording stays in this tab
+        {onTranscript
+          ? " unless you choose ‘Check what I said’, which sends it to ElevenLabs for transcription"
+          : " and is never uploaded"}
+        . It disappears when you leave this phrase. No fake tone scores.
       </p>
       {message && (
         <p role="status" className="notice">

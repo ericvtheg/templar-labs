@@ -37,6 +37,62 @@ test("serves browser and home-screen icons without requiring sign-in", async ({
   expect(appleBytes.readUInt32BE(20)).toBe(180);
 });
 
+test("a tap can start delayed audio playback, including Safari byte-range requests", async ({
+  page,
+}) => {
+  await page.route("**/api/trip/state", (route) =>
+    route.fulfill({
+      json: {
+        user: { id: "gavin", name: "Gavin" },
+        groom,
+        crew,
+        missions,
+        fieldNotes,
+        completed: [],
+        mastery: [],
+        board: [],
+        activity: [],
+      },
+    }),
+  );
+  // Original silent WAV fixture: no live API usage and no person’s recording.
+  const wav = Buffer.alloc(96044);
+  wav.write("RIFF", 0);
+  wav.writeUInt32LE(wav.length - 8, 4);
+  wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(24000, 24);
+  wav.writeUInt32LE(48000, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36);
+  wav.writeUInt32LE(96000, 40);
+  await page.route("**/api/trip/speech?**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const match = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers()["range"] ?? "");
+    const start = match ? Number(match[1]) : 0;
+    const end = match?.[2] ? Math.min(Number(match[2]), wav.length - 1) : wav.length - 1;
+    await route.fulfill({
+      status: match ? 206 : 200,
+      headers: {
+        "content-type": "audio/wav",
+        "accept-ranges": "bytes",
+        ...(match ? { "content-range": `bytes ${start}-${end}/${wav.length}` } : {}),
+      },
+      body: wav.subarray(start, end + 1),
+    });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Start from absolute zero/ }).click();
+  await page.getByRole("button", { name: /Next: hear it/ }).click();
+  await page.getByRole("button", { name: "▶ Listen", exact: true }).click();
+  await expect(page.getByText("Speaking Mandarin · ElevenLabs")).toBeVisible();
+  await page.getByRole("button", { name: "■ Stop audio" }).click();
+  await expect(page.getByText(/ElevenLabs audio couldn’t play/)).toHaveCount(0);
+});
+
 test("real signed-out endpoint cannot return crew data", async ({ page, request }) => {
   const response = await request.get("/api/trip/state");
   expect(response.status()).toBe(401);
@@ -83,21 +139,77 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
   await page.getByRole("button", { name: /Start from absolute zero/ }).click();
   await expect(page.getByText("CHINESE, FROM LITERALLY ZERO")).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("first-lesson.png"), fullPage: true });
+  await page.getByRole("button", { name: /Next: hear it/ }).click();
+  await page.route("**/api/trip/speech?**", (route) =>
+    route.fulfill({ status: 503, json: { error: "Test unavailable voice" } }),
+  );
   await page.getByRole("button", { name: "▶ Listen", exact: true }).click();
-  // Headless Chromium may not have system voices. The lesson must remain usable either way.
-  for (let index = 0; index < 3; index++) {
-    await page.getByRole("button", { name: /I’ve said it. Next/ }).click();
+  await expect(page.getByText(/ElevenLabs audio couldn’t play/)).toBeVisible();
+  await page.getByRole("button", { name: /Next: tones/ }).click();
+  await expect(page.getByText("Your voice changes the word.")).toBeVisible();
+  await page.getByRole("button", { name: /Start here: 你好, characters/ }).click();
+  await page.getByRole("button", { name: "Flip phrase card" }).click();
+  await page.locator(".encounter-choices").getByRole("button", { name: /你好/ }).click();
+  await expect(page.getByText("That gets the message across.")).toBeVisible();
+  await page.getByRole("button", { name: /Ears only/ }).click();
+  await expect(page.getByText("No characters. Just your ears.")).toBeVisible();
+  await page.getByRole("button", { name: /Say it/ }).click();
+  await page.getByLabel(/Check the transcript/).fill("ni hao");
+  await page.getByRole("button", { name: /Check my phrase/ }).click();
+  await expect(page.getByText("That gets the message across.")).toBeVisible();
+  await page.route("**/api/trip/match", (route) =>
+    route.fulfill({ json: { correct: true, completed: false } }),
+  );
+  await page.getByRole("button", { name: /Match the signs/ }).click();
+  await page.screenshot({ path: test.info().outputPath("sign-wall.png"), fullPage: true });
+  await page.getByRole("button", { name: /Hide the English/ }).click();
+  for (const card of missions[0]?.matches ?? []) {
+    await page.getByRole("button", { name: card.hanzi, exact: true }).click();
+    await page.getByRole("button", { name: card.english, exact: true }).click();
   }
-  await expect(page.getByText("BEFORE THE SIGN CHECK")).toBeVisible();
-  await page.getByRole("button", { name: /Try the mission check/ }).click();
-  await expect(page.getByText("RECOGNITION CHECK")).toBeVisible();
-  await page.getByRole("button", { name: /你好/ }).click();
-  await expect(page.getByText("That’s the one. 好!")).toBeVisible();
-  await page.getByRole("button", { name: "Next check →", exact: true }).click();
-  await expect(page.getByText("LISTENING CHECK")).toBeVisible();
-  await page.getByRole("button", { name: "No audio? Show text hint" }).click();
-  await expect(page.getByText("谢谢。", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /The boys/, exact: false }).click();
+  await expect(page.getByText(/Sign encounter saved/)).toBeVisible();
+  await page.route("**/api/trip/coach", async (route) => {
+    const body = route.request().postDataJSON();
+    const target = { id: "phrase-0", kind: "phrase", ...missions[0]?.phrases[0] };
+    await route.fulfill({
+      json:
+        body.action === "start"
+          ? {
+              id: "test-scene",
+              scene:
+                "Eric volunteered Gavin as the hotel translator. Say hello to the receptionist.",
+              prompt: "What do you say?",
+              source: "ai",
+              target,
+            }
+          : {
+              correct: true,
+              feedback: "Ni hao gets you through the door. Now say it out loud.",
+              source: "ai",
+              target,
+            },
+    });
+  });
+  await page.getByRole("button", { name: /The boys in the wild/ }).click();
+  await page.getByRole("button", { name: /Deal me a situation/ }).click();
+  await page.getByLabel("What do you say?").fill("ni hao");
+  await page.getByRole("button", { name: "Send →", exact: true }).click();
+  await expect(page.getByText(/Ni hao gets you through/)).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath("chaos-coach.png"), fullPage: true });
+  await page.getByRole("button", { name: /Real-world listening/ }).click();
+  expect(await page.locator("iframe").count()).toBe(0);
+  await page.getByRole("button", { name: /Video blocked/ }).click();
+  await page.getByLabel(/What was broadly happening/).fill("Someone was ordering dumplings.");
+  await page.getByLabel(/One word, sound/).fill("ni hao");
+  await page.getByRole("button", { name: /Pin my field report/ }).click();
+  await expect(page.getByText("Clue: ni hao")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("button", { name: /The boys/ })
+    .click();
   await expect(page.getByText(/Quiet in here/)).toBeVisible();
   await page.getByRole("button", { name: /Pocket guide/ }).click();
   await expect(page.getByRole("link", { name: /120 Ambulance/ })).toHaveAttribute(

@@ -26,6 +26,30 @@ export function grade(missionId: string, task: number, answer: string): boolean 
     )
   );
 }
+export function gradeMatching(missionId: string, pairs: unknown): boolean {
+  const cards = missions.find((mission) => mission.id === missionId)?.matches;
+  if (!cards?.length || !Array.isArray(pairs) || pairs.length !== cards.length) {
+    return false;
+  }
+  const ids = new Set<string>();
+  for (const pair of pairs) {
+    if (
+      !pair ||
+      typeof pair !== "object" ||
+      typeof pair.id !== "string" ||
+      typeof pair.english !== "string" ||
+      ids.has(pair.id)
+    ) {
+      return false;
+    }
+    const card = cards.find((item) => item.id === pair.id);
+    if (!card || pair.english !== card.english) {
+      return false;
+    }
+    ids.add(pair.id);
+  }
+  return ids.size === cards.length;
+}
 export const reviewIntervals = [1, 3, 7, 14, 30];
 export function nextReview(level: number, correct: boolean, now: number) {
   const nextLevel = correct ? Math.min(level + 1, reviewIntervals.length) : 0;

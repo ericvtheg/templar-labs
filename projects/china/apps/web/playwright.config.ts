@@ -8,6 +8,7 @@ export default defineConfig({
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["iPhone 13"], browserName: "chromium" } },
+    { name: "mobile-safari", use: { ...devices["iPhone 13"], browserName: "webkit" } },
   ],
   webServer: {
     command: "pnpm exec vite --host 127.0.0.1",

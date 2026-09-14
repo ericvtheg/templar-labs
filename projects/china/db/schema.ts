@@ -1,4 +1,29 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+export const speechJobs = sqliteTable("speech_jobs", {
+  cacheKey: text("cache_key").primaryKey(),
+  token: text("token").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    userId: text("user_id").notNull(),
+    kind: text("kind").notNull(),
+    bucket: integer("bucket").notNull(),
+    count: integer("count").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.kind, table.bucket] })],
+);
+export const coachScenes = sqliteTable("coach_scenes", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  missionId: text("mission_id").notNull(),
+  target: text("target").notNull(),
+  scene: text("scene").notNull(),
+  history: text("history").notNull(),
+  turns: integer("turns").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
 export const members = sqliteTable("members", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

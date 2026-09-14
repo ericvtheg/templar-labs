@@ -1,8 +1,12 @@
 import { canAccessChina, sameOrigin } from "./access.ts";
 import { type Bindings, getAuth } from "./auth.server.ts";
+import { handleCoach } from "./coach.server.ts";
 import { crew, fieldNotes, groom, missions } from "./curriculum.ts";
-import { grade, nextReview } from "./learning.ts";
+import { grade, gradeMatching, nextReview } from "./learning.ts";
+import { transcribePractice } from "./transcribe.server.ts";
+import type { TripBody } from "./trip-body.ts";
 import type { Activity, BoardMember, Mastery, TripData } from "./types.ts";
+import { serveSpeech } from "./voice.server.ts";
 
 const privateHeaders = {
   "cache-control": "private, no-store",
@@ -31,6 +35,9 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
   const id = session.user.id;
   const path = new URL(request.url).pathname;
   const db = env.DB;
+  if (request.method === "GET" && path === "/api/trip/speech") {
+    return serveSpeech(request, env);
+  }
   if (request.method === "GET" && path === "/api/trip/state") {
     const profile = await db
       .prepare("SELECT name FROM members WHERE id = ?")
@@ -88,7 +95,7 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
       break;
     }
     size += value.byteLength;
-    if (size > 4096) {
+    if (size > (path === "/api/trip/transcribe" ? 850_000 : 4096)) {
       await reader.cancel();
       return json({ error: "Request too large." }, 413);
     }
@@ -100,19 +107,13 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let body: {
-    name?: unknown;
-    missionId?: unknown;
-    task?: unknown;
-    answer?: unknown;
-    targetId?: unknown;
-  };
+  let body: TripBody;
   try {
     const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return json({ error: "Invalid request." }, 400);
     }
-    body = parsed as Record<string, unknown>;
+    body = parsed as TripBody;
   } catch {
     return json({ error: "Invalid JSON." }, 400);
   }
@@ -137,7 +138,17 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
   if (!member) {
     return json({ error: "Choose your crew name first." }, 400);
   }
-  if (path === "/api/trip/answer") {
+  if (path === "/api/trip/coach") {
+    return handleCoach(body, env, id);
+  }
+  if (path === "/api/trip/transcribe") {
+    return transcribePractice(body, env, id);
+  }
+  if (path === "/api/trip/match") {
+    body.task = missions.find((item) => item.id === body.missionId)?.phrases.length;
+    body.answer = "";
+  }
+  if (path === "/api/trip/answer" || path === "/api/trip/match") {
     const mission = missions.find((item) => item.id === body.missionId);
     if (
       !mission ||
@@ -150,7 +161,10 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
     ) {
       return json({ error: "Invalid exercise." }, 400);
     }
-    const correct = grade(mission.id, body.task, body.answer);
+    const correct =
+      path === "/api/trip/match"
+        ? gradeMatching(mission.id, body.pairs)
+        : grade(mission.id, body.task, body.answer);
     const now = Date.now();
     const old = await db
       .prepare("SELECT level, due FROM mastery WHERE user_id = ? AND mission_id = ? AND task = ?")

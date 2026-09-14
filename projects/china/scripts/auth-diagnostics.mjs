@@ -3,6 +3,9 @@ import { env } from "node:process";
 const account = env.CLOUDFLARE_ACCOUNT_ID;
 const token = env.CLOUDFLARE_API_TOKEN;
 const emails = (env.CHINA_CREW_EMAILS ?? "").split(/[\s,;]+/).filter(Boolean);
+if (env.RUN_LEARNING_PROBE === "true" && env.RUN_OWNER_HANDOFF_PROBE !== "true") {
+  throw new Error("The learning probe requires the owner handoff probe.");
+}
 if (!account || !token) {
   throw new Error("Cloudflare diagnostic credentials missing.");
 }
@@ -34,6 +37,9 @@ console.log(
       issuerMatches: chinaIssuer === centralIssuer,
       chinaAuthSecretPresent: china.bindings.some((binding) => binding.name === "AUTH_SECRET"),
       chinaInviteSecretPresent: china.bindings.some((binding) => binding.name === "CREW_EMAILS"),
+      speechSecretPresent: china.bindings.some((binding) => binding.name === "ELEVENLABS_API_KEY"),
+      aiSecretPresent: china.bindings.some((binding) => binding.name === "OPENROUTER_API_TOKEN"),
+      speechStoragePresent: china.bindings.some((binding) => binding.name === "R2"),
     },
     null,
     2,
@@ -163,9 +169,26 @@ if (env.RUN_OWNER_HANDOFF_PROBE === "true") {
       redirect: "manual",
     });
     console.log(JSON.stringify({ ownerSessionStateStatus: stateResponse.status }));
-    await stateResponse.body?.cancel();
+    const tripState = await stateResponse.json();
     if (stateResponse.status !== 200) {
       throw new Error("Live owner session cannot access the app.");
+    }
+    if (env.RUN_LEARNING_PROBE === "true") {
+      const { probeLearning } = await import("./learning-probe.mjs");
+      const chinaDb = china.bindings.find((binding) => binding.name === "DB")?.id;
+      if (!chinaDb) {
+        throw new Error("China database binding missing.");
+      }
+      await probeLearning({
+        origin,
+        session,
+        profileReady: Boolean(tripState.user?.name),
+        deleteScene: (id) =>
+          cf(`d1/database/${chinaDb}/query`, {
+            sql: "DELETE FROM coach_scenes WHERE id = ? AND user_id = ?",
+            params: [id, ownerId],
+          }),
+      });
     }
     const guestResponse = await fetch(`${origin}/api/trip/state`, { redirect: "manual" });
     console.log(JSON.stringify({ signedOutStateStatus: guestResponse.status }));

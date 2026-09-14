@@ -68,6 +68,12 @@ describe("private trip API against real SQLite and encrypted SSO cookies", () =>
     sqlite.exec(
       readFileSync(new URL("../../../db/migrations/0000_brief_bug.sql", import.meta.url), "utf8"),
     );
+    sqlite.exec(
+      readFileSync(
+        new URL("../../../db/migrations/0001_fearless_komodo.sql", import.meta.url),
+        "utf8",
+      ),
+    );
     env = {
       AUTH_SECRET: secret,
       TEMPLAR_AUTH_ISSUER: "https://auth.example.com",
@@ -101,6 +107,35 @@ describe("private trip API against real SQLite and encrypted SSO cookies", () =>
       expect(await response.text()).not.toContain("Rolo");
       expect(response.headers.get("cache-control")).toContain("no-store");
     }
+  });
+  it("protects speech, transcription, matching and coach endpoints before any provider access", async () => {
+    expect((await call("speech?text=你好。", undefined, "")).status).toBe(401);
+    for (const endpoint of ["coach", "match", "transcribe"]) {
+      expect((await call(endpoint, { missionId: "basics" }, "")).status).toBe(401);
+      const crossSite = new Request(`${origin}/api/trip/${endpoint}`, {
+        method: "POST",
+        headers: { cookie, origin: "https://evil.example", "content-type": "application/json" },
+        body: "{}",
+      });
+      expect((await handleTrip(crossSite, env)).status).toBe(403);
+    }
+  });
+  it("completes a lesson through phrase recall and server-verified matching", async () => {
+    await call("profile", { name: "Gavin" });
+    const mission = missions[0];
+    if (!mission) {
+      throw new Error("Missing basics");
+    }
+    for (const [task, phrase] of mission.phrases.entries()) {
+      await call("answer", { missionId: mission.id, task, answer: phrase.pinyin });
+    }
+    const wrong = await call("match", { missionId: mission.id, pairs: [] });
+    expect(await wrong.json()).toMatchObject({ correct: false, completed: false });
+    const right = await call("match", {
+      missionId: mission.id,
+      pairs: mission.matches?.map(({ id, english }) => ({ id, english })),
+    });
+    expect(await right.json()).toMatchObject({ correct: true, completed: true });
   });
   it("honors verified central platform owners without inviting their separate SSO email", async () => {
     env.CREW_EMAILS = "";

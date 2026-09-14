@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { China } from "../src/components/China.tsx";
+import { PriceDetective } from "../src/components/PriceDetective.tsx";
 import { VoicePractice } from "../src/components/VoicePractice.tsx";
 import { crew, fieldNotes, groom, missions } from "../src/lib/curriculum.ts";
 import type { TripData } from "../src/lib/types.ts";
@@ -17,7 +18,27 @@ const fixture: TripData = {
   board: [{ id: "gavin", name: "Gavin", completed: 0 }],
   activity: [],
 };
+const audioPlay = vi.fn();
 beforeEach(() => {
+  audioPlay.mockResolvedValue(undefined);
+  class AudioMock extends EventTarget {
+    src: string;
+    constructor(src: string) {
+      super();
+      this.src = src;
+    }
+    play = audioPlay;
+    pause() {
+      this.dispatchEvent(new Event("pause"));
+    }
+    removeAttribute() {
+      /* Audio test double has no DOM attributes. */
+    }
+    load() {
+      /* Audio test double performs no network requests. */
+    }
+  }
+  vi.stubGlobal("Audio", AudioMock);
   vi.stubGlobal("speechSynthesis", {
     getVoices: () => [],
     addEventListener: vi.fn(),
@@ -25,15 +46,19 @@ beforeEach(() => {
     cancel: vi.fn(),
     speak: vi.fn(),
   });
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(fixture)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation(async () => Response.json(fixture)),
+  );
 });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
-describe("beginner clubhouse", () => {
-  it("includes Eric as the groom in onboarding and saves his actual name", async () => {
-    vi.mocked(fetch).mockResolvedValue(
+describe("interactive beginner clubhouse", () => {
+  it("includes Eric as groom and saves his real name", async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
       Response.json({ ...fixture, user: { id: "owner", name: "" } }),
     );
     render(<China />);
@@ -51,50 +76,63 @@ describe("beginner clubhouse", () => {
       ).toBe(true),
     );
   });
-  it("shows only the invite gate when signed out", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      Response.json({ error: "Sign in with an invited Google account." }, { status: 401 }),
+  it("does not leak crew or lesson data through the signed-out gate", async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
+      Response.json({ error: "Sign in." }, { status: 401 }),
     );
     render(<China />);
     expect(await screen.findByRole("link", { name: /Continue with Google/ })).toBeTruthy();
     expect(screen.queryByText("Gavin")).toBeNull();
     expect(screen.queryByText(missions[0]?.title ?? "")).toBeNull();
   });
-  it("starts with pinyin and tones, and never requires Chinese typing from a novice", async () => {
+  it("teaches characters before sounds and explains hello’s tone change", async () => {
     render(<China />);
     fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
-    expect(screen.getByText("CHINESE, FROM LITERALLY ZERO")).toBeTruthy();
+    expect(screen.getByText("Two characters. Read left → right.")).toBeTruthy();
+    expect(screen.getByText("you", { exact: true })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Next: hear it/ }));
+    expect(screen.getByText("Tap a piece. Hear what it does.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Next: tones/ }));
     expect(screen.getByText("Your voice changes the word.")).toBeTruthy();
-    expect(screen.getByText("Hello.")).toBeTruthy();
-    for (let index = 0; index < 3; index++) {
-      fireEvent.click(screen.getByRole("button", { name: /I’ve said it. Next/ }));
-    }
-    expect(screen.getByText("BEFORE THE SIGN CHECK")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Try the mission check/ }));
-    expect(screen.getByText("RECOGNITION CHECK")).toBeTruthy();
-    expect(screen.queryByRole("textbox")).toBeNull();
-    const answer = screen.getByRole("button", { name: /你好/ });
+    expect(screen.getByText("ní hǎo", { exact: true })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Next: try it/ }));
+    fireEvent.click(screen.getByRole("button", { name: "你" }));
+    expect(screen.getByText(/You just read your first Chinese character/)).toBeTruthy();
+  });
+  it("remixes flashcards, listening and speaking without requiring Chinese typing", async () => {
     vi.mocked(fetch).mockImplementation(async (input) =>
       String(input).endsWith("answer")
         ? Response.json({ correct: true, completed: false })
         : Response.json(fixture),
     );
-    fireEvent.click(answer);
-    expect(await screen.findByText("That’s the one. 好!")).toBeTruthy();
-    expect(
-      vi
-        .mocked(fetch)
-        .mock.calls.some(
-          ([url, options]) =>
-            String(url).endsWith("answer") && JSON.parse(String(options?.body)).answer === "你好。",
-        ),
-    ).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Next check →" }));
-    expect(screen.getByText("LISTENING CHECK")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "No audio? Show text hint" }));
-    expect(screen.getByText("谢谢。")).toBeTruthy();
+    render(<China />);
+    fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Flip phrase card" }));
+    const choices = document.querySelector(".encounter-choices");
+    if (!choices) {
+      throw new Error("Missing phrase choices");
+    }
+    fireEvent.click(within(choices as HTMLElement).getByRole("button", { name: /你好/ }));
+    expect(await screen.findByText("That gets the message across.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Ears only/ }));
+    expect(screen.getByText("No characters. Just your ears.")).toBeTruthy();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Say it/ }));
+    expect(screen.getByRole("button", { name: "● Record yourself" })).toBeTruthy();
+    expect(screen.getByLabelText(/Check the transcript/)).toBeTruthy();
   });
-  it("keeps emergency phrases unlocked and shows honest empty social/review states", async () => {
+  it("provides sign matching and AI conversation within the lesson", async () => {
+    render(<China />);
+    fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Match the signs/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Hide the English/ }));
+    fireEvent.click(screen.getByRole("button", { name: "卫生间" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restroom" }));
+    expect(screen.getByText("卫生间 = Restroom. Connected.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /The boys in the wild/ }));
+    expect(screen.getByRole("button", { name: /Deal me a situation/ })).toBeTruthy();
+  });
+  it("keeps emergency phrases available and social progress honest", async () => {
     render(<China />);
     fireEvent.click(await screen.findByRole("button", { name: /Pocket guide/ }));
     expect(screen.getByRole("link", { name: /120 Ambulance/ }).getAttribute("href")).toBe(
@@ -106,15 +144,37 @@ describe("beginner clubhouse", () => {
     expect(screen.getByText("Give your brain something to forget.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /The boys/ }));
     expect(screen.getByText(/Quiet in here/)).toBeTruthy();
-    expect(screen.queryByText("Rolo passed")).toBeNull();
   });
 });
-describe("voice practice degrades honestly and releases the mic", () => {
-  it("explains missing Mandarin voices without reading Chinese in an English voice", () => {
+describe("price understanding", () => {
+  it("distinguishes per-item and per-person prices from the total", () => {
+    render(<PriceDetective />);
+    fireEvent.change(screen.getByLabelText(/What total should you confirm/), {
+      target: { value: "35" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Check the total/ }));
+    expect(screen.getByRole("status").textContent).toContain("total is ¥105");
+    fireEvent.change(screen.getByLabelText(/What total should you confirm/), {
+      target: { value: "105" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Check the total/ }));
+    expect(screen.getByRole("status").textContent).toContain("Exactly");
+    fireEvent.click(screen.getByRole("button", { name: /Another price situation/ }));
+    expect(screen.getByText("每人")).toBeTruthy();
+    expect((screen.getByLabelText(/What total should you confirm/) as HTMLInputElement).value).toBe(
+      "",
+    );
+  });
+});
+describe("voice practice", () => {
+  it("tries ElevenLabs first and only offers device speech as an explicit fallback", async () => {
+    audioPlay.mockRejectedValue(new Error("Unavailable"));
     render(<VoicePractice text="你好。" />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Listen" }));
-    expect(screen.getByRole("status").textContent).toContain("No Mandarin voice is installed");
+    expect(await screen.findByText(/ElevenLabs audio couldn’t play/)).toBeTruthy();
     expect(speechSynthesis.speak).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Use device voice instead" }));
+    expect(screen.getByText(/No Mandarin device voice is installed/)).toBeTruthy();
   });
   it("handles denied microphone permission", async () => {
     vi.stubGlobal("MediaRecorder", vi.fn());
@@ -126,7 +186,7 @@ describe("voice practice degrades honestly and releases the mic", () => {
     fireEvent.click(screen.getByRole("button", { name: "● Record yourself" }));
     expect(await screen.findByText(/Microphone unavailable or permission denied/)).toBeTruthy();
   });
-  it("stops all tracks when navigating away from an active recording", async () => {
+  it("stops every microphone track on navigation", async () => {
     const stop = vi.fn();
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,

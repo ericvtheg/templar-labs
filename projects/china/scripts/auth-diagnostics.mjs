@@ -78,6 +78,109 @@ const owners = await Promise.all(
   }),
 );
 console.log(JSON.stringify({ owners }, null, 2));
+if (env.RUN_OWNER_HANDOFF_PROBE === "true") {
+  // Restricted to an existing, verified platform owner configured in central SSO source.
+  // This exercises the same code exchange as an existing central session, without touching
+  // the owner's browser/Google session or exposing the resulting app cookie to logs.
+  const ownerEmail = [...platformAdminEmails][0];
+  if (!ownerEmail) {
+    throw new Error("No configured platform owner to probe.");
+  }
+  const selected = await cf(`d1/database/${db}/query`, {
+    sql: "SELECT id FROM user WHERE lower(email) = lower(?) AND email_verified = 1",
+    params: [ownerEmail],
+  });
+  const ownerId = selected[0]?.results[0]?.id;
+  if (!ownerId) {
+    throw new Error("A verified platform owner must already exist; no account will be created.");
+  }
+  const origin = "https://china.ericventor.com";
+  const start = await fetch(`${origin}/api/auth/sign-in?returnTo=/`, { redirect: "manual" });
+  const authorization = new URL(start.headers.get("location"));
+  if (authorization.origin !== "https://auth.breli.app") {
+    throw new Error("Unexpected auth issuer.");
+  }
+  const callback = new URL(authorization.searchParams.get("callback"));
+  if (callback.href !== `${origin}/api/auth/callback`) {
+    throw new Error("Unexpected callback.");
+  }
+  const transaction = start.headers
+    .getSetCookie()
+    .find((cookie) => cookie.startsWith("templar.auth.transaction="))
+    ?.split(";")[0];
+  const state = authorization.searchParams.get("state");
+  const codeChallenge = authorization.searchParams.get("code_challenge");
+  if (!transaction || !state || !codeChallenge) {
+    throw new Error("App did not create a complete sign-in transaction.");
+  }
+  const code = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64url");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code));
+  const identifier = `first-party:${Buffer.from(digest).toString("base64url")}`;
+  const now = Date.now();
+  try {
+    await cf(`d1/database/${db}/query`, {
+      sql: "INSERT INTO verification (id, identifier, value, expires_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      params: [
+        crypto.randomUUID(),
+        identifier,
+        JSON.stringify({ userId: ownerId, codeChallenge }),
+        now + 60_000,
+        now,
+        now,
+      ],
+    });
+    callback.searchParams.set("code", code);
+    callback.searchParams.set("state", state);
+    const returned = await fetch(callback, {
+      redirect: "manual",
+      headers: { cookie: transaction },
+    });
+    const destination = new URL(returned.headers.get("location") ?? "/", origin);
+    const session = returned.headers
+      .getSetCookie()
+      .find((cookie) => cookie.startsWith("templar.auth.session="))
+      ?.split(";")[0];
+    console.log(
+      JSON.stringify({
+        ownerHandoff: {
+          status: returned.status,
+          returnedPath: destination.pathname,
+          failureStage:
+            destination.searchParams.get("reason") ?? destination.searchParams.get("auth_reason"),
+          sessionIssued: Boolean(session),
+        },
+      }),
+    );
+    if (
+      !session ||
+      destination.searchParams.has("error") ||
+      destination.pathname === "/auth-error"
+    ) {
+      throw new Error("Live owner handoff did not issue a session.");
+    }
+    const stateResponse = await fetch(`${origin}/api/trip/state`, {
+      headers: { cookie: session },
+      redirect: "manual",
+    });
+    console.log(JSON.stringify({ ownerSessionStateStatus: stateResponse.status }));
+    await stateResponse.body?.cancel();
+    if (stateResponse.status !== 200) {
+      throw new Error("Live owner session cannot access the app.");
+    }
+    const guestResponse = await fetch(`${origin}/api/trip/state`, { redirect: "manual" });
+    console.log(JSON.stringify({ signedOutStateStatus: guestResponse.status }));
+    await guestResponse.body?.cancel();
+    if (guestResponse.status !== 401) {
+      throw new Error("Signed-out access was not blocked.");
+    }
+  } finally {
+    // The central exchange normally consumes the code; cleanup also handles failures/timeouts.
+    await cf(`d1/database/${db}/query`, {
+      sql: "DELETE FROM verification WHERE identifier = ?",
+      params: [identifier],
+    });
+  }
+}
 const jwks = await fetch("https://auth.breli.app/api/auth/jwks");
 const keys = await jwks.json();
 console.log(

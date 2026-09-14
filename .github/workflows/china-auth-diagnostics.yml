@@ -1,6 +1,11 @@
 name: China auth diagnostics
 on:
   workflow_dispatch:
+    inputs:
+      probe_owner_handoff:
+        description: Test the configured owner's handoff using a single-use diagnostic code (expires in 60 seconds)
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -16,4 +21,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CHINA_CREW_EMAILS: ${{ secrets.CHINA_CREW_EMAILS }}
+          RUN_OWNER_HANDOFF_PROBE: ${{ inputs.probe_owner_handoff }}
         run: node projects/china/scripts/auth-diagnostics.mjs

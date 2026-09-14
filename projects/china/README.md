@@ -42,8 +42,11 @@ pnpm --filter china-web test:e2e
 ```
 
 The **China auth diagnostics** workflow reads deployed issuer/binding metadata and reports account
-verification/access checks without logging emails, user IDs, cookies, or tokens. Callback failures
-show a fixed diagnostic stage instead of blaming every failure on the invite list.
+verification/access checks without logging emails, user IDs, cookies, or tokens. Its optional owner
+handoff probe creates one 60-second, single-use code for an already verified platform owner, runs
+it through the live central exchange and app callback, checks owner access and signed-out denial,
+then cleans up. It never changes Google/browser sessions or creates users. Callback failures show
+a fixed diagnostic stage instead of blaming every failure on the invite list.
 
 Unit tests cover real SQLite queries, encrypted SSO sessions, signed owner access, guest revocation, CSRF, grading,
 idempotent progress, cheers, UI flows, and microphone cleanup. Browser tests cover desktop/mobile,

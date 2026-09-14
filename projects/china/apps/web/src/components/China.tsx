@@ -120,8 +120,8 @@ export function China() {
             <em>Let’s fix that.</em>
           </h1>
           <p>
-            A little over a week in China. A deeply unserious crew. Enough useful Mandarin to order
-            dinner, find the bathroom, and give the best man a goddamn break.
+            A little over a week in China. Enough useful Mandarin to order dinner, find the
+            bathroom, and give the best man a goddamn break.
           </p>
           <div className="button-row">
             {loading ? (
@@ -210,7 +210,8 @@ export function China() {
           <div className="trip-tag">
             <span>✈</span>
             <div>
-              BEIJING → SHANGHAI<small>A bachelor trip, not a language degree.</small>
+              BEIJING → SHANGHAI
+              <small>A bachelor trip, not a language degree.</small>
             </div>
           </div>
           <div className="user-line">
@@ -872,7 +873,10 @@ function Study({
 }
 function Review({ data, onRefresh }: { data: TripData; onRefresh: () => Promise<void> }) {
   const due = data.mastery.filter((item) => item.due <= Date.now());
-  const [active, setActive] = useState<{ mission: Mission; task: number } | null>(null);
+  const [active, setActive] = useState<{
+    mission: Mission;
+    task: number;
+  } | null>(null);
   if (active) {
     return (
       <Study
@@ -1035,7 +1039,10 @@ function Crew({ data, onRefresh }: { data: TripData; onRefresh: () => Promise<vo
                     setBusy(true);
                     setError("");
                     try {
-                      await api("cheer", { targetId: item.user_id, missionId: item.mission_id });
+                      await api("cheer", {
+                        targetId: item.user_id,
+                        missionId: item.mission_id,
+                      });
                       await onRefresh();
                     } catch (cause) {
                       setError(cause instanceof Error ? cause.message : "Could not cheer.");
@@ -1083,7 +1090,11 @@ function FieldGuide({ data }: { data: TripData }) {
   const searchInput = useId();
   const [search, setSearch] = useState("");
   const [address, setAddress] = useState("");
-  const [show, setShow] = useState<{ hanzi: string; pinyin: string; english: string } | null>(null);
+  const [show, setShow] = useState<{
+    hanzi: string;
+    pinyin: string;
+    english: string;
+  } | null>(null);
   const rows = [...data.missions.flatMap((mission) => mission.phrases), ...data.fieldNotes].filter(
     (row) =>
       `${row.hanzi} ${row.pinyin} ${row.english}`.toLowerCase().includes(search.toLowerCase()),

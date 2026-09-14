@@ -3,11 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { China } from "../src/components/China.tsx";
 import { VoicePractice } from "../src/components/VoicePractice.tsx";
-import { crew, fieldNotes, missions } from "../src/lib/curriculum.ts";
+import { crew, fieldNotes, groom, missions } from "../src/lib/curriculum.ts";
 import type { TripData } from "../src/lib/types.ts";
 
 const fixture: TripData = {
   user: { id: "gavin", name: "Gavin" },
+  groom,
   crew,
   missions,
   fieldNotes,
@@ -31,6 +32,25 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("beginner clubhouse", () => {
+  it("includes Eric as the groom in onboarding and saves his actual name", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      Response.json({ ...fixture, user: { id: "owner", name: "" } }),
+    );
+    render(<China />);
+    fireEvent.click(await screen.findByRole("button", { name: "Eric · Groom" }));
+    expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("Eric");
+    fireEvent.click(screen.getByRole("button", { name: "Let’s get into it →" }));
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.some(
+            ([url, options]) =>
+              String(url).endsWith("profile") && JSON.parse(String(options?.body)).name === "Eric",
+          ),
+      ).toBe(true),
+    );
+  });
   it("shows only the invite gate when signed out", async () => {
     vi.mocked(fetch).mockResolvedValue(
       Response.json({ error: "Sign in with an invited Google account." }, { status: 401 }),

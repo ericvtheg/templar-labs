@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isCrew, sameOrigin } from "../src/lib/access.ts";
-import { crew, missions } from "../src/lib/curriculum.ts";
+import { crew, groom, missions } from "../src/lib/curriculum.ts";
 import { grade, nextReview, normalizeRecall } from "../src/lib/learning.ts";
 
 describe("private crew access", () => {
@@ -32,10 +32,14 @@ describe("private crew access", () => {
   });
 });
 describe("zero-to-travel curriculum", () => {
-  it("starts with hello, contains all 18 supplied names, and respects Kendall’s pronouns", () => {
+  it("starts with hello, includes Eric and all 18 friends, and respects Kendall’s pronouns", () => {
     expect(missions[0]?.id).toBe("basics");
     expect(missions[0]?.phrases[0]?.hanzi).toBe("你好。");
-    expect(crew).toHaveLength(18);
+    expect(groom).toBe("Eric");
+    expect(crew).toHaveLength(19);
+    expect(crew[0]).toBe(groom);
+    expect(new Set(crew).size).toBe(19);
+    expect(missions.every((mission) => mission.story.includes(groom))).toBe(true);
     for (const name of crew) {
       expect(missions.some((mission) => mission.story.includes(name))).toBe(true);
     }

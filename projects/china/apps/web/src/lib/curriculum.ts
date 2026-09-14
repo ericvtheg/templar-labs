@@ -12,7 +12,9 @@ export type Mission = {
   answer: number;
   explanation: string;
 };
+export const groom = "Eric";
 export const crew = [
+  groom,
   "Gavin",
   "Timmy",
   "Kendall",
@@ -40,7 +42,7 @@ export const missions: Mission[] = [
     label: "ARRIVAL & SURVIVAL",
     icon: "↗",
     story:
-      "Gavin has the booking. Timmy has 4% battery. Rolo has wandered toward a sign he absolutely cannot read. Get the boys to the hotel without making the best man run a fucking help desk.",
+      "Eric’s bachelor trip has officially landed in Beijing. His Mandarin has not. Gavin has the booking. Timmy has 4% battery. Rolo has wandered toward a sign he absolutely cannot read. Get the boys to the hotel without making the best man run a fucking help desk.",
     phrases: [
       {
         hanzi: "厕所在哪里？",
@@ -79,7 +81,7 @@ export const missions: Mission[] = [
     label: "FOOD & ORDERING",
     icon: "饺",
     story:
-      "Kendall says she can handle spicy. Her asshole has not been consulted. Ivan wants dumplings. Seth and Alfredo have pointed at six mystery dishes. Order dinner before confidence becomes a medical event.",
+      "Eric asked for a legendary bachelor dinner, not a group colonoscopy. Kendall says she can handle spicy. Her asshole has not been consulted. Ivan wants dumplings. Seth and Alfredo have pointed at six mystery dishes. Order dinner before confidence becomes a medical event.",
     phrases: [
       {
         hanzi: "菜单，谢谢。",
@@ -118,7 +120,7 @@ export const missions: Mission[] = [
     label: "THE GREAT WALL",
     icon: "山",
     story:
-      "Miles called this a casual walk. Andrew has become a motivational speaker. Jarrell’s calves have filed for divorce. Nobody came to China to die doing fucking cardio. Find water and the way back.",
+      "Eric’s bachelor trip has somehow become leg day. Miles called this a casual walk. Andrew has become a motivational speaker. Jarrell’s calves have filed for divorce. Nobody came to China to die doing fucking cardio. Find water and the way back.",
     phrases: [
       {
         hanzi: "我要一瓶水。",
@@ -151,7 +153,7 @@ export const missions: Mission[] = [
     label: "SIGHTS & SIGNS",
     icon: "门",
     story:
-      "Skylar is directing a group photo like a porno with a very disappointing cast. Carlo wants the perfect angle. Brent is testing whether ‘Forbidden City’ is a suggestion. The itinerary does not include jail. Read the signs.",
+      "Eric wants a group photo, not a mugshot. Skylar is directing a group photo like a porno with a very disappointing cast. Carlo wants the perfect angle. Brent is testing whether ‘Forbidden City’ is a suggestion. The itinerary does not include jail. Read the signs.",
     phrases: [
       {
         hanzi: "可以帮我们拍张照片吗？",
@@ -184,7 +186,7 @@ export const missions: Mission[] = [
     label: "TRAINS & DIRECTIONS",
     icon: "→",
     story:
-      "Dennis has appointed himself logistics captain. Josh and Ty are debating snacks. Donovan is at the wrong gate with unbelievable confidence. Get everyone on the same train.",
+      "The boys have one job: get Eric to Shanghai with his passport and dignity. One of those is negotiable. Dennis has appointed himself logistics captain. Josh and Ty are debating snacks. Donovan is at the wrong gate with unbelievable confidence. Get everyone on the same train.",
     phrases: [
       {
         hanzi: "这是去上海的高铁吗？",
@@ -217,7 +219,7 @@ export const missions: Mission[] = [
     label: "BARS & NIGHTLIFE",
     icon: "夜",
     story:
-      "Jack is buying. Rolo has reappeared with the confidence of a man whose blood is now mostly beer. Gavin’s toast is longer than his last relationship. Nobody wants to explain this night to a consulate. Order, pace yourselves, and keep the boys together.",
+      "It’s Eric’s bachelor toast, and Jack is buying. Rolo has reappeared with the confidence of a man whose blood is now mostly beer. Gavin’s toast is longer than his last relationship. Nobody wants to explain this night to a consulate. Order, pace yourselves, and keep the boys together.",
     phrases: [
       {
         hanzi: "干杯！",
@@ -257,7 +259,7 @@ export const missions: Mission[] = [
     label: "KARAOKE & THE RIDE HOME",
     icon: "♫",
     story:
-      "Timmy and Alfredo have formed a boy band called Public Indecency. Kendall is negotiating an encore. The best man is one mistranslation from charging by the hour. Book the room, settle up, and get everybody home before this becomes a deposition.",
+      "Eric has been summoned to the microphone. This is a bachelor trip, not a fucking talent show. Timmy and Alfredo have formed a boy band called Public Indecency. Kendall is negotiating an encore. The best man is one mistranslation from charging by the hour. Book the room, settle up, and get everybody home before this becomes a deposition.",
     phrases: [
       {
         hanzi: "有英文歌吗？",
@@ -298,7 +300,7 @@ missions.unshift({
   label: "YOUR FIRST FIVE MINUTES",
   icon: "声",
   story:
-    "Gavin’s plan is to speak English louder. Timmy’s plan is to point. Neither is a language. Learn a polite opener, a bathroom escape hatch, and how to admit you have absolutely no idea what’s happening.",
+    "Eric is the groom. Planning a China bachelor trip before learning to say hello is exactly the kind of decision the boys have come to support. Gavin’s plan is to speak English louder. Timmy’s plan is to point. Neither is a language. Learn a polite opener, a bathroom escape hatch, and how to admit you have absolutely no idea what’s happening.",
   phrases: [
     {
       hanzi: "你好。",
@@ -337,7 +339,7 @@ missions.splice(3, 0, {
   label: "PAYMENTS & NUMBERS",
   icon: "¥",
   story:
-    "Carlo announces he’s got the bill. The terminal disagrees. Brent is waving an American credit card like a diplomatic passport. Learn to pay before the boys start pitching dishwashing as cultural immersion.",
+    "Eric is the bachelor, not the emergency ATM. Carlo announces he’s got the bill. The terminal disagrees. Brent is waving an American credit card like a diplomatic passport. Learn to pay before the boys start pitching dishwashing as cultural immersion.",
   phrases: [
     {
       hanzi: "可以用支付宝吗？",
@@ -377,7 +379,7 @@ missions.push({
   label: "HELP & GETTING HOME",
   icon: "+",
   story:
-    "Dennis is doing a headcount. Donovan is rehearsing ‘I can explain.’ Josh is asking whether the group chat counts as legal representation. Jail jokes belong in the group chat; real trouble gets a sober response. These phrases are not the punchline.",
+    "Eric would like the boys at his wedding, not featured in a consular incident report. Dennis is doing a headcount. Donovan is rehearsing ‘I can explain.’ Josh is asking whether the group chat counts as legal representation. Jail jokes belong in the group chat; real trouble gets a sober response. These phrases are not the punchline.",
   phrases: [
     {
       hanzi: "请帮帮我。",
@@ -432,6 +434,11 @@ const learningOrder = [
 missions.sort((a, b) => learningOrder.indexOf(a.id) - learningOrder.indexOf(b.id));
 export const fieldNotes = [
   {
+    hanzi: "我要结婚了。",
+    pinyin: "Wǒ yào jiéhūn le.",
+    english: "I’m getting married. The groom’s one-line introduction.",
+  },
+  {
     hanzi: "牛肉 / 猪肉 / 鸡肉 / 羊肉",
     pinyin: "niú ròu / zhū ròu / jī ròu / yáng ròu",
     english: "Beef / pork / chicken / lamb",
@@ -478,10 +485,10 @@ export const fieldNotes = [
     english: "No ice. / I’d like hot water.",
   },
   {
-    hanzi: "我们有十八个人。",
-    pinyin: "Wǒmen yǒu shíbā ge rén.",
+    hanzi: "我们有十九个人。",
+    pinyin: "Wǒmen yǒu shíjiǔ ge rén.",
     english:
-      "There are eighteen of us. Change the number for the actual headcount—including the groom and best man.",
+      "There are nineteen of us. Change the number for the actual headcount; count the groom, best man, and anyone joining separately.",
   },
   {
     hanzi: "我对花生过敏。",

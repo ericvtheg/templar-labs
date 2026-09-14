@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { crew, fieldNotes, missions } from "../../src/lib/curriculum.ts";
+import { crew, fieldNotes, groom, missions } from "../../src/lib/curriculum.ts";
 import { grade } from "../../src/lib/learning.ts";
 import type { TripData } from "../../src/lib/types.ts";
 
@@ -19,6 +19,7 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
 }) => {
   const data: TripData = {
     user: { id: "gavin", name: "Gavin" },
+    groom,
     crew,
     missions,
     fieldNotes,

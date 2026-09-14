@@ -315,6 +315,7 @@ function Profile({ data, onSaved }: { data: TripData; onSaved: () => Promise<voi
             onClick={() => setName(person)}
           >
             {person}
+            {person === data.groom ? " · Groom" : ""}
           </button>
         ))}
       </div>
@@ -333,7 +334,7 @@ function Profile({ data, onSaved }: { data: TripData; onSaved: () => Promise<voi
           }
         }}
       >
-        <label htmlFor={nameInput}>Crew name (groom and best man welcome too)</label>
+        <label htmlFor={nameInput}>Crew name (pick yours above or enter it here)</label>
         <input
           id={nameInput}
           value={name}
@@ -366,7 +367,7 @@ function Missions({
     <>
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">THE BOYS GO EAST · ZERO EXPERIENCE REQUIRED</span>
+          <span className="eyebrow">{data.groom}’s bachelor trip · THE BOYS GO EAST</span>
           <h1>
             Less “uhhh.”
             <br />
@@ -1007,7 +1008,10 @@ function Crew({ data, onRefresh }: { data: TripData; onRefresh: () => Promise<vo
           <details>
             <summary>The full roll call</summary>
             <p>{data.crew.join(" · ")}</p>
-            <p>The groom and best man can join under their own names too.</p>
+            <p>
+              {data.groom} is the groom. The reason we’re all here—and absolutely not exempt from
+              the homework.
+            </p>
           </details>
         </div>
         <div className="panel">

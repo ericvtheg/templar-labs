@@ -11,6 +11,7 @@ export type Activity = {
 export type BoardMember = { id: string; name: string; completed: number };
 export type TripData = {
   user: { id: string; name: string };
+  groom: string;
   crew: string[];
   missions: Mission[];
   fieldNotes: { hanzi: string; pinyin: string; english: string }[];

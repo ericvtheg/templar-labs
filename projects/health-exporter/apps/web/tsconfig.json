@@ -1,0 +1,14 @@
+{
+  "extends": "@templar/tsconfig/tanstack-start-app",
+  "include": ["**/*.ts", "**/*.tsx", "../../db/schema.ts"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@health-db/*": ["../../db/*"]
+    },
+    "types": ["vite/client", "@cloudflare/workers-types"]
+  }
+}

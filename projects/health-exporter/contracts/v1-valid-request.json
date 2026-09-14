@@ -1,0 +1,29 @@
+{
+  "requestId": "68da8ab4-4488-42e9-bb80-49d8b84edbd1",
+  "device": {
+    "deviceId": "1d259a9a-e621-4dd8-8c8a-700b236244d0",
+    "installationId": "42eaa184-e6cd-42af-aae8-160ecd461157",
+    "platform": "ios",
+    "appVersion": "1.0.0"
+  },
+  "anchor": "opaque-healthkit-anchor",
+  "samples": [
+    {
+      "sampleId": "df9dd8e9-470a-477c-b22a-f13fd853ce89",
+      "type": "bodyMass",
+      "value": 82350,
+      "unit": "g",
+      "startAt": "2026-07-24T08:00:00Z",
+      "endAt": "2026-07-24T08:00:00Z",
+      "source": {
+        "bundleIdentifier": "com.weightgurus.app",
+        "name": "Weight Gurus",
+        "version": "1.0",
+        "metadata": {
+          "syncIdentifier": "wg-123"
+        }
+      }
+    }
+  ],
+  "deletions": []
+}

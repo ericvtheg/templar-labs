@@ -187,18 +187,18 @@ function AuthScreen(props: {
     <main className="swedish-shell">
       <section className="mx-auto grid min-h-screen w-full max-w-5xl content-center gap-6 px-4 py-8 md:grid-cols-[1fr_24rem] md:px-6">
         <div className="space-y-5 self-center">
-          <Badge className="w-fit bg-[#f2c94c] text-[#17202a] hover:bg-[#f2c94c]">
+          <Badge className="w-fit" variant="accent">
             Stockholm prep
           </Badge>
           <div className="space-y-3">
-            <h1 className="text-4xl font-semibold tracking-normal text-[#17202a] sm:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-normal text-foreground sm:text-5xl">
               Swedish Fifty
             </h1>
-            <p className="max-w-xl text-base leading-7 text-[#4d5d66]">
+            <p className="max-w-xl text-base leading-7 text-swedish-muted-strong">
               One short daily speaking mission for Eric's July 23-30 Sweden trip.
             </p>
           </div>
-          <div className="grid max-w-xl grid-cols-2 gap-3 text-sm text-[#33444d]">
+          <div className="grid max-w-xl grid-cols-2 gap-3 text-sm text-swedish-ink-soft">
             <Signal icon={<HeadphonesIcon className="size-4" />} label="Listen first" />
             <Signal icon={<MicIcon className="size-4" />} label="Push to talk" />
             <Signal icon={<SparklesIcon className="size-4" />} label="Adaptive memory" />
@@ -561,8 +561,8 @@ function Dashboard(props: {
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:px-5 lg:px-7">
         <header className="topbar">
           <div>
-            <p className="text-sm font-medium text-[#4d5d66]">Swedish Fifty</p>
-            <h1 className="text-xl font-semibold tracking-normal text-[#17202a]">
+            <p className="text-sm font-medium text-swedish-muted-strong">Swedish Fifty</p>
+            <h1 className="text-xl font-semibold tracking-normal text-foreground">
               Day {dashboard.today.dayNumber} of 50
             </h1>
           </div>
@@ -655,12 +655,12 @@ function TripStrip(props: {
   return (
     <section className="mission-strip">
       <div>
-        <p className="text-sm text-[#4d5d66]">Hej {props.sessionName}</p>
-        <p className="text-lg font-semibold text-[#17202a]">
+        <p className="text-sm text-swedish-muted-strong">Hej {props.sessionName}</p>
+        <p className="text-lg font-semibold text-foreground">
           {props.daysUntilTrip} days until Stockholm
         </p>
       </div>
-      <div className="text-right text-sm text-[#4d5d66]">
+      <div className="text-right text-sm text-swedish-muted-strong">
         <p>July 23-30</p>
         <p>{props.premium ? "Adaptive coach active" : "One free mission included"}</p>
       </div>
@@ -688,10 +688,12 @@ function MissionPanel(props: {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <Badge variant="secondary">{props.mission.phase}</Badge>
-          <h2 className="text-2xl font-semibold tracking-normal text-[#17202a]">
+          <h2 className="text-2xl font-semibold tracking-normal text-foreground">
             {props.mission.title}
           </h2>
-          <p className="max-w-2xl text-sm leading-6 text-[#4d5d66]">{props.mission.context}</p>
+          <p className="max-w-2xl text-sm leading-6 text-swedish-muted-strong">
+            {props.mission.context}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -721,8 +723,8 @@ function MissionPanel(props: {
           <div className="dialogue-row" key={`${line.speaker}-${line.swedish}`}>
             <div className="dialogue-speaker">{line.speaker}</div>
             <div>
-              <p className="font-medium text-[#17202a]">{line.swedish}</p>
-              <p className="text-sm text-[#62717a]">{line.english}</p>
+              <p className="font-medium text-foreground">{line.swedish}</p>
+              <p className="text-sm text-muted-foreground">{line.english}</p>
             </div>
           </div>
         ))}
@@ -738,8 +740,8 @@ function MissionPanel(props: {
             <div className="prompt-panel" key={prompt.id}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-[#17202a]">{prompt.promptEnglish}</p>
-                  <p className="mt-1 text-sm text-[#62717a]">{prompt.expectedSwedish}</p>
+                  <p className="text-sm font-medium text-foreground">{prompt.promptEnglish}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{prompt.expectedSwedish}</p>
                 </div>
                 <Button
                   aria-label="Play prompt"
@@ -783,16 +785,18 @@ function MissionPanel(props: {
               {attempt === undefined ? null : (
                 <div className="feedback-panel">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-[#17202a]">
+                    <p className="text-sm font-medium text-foreground">
                       {attempt.evaluation.understandable ? "Understandable" : "Practice again"}
                     </p>
-                    <span className="text-sm tabular-nums text-[#4d5d66]">
+                    <span className="text-sm tabular-nums text-swedish-muted-strong">
                       {attempt.intelligibilityScore}%
                     </span>
                   </div>
                   <Progress value={attempt.intelligibilityScore} />
-                  <p className="text-sm leading-6 text-[#4d5d66]">{attempt.evaluation.feedback}</p>
-                  <p className="text-sm text-[#17202a]">{attempt.evaluation.moreNaturalSwedish}</p>
+                  <p className="text-sm leading-6 text-swedish-muted-strong">
+                    {attempt.evaluation.feedback}
+                  </p>
+                  <p className="text-sm text-foreground">{attempt.evaluation.moreNaturalSwedish}</p>
                 </div>
               )}
             </div>
@@ -819,10 +823,12 @@ function RoleplayPanel(props: {
       <div className="flex items-start justify-between gap-3">
         <div>
           <Badge variant="secondary">Roleplay</Badge>
-          <h2 className="mt-2 text-xl font-semibold tracking-normal text-[#17202a]">
+          <h2 className="mt-2 text-xl font-semibold tracking-normal text-foreground">
             Realistic exchange
           </h2>
-          <p className="mt-1 text-sm leading-6 text-[#4d5d66]">{props.mission.roleplaySetup}</p>
+          <p className="mt-1 text-sm leading-6 text-swedish-muted-strong">
+            {props.mission.roleplaySetup}
+          </p>
         </div>
         {latestRoleplay === undefined ? null : (
           <Button
@@ -839,7 +845,7 @@ function RoleplayPanel(props: {
 
       <div className="roleplay-log">
         {props.turns.length === 0 ? (
-          <p className="text-sm text-[#62717a]">Start with a short Swedish answer.</p>
+          <p className="text-sm text-muted-foreground">Start with a short Swedish answer.</p>
         ) : (
           props.turns.map((turn) => (
             <div className="roleplay-turn" data-speaker={turn.speaker} key={turn.id}>
@@ -869,10 +875,10 @@ function BillingPanel(props: { readonly premium: boolean }) {
   return (
     <section className="side-panel">
       <div className="flex items-center gap-2">
-        <LockIcon className="size-4 text-[#1f6f8b]" />
-        <h2 className="font-semibold text-[#17202a]">Premium</h2>
+        <LockIcon className="size-4 text-primary" />
+        <h2 className="font-semibold text-foreground">Premium</h2>
       </div>
-      <p className="text-sm leading-6 text-[#4d5d66]">
+      <p className="text-sm leading-6 text-swedish-muted-strong">
         {props.premium
           ? "Daily adaptive missions, memory updates, and voice practice are active."
           : "Upgrade after the free mission for daily generated lessons, voice roleplay, and durable memory."}
@@ -899,10 +905,10 @@ function PremiumGate() {
   return (
     <section className="work-panel">
       <Badge variant="outline">Premium needed</Badge>
-      <h2 className="mt-3 text-2xl font-semibold tracking-normal text-[#17202a]">
+      <h2 className="mt-3 text-2xl font-semibold tracking-normal text-foreground">
         Your free mission is complete.
       </h2>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-[#4d5d66]">
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-swedish-muted-strong">
         Premium unlocks the next daily generated mission, voice roleplay, ElevenLabs transcription,
         adaptive debriefs, and permanent memory updates.
       </p>
@@ -913,16 +919,16 @@ function PremiumGate() {
 function ReadinessPanel(props: { readonly readiness: DashboardView["readiness"] }) {
   return (
     <section className="side-panel">
-      <h2 className="font-semibold text-[#17202a]">Scenario readiness</h2>
+      <h2 className="font-semibold text-foreground">Scenario readiness</h2>
       <div className="space-y-3">
         {props.readiness.map((item) => (
           <div className="space-y-1.5" key={item.scenarioKey}>
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-[#17202a]">{item.shortLabel}</span>
-              <span className="tabular-nums text-[#62717a]">{item.score}%</span>
+              <span className="font-medium text-foreground">{item.shortLabel}</span>
+              <span className="tabular-nums text-muted-foreground">{item.score}%</span>
             </div>
             <Progress value={item.score} />
-            <p className="text-xs leading-5 text-[#62717a]">{item.confidenceLabel}</p>
+            <p className="text-xs leading-5 text-muted-foreground">{item.confidenceLabel}</p>
           </div>
         ))}
       </div>
@@ -937,7 +943,7 @@ function MemoryPanel(props: {
   return (
     <section className="side-panel">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold text-[#17202a]">Memory</h2>
+        <h2 className="font-semibold text-foreground">Memory</h2>
         {props.premium ? (
           <Badge variant="secondary">Active</Badge>
         ) : (
@@ -945,7 +951,7 @@ function MemoryPanel(props: {
         )}
       </div>
       {props.memories.length === 0 ? (
-        <p className="text-sm leading-6 text-[#62717a]">
+        <p className="text-sm leading-6 text-muted-foreground">
           {props.premium
             ? "Memory appears after checked answers."
             : "Permanent learning memory starts with Premium."}
@@ -954,8 +960,8 @@ function MemoryPanel(props: {
         <div className="space-y-3">
           {props.memories.map((memory) => (
             <div className="memory-item" key={memory.id}>
-              <p className="text-sm font-medium text-[#17202a]">{memory.pattern}</p>
-              <p className="text-xs leading-5 text-[#62717a]">{memory.nextPractice}</p>
+              <p className="text-sm font-medium text-foreground">{memory.pattern}</p>
+              <p className="text-xs leading-5 text-muted-foreground">{memory.nextPractice}</p>
             </div>
           ))}
         </div>
@@ -967,7 +973,7 @@ function MemoryPanel(props: {
 function CalendarPanel(props: { readonly calendar: DashboardView["calendar"] }) {
   return (
     <section className="side-panel">
-      <h2 className="font-semibold text-[#17202a]">50-day calendar</h2>
+      <h2 className="font-semibold text-foreground">50-day calendar</h2>
       <div className="calendar-grid">
         {props.calendar.map((day) => (
           <div

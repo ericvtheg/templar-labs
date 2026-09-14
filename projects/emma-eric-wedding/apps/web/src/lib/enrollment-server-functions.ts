@@ -86,7 +86,17 @@ export const enrollHousehold = createServerFn({ method: "POST" })
         createdAt: now,
         updatedAt: now,
       }),
-      database.db.insert(guests).values(enrolledGuests.map(({ eventIds: _, ...guest }) => guest)),
+      database.db.insert(guests).values(
+        enrolledGuests.map((guest) => ({
+          id: guest.id,
+          householdId: guest.householdId,
+          name: guest.name,
+          plusOneAllowed: guest.plusOneAllowed,
+          position: guest.position,
+          createdAt: guest.createdAt,
+          updatedAt: guest.updatedAt,
+        })),
+      ),
       database.db
         .insert(eventInvitations)
         .values(

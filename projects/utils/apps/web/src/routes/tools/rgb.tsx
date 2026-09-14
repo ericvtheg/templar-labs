@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Input } from "@templar/ui/components/input";
-import { useMemo, useState } from "react";
+import { type CSSProperties, useMemo, useState } from "react";
 import { CopyButton, ToolFrame } from "../../components/tool-frame";
 
 export const Route = createFileRoute("/tools/rgb")({
@@ -173,7 +173,10 @@ function RgbTool() {
       description="Convert between hex, RGB, and HSL. WCAG contrast included."
       title="RGB / HSL / Hex"
     >
-      <div className="h-20 w-full rounded-lg border" style={{ backgroundColor: hexInput }} />
+      <div
+        className="h-20 w-full rounded-lg border bg-(--preview-color)"
+        style={{ "--preview-color": hexInput } as CSSProperties}
+      />
 
       <div className="space-y-2">
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Hex</p>

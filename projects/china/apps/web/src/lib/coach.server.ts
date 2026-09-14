@@ -1,5 +1,5 @@
 import { makeLLM } from "@templar/llm";
-import { Effect } from "effect";
+import { Effect, Logger } from "effect";
 import { z } from "zod";
 import { emergencyNumbers } from "./activity-content.ts";
 import type { CoachReply, CoachScene, CoachTarget } from "./coach-types.ts";
@@ -8,8 +8,32 @@ import { takePracticeBudget } from "./practice-budget.server.ts";
 import type { TripBody } from "./trip-body.ts";
 
 type CoachEnv = { DB: D1Database; OPENROUTER_API_TOKEN?: string };
-const setupSchema = z.object({ scene: z.string().min(10).max(500) });
-const feedbackSchema = z.object({ correct: z.boolean(), feedback: z.string().min(5).max(600) });
+// Fast Mandarin-capable model, with reasoning disabled for responsive conversation.
+const coachModel = "qwen/qwen3.7-flash";
+const quietProviderLogs = Logger.remove(Logger.defaultLogger);
+const setupSchema = z.object({
+  scene: z
+    .string()
+    .min(60)
+    .max(500)
+    .describe(
+      "Two or three complete English sentences with a specific funny fictional crew mishap. Not a title, location label, or the Chinese answer.",
+    ),
+});
+const feedbackSchema = z.object({
+  correct: z
+    .boolean()
+    .describe(
+      "True only when the learner gives an answer communicating the target meaning. A clarification question is not a completed answer; explain helpfully with correct=false.",
+    ),
+  feedback: z
+    .string()
+    .min(20)
+    .max(600)
+    .describe(
+      "Friendly, concrete beginner feedback in English. Explain one useful point, not a pronunciation score.",
+    ),
+});
 const reply = (value: unknown, status = 200) =>
   Response.json(value, {
     status,
@@ -24,6 +48,21 @@ const normalize = (text: string) =>
     .replace(/[^\p{L}\p{N}]/gu, "");
 const actorRules =
   "Eric is the groom on a bachelor trip to Beijing and Shanghai. All named crew members are adults. Kendall is one of the boys and uses she/her. Raunchy, affectionate crew humor is welcome; no cheating jokes, slurs, humiliation, or invented personal allegations. These are explicitly fictional practice scenarios. Keep all medical/legal advice out; the app separately supplies fixed emergency facts.";
+export function sceneWithoutAnswer(text: string, target: CoachTarget): string {
+  const spokenAnswer = normalize(target.pinyin).replace(/[1-5]/g, "");
+  const setup = text
+    .split(/(?<=[.!?])\s+/)
+    .filter(
+      (sentence) =>
+        !/\p{Script=Han}/u.test(sentence) &&
+        !normalize(sentence).replace(/[1-5]/g, "").includes(spokenAnswer),
+    )
+    .join(" ");
+  if (setup.length < 40) {
+    throw new Error("Scene did not provide a usable setup without revealing the answer.");
+  }
+  return setup;
+}
 function targetsFor(mission: Mission): CoachTarget[] {
   return [
     ...mission.phrases.map((phrase, index) => ({
@@ -80,14 +119,15 @@ async function createScene(body: TripBody, mission: Mission, env: CoachEnv, user
       const result = await Effect.runPromise(
         ai
           .generateObject({
-            model: "balanced",
+            model: coachModel,
+            reasoning: { enabled: false },
             temperature: 0.9,
-            maxTokens: 650,
+            maxTokens: 850,
             schema: setupSchema,
             messages: [
               {
                 role: "system",
-                content: `${actorRules} Write a vivid, funny micro-situation (2-3 sentences, <=70 words) in English. Make this ONE target phrase a useful, natural response. Do not give its Chinese/pinyin answer. Do not quiz untaught vocabulary or introduce a second task. You are a language practice scene writer, not a general assistant.`,
+                content: `${actorRules} Write a vivid, funny micro-situation (2-3 sentences, <=70 words) in English. Make this ONE target phrase a useful, natural response. English only. Do not write dialogue, provide the Chinese/pinyin answer, or solve the situation. Stop with the other person waiting for the learner’s response. Do not quiz untaught vocabulary or introduce a second task. You are a language practice scene writer, not a general assistant.`,
               },
               {
                 role: "user",
@@ -95,15 +135,15 @@ async function createScene(body: TripBody, mission: Mission, env: CoachEnv, user
                   actor,
                   crew,
                   location: mission.city,
-                  theme: mission.story,
-                  target,
+                  theme: mission.label,
+                  targetMeaning: target.english,
                 }),
               },
             ],
           })
-          .pipe(Effect.timeout("25 seconds")),
+          .pipe(Effect.timeout("20 seconds"), Effect.provide(quietProviderLogs)),
       );
-      scene = result.value.scene;
+      scene = sceneWithoutAnswer(result.value.scene, target);
       source = "ai";
     } catch {
       /* Clearly labeled local fallback keeps the lesson usable. */
@@ -181,9 +221,10 @@ async function answerScene(body: TripBody, env: CoachEnv, userId: string) {
       const result = await Effect.runPromise(
         ai
           .generateObject({
-            model: "balanced",
+            model: coachModel,
+            reasoning: { enabled: false },
             temperature: 0.35,
-            maxTokens: 700,
+            maxTokens: 850,
             schema: feedbackSchema,
             messages: [
               {
@@ -201,7 +242,7 @@ async function answerScene(body: TripBody, env: CoachEnv, userId: string) {
               },
             ],
           })
-          .pipe(Effect.timeout("25 seconds")),
+          .pipe(Effect.timeout("20 seconds"), Effect.provide(quietProviderLogs)),
       );
       correct = exact || result.value.correct;
       feedback = result.value.feedback;

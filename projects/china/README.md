@@ -91,6 +91,8 @@ Matching decks live in `activity-content.ts`; verified facts, price caveats, and
 - Recordings stop after 20 seconds and remain in the tab unless the learner explicitly chooses
   transcription. That action sends audio to ElevenLabs Scribe; the app does not store recordings
 - Transcription checks recognized words, not tones or accent. Learners can edit or type instead
+- The coach uses Qwen 3.7 Flash with reasoning disabled for interactive latency; selection lives in
+  `coach.server.ts`. Scene generation receives the English goal, not the answer to copy
 - AI receives lesson context, crew first names, and submitted replies—not Google emails or account IDs
 - Coach scenes expire after 30 minutes; expired rows are deleted on the next scene creation. Only
   the latest two reply/feedback exchanges are retained per scene; six replies per scene maximum

@@ -16,7 +16,7 @@ vi.mock("@elevenlabs/elevenlabs-js", () => ({
 }));
 vi.mock("@templar/llm", () => ({ makeLLM: () => ({ generateObject: generate }) }));
 
-import { handleCoach } from "../src/lib/coach.server.ts";
+import { handleCoach, sceneWithoutAnswer } from "../src/lib/coach.server.ts";
 import type { CoachReply, CoachScene } from "../src/lib/coach-types.ts";
 import { missions } from "../src/lib/curriculum.ts";
 import { gradeMatching } from "../src/lib/learning.ts";
@@ -220,6 +220,20 @@ describe("flexible activities with authoritative ground truth", () => {
     expect(results.filter(Boolean)).toHaveLength(3);
     expect(await takePracticeBudget(env.DB, "friend", "coach", 3)).toBe(true);
   });
+  it("removes answer-revealing sentences from generated scene setups", () => {
+    const target = {
+      id: "phrase-0",
+      kind: "phrase" as const,
+      hanzi: "你好。",
+      pinyin: "Nǐ hǎo.",
+      english: "Hello.",
+      tip: "Greeting",
+    };
+    const setup = "Gavin has accidentally volunteered the entire crew for the hotel talent show.";
+    expect(sceneWithoutAnswer(`${setup} Eric says Nǐ hǎo to the clerk.`, target)).toBe(setup);
+    expect(sceneWithoutAnswer(`${setup} The answer is 你好。`, target)).toBe(setup);
+    expect(() => sceneWithoutAnswer("Just say ni3 hao3.", target)).toThrow();
+  });
   it("generates real AI scenes, evaluates free text, and does not award mastery from model feedback", async () => {
     env.OPENROUTER_API_TOKEN = "test-only";
     const response = await handleCoach(
@@ -230,6 +244,11 @@ describe("flexible activities with authoritative ground truth", () => {
     const scene = (await response.json()) as CoachScene;
     expect(scene.source).toBe("ai");
     expect(scene.target.hanzi).toBe("你好。");
+    expect(generate.mock.calls[0]?.[0]).toMatchObject({
+      model: "qwen/qwen3.7-flash",
+      reasoning: { enabled: false },
+    });
+    expect(JSON.stringify(generate.mock.calls[0]?.[0]?.messages)).not.toContain("你好");
     generate.mockReturnValue(
       Effect.succeed({
         value: { correct: true, feedback: "Meaning understood. Now try nǐ hǎo out loud." },

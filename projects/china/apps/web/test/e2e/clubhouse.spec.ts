@@ -3,6 +3,40 @@ import { crew, fieldNotes, groom, missions } from "../../src/lib/curriculum.ts";
 import { grade } from "../../src/lib/learning.ts";
 import type { TripData } from "../../src/lib/types.ts";
 
+test("serves browser and home-screen icons without requiring sign-in", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  await expect(page.locator('head link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute(
+    "href",
+    "/favicon.svg",
+  );
+  await expect(page.locator('head link[rel="apple-touch-icon"]')).toHaveAttribute(
+    "href",
+    "/apple-touch-icon.png",
+  );
+  const [svg, ico, png, apple] = await Promise.all([
+    request.get("/favicon.svg"),
+    request.get("/favicon.ico"),
+    request.get("/favicon-32x32.png"),
+    request.get("/apple-touch-icon.png"),
+  ]);
+  for (const response of [svg, ico, png, apple]) {
+    expect(response.status()).toBe(200);
+  }
+  expect(svg.headers()["content-type"]).toContain("image/svg+xml");
+  expect(await svg.text()).toContain("#ffde00");
+  const icoBytes = await ico.body();
+  expect(icoBytes.readUInt16LE(2)).toBe(1);
+  expect(icoBytes.readUInt16LE(4)).toBe(3);
+  const [pngBytes, appleBytes] = await Promise.all([png.body(), apple.body()]);
+  expect(pngBytes.readUInt32BE(16)).toBe(32);
+  expect(pngBytes.readUInt32BE(20)).toBe(32);
+  expect(appleBytes.readUInt32BE(16)).toBe(180);
+  expect(appleBytes.readUInt32BE(20)).toBe(180);
+});
+
 test("real signed-out endpoint cannot return crew data", async ({ page, request }) => {
   const response = await request.get("/api/trip/state");
   expect(response.status()).toBe(401);

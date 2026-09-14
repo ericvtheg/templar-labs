@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#de2910"/>
+  <defs>
+    <polygon id="star" points="0,-1 .2245,-.309 .9511,-.309 .3633,.118 .5878,.809 0,.382 -.5878,.809 -.3633,.118 -.9511,-.309 -.2245,-.309"/>
+  </defs>
+  <g fill="#ffde00">
+    <use href="#star" transform="translate(11 16) scale(8)"/>
+    <use href="#star" transform="translate(22 5) rotate(225) scale(2.4)"/>
+    <use href="#star" transform="translate(26 12) rotate(255.07) scale(2.4)"/>
+    <use href="#star" transform="translate(26 20) rotate(-75.07) scale(2.4)"/>
+    <use href="#star" transform="translate(22 27) rotate(-45) scale(2.4)"/>
+  </g>
+</svg>

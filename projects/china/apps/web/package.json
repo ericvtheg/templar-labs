@@ -1,0 +1,41 @@
+{
+  "name": "china-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "pnpm --dir ../.. deploy",
+    "destroy": "pnpm --dir ../.. destroy",
+    "dev": "pnpm --dir ../.. dev",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "serve": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-start": "^1.132.0",
+    "@templar/auth": "workspace:*",
+    "@templar/deploy": "workspace:*",
+    "@templar/dev-ports": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite-tsconfig-paths": "^5.1.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250805.0",
+    "@playwright/test": "^1.60.0",
+    "@testing-library/react": "^16.2.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "alchemy": "0.93.7",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.9",
+    "vitest": "^3.0.5"
+  }
+}

@@ -3,6 +3,7 @@ export type TripBody = {
   missionId?: unknown;
   task?: unknown;
   answer?: unknown;
+  source?: unknown;
   targetId?: unknown;
   pairs?: unknown;
   action?: unknown;

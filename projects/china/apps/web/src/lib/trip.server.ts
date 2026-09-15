@@ -166,6 +166,19 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
       path === "/api/trip/match"
         ? gradeMatching(mission.id, body.pairs)
         : grade(mission.id, body.task, body.answer);
+    // ASR mismatch is ambiguous: do not erase earned mastery or reschedule reviews.
+    if (
+      !correct &&
+      path === "/api/trip/answer" &&
+      body.source === "speech" &&
+      body.task < mission.phrases.length
+    ) {
+      const completed = await db
+        .prepare("SELECT 1 FROM completions WHERE user_id = ? AND mission_id = ?")
+        .bind(id, mission.id)
+        .first();
+      return json({ correct: false, completed: completed !== null });
+    }
     const now = Date.now();
     const old = await db
       .prepare("SELECT level, due FROM mastery WHERE user_id = ? AND mission_id = ? AND task = ?")

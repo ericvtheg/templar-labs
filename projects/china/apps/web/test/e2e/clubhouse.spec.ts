@@ -90,7 +90,7 @@ test("a tap can start delayed audio playback, including Safari byte-range reques
   await page.getByRole("button", { name: /Next: hear it/ }).click();
   await page.getByRole("button", { name: "▶ Listen", exact: true }).click();
   await expect(page.getByText("Speaking Mandarin · ElevenLabs")).toBeVisible({ timeout: 15000 });
-  await page.getByRole("button", { name: "■ Stop audio" }).click();
+  await expect(page.getByRole("button", { name: /Stop (audio|playing)/i })).toHaveCount(0);
   await expect(page.getByText(/ElevenLabs audio couldn’t play/)).toHaveCount(0);
 });
 
@@ -180,7 +180,7 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
     } else {
       await page.getByRole("button", { name: /My turn to say it/ }).click();
       await expect(page.locator(".session-screen input, .session-screen textarea")).toHaveCount(0);
-      await page.getByRole("button", { name: /No microphone/ }).click();
+      await page.getByRole("button", { name: /Pick a reply instead/ }).click();
       await page
         .locator(".encounter-choices")
         .getByRole("button", { name: `${phrase.hanzi} ${phrase.pinyin}`, exact: true })

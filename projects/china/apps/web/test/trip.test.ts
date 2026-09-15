@@ -195,6 +195,32 @@ describe("private trip API against real SQLite and encrypted SSO cookies", () =>
     expect(state.missions).toHaveLength(missions.length);
     expect(JSON.stringify(state)).not.toContain("@example.com");
   });
+  it("does not erase mastery or schedule failed reviews for misheard speech", async () => {
+    await call("profile", { name: "Gavin" });
+    const mission = missions[0];
+    const phrase = mission?.phrases[0];
+    if (!mission || !phrase) {
+      throw new Error("Missing lesson");
+    }
+    await call("answer", {
+      missionId: mission.id,
+      task: 0,
+      answer: phrase.hanzi,
+      source: "speech",
+    });
+    const before = sqlite.prepare("SELECT * FROM mastery WHERE user_id = 'gavin'").all();
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const result = await call("answer", {
+        missionId: mission.id,
+        task: 0,
+        answer: "听错了",
+        source: "speech",
+      });
+      expect(await result.json()).toEqual({ correct: false, completed: false });
+    }
+    await call("answer", { missionId: mission.id, task: 1, answer: "听错了", source: "speech" });
+    expect(sqlite.prepare("SELECT * FROM mastery WHERE user_id = 'gavin'").all()).toEqual(before);
+  });
   it("grades on the server, requires every exercise, persists progress, and cannot farm completion or review level", async () => {
     await call("profile", { name: "Gavin" });
     const mission = missions[0];

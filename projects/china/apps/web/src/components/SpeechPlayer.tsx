@@ -90,18 +90,6 @@ export function SpeechPlayer({
           ▶ Slower
         </button>
         {children}
-        {status !== "idle" && (
-          <button
-            type="button"
-            onClick={() => {
-              releaseSpeechPlayback(player.current);
-              player.current = null;
-              setStatus("idle");
-            }}
-          >
-            ■ Stop audio
-          </button>
-        )}
       </div>
       <p className="speech-status" aria-live="polite">
         {status === "loading"

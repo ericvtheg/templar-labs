@@ -2,10 +2,12 @@
 import { Blob as NodeBlob } from "node:buffer";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ChaosCoach } from "../src/components/ChaosCoach.tsx";
 import { China } from "../src/components/China.tsx";
 import { MissionExperience } from "../src/components/MissionExperience.tsx";
 import { PriceDetective } from "../src/components/PriceDetective.tsx";
 import { VoicePractice } from "../src/components/VoicePractice.tsx";
+import { ownSpeechPlayback, stopSpeechPlayback } from "../src/lib/audio.ts";
 import { crew, crewRoles, fieldNotes, groom, missions } from "../src/lib/curriculum.ts";
 import type { TripData } from "../src/lib/types.ts";
 
@@ -173,7 +175,7 @@ describe("interactive beginner clubhouse", () => {
     fireEvent.click(screen.getByRole("button", { name: /My turn to say it/ }));
     expect(screen.getByRole("button", { name: "● Record yourself" })).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /No microphone/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Pick a reply instead/ }));
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.getByRole("button", { name: "▶ Listen" })).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: "Lesson encounters" })).toBeNull();
@@ -260,7 +262,10 @@ describe("price understanding", () => {
   });
 });
 describe("voice practice", () => {
-  it("checks a spoken lesson reply directly without a keyboard or transcript-editing step", async () => {
+  it.each([
+    true,
+    false,
+  ])("preserves a spoken take until completion (recognition matched: %s)", async (speechMatches) => {
     const mission = missions.find((item) => item.id === "arrival");
     const phrase = mission?.phrases[2];
     if (!mission || !phrase) {
@@ -298,10 +303,13 @@ describe("voice practice", () => {
       }
     }
     vi.stubGlobal("MediaRecorder", Recorder);
-    vi.mocked(fetch).mockImplementation(async (input) =>
+    vi.mocked(fetch).mockImplementation(async (input, options) =>
       String(input).endsWith("transcribe")
-        ? Response.json({ text: phrase.hanzi })
-        : Response.json({ correct: true, completed: false }),
+        ? Response.json({ text: speechMatches ? phrase.hanzi : "听错了" })
+        : Response.json({
+            correct: JSON.parse(String(options?.body)).source === "speech" ? speechMatches : true,
+            completed: false,
+          }),
     );
     render(
       <MissionExperience
@@ -317,7 +325,26 @@ describe("voice practice", () => {
     fireEvent.click(screen.getByRole("button", { name: /My turn to say it/ }));
     fireEvent.click(screen.getByRole("button", { name: "● Record yourself" }));
     fireEvent.click(await screen.findByRole("button", { name: "■ Stop recording" }));
+    const recording = screen.getByLabelText("Your practice recording");
     fireEvent.click(await screen.findByRole("button", { name: /Check what I said/ }));
+    if (!speechMatches) {
+      for (let attempt = 0; attempt < 6; attempt++) {
+        expect(await screen.findByText(/Not a match yet/)).toBeTruthy();
+        expect(screen.getByText("听错了")).toBeTruthy();
+        expect(screen.getByLabelText("Your practice recording")).toBe(recording);
+        expect(screen.queryByRole("button", { name: /My turn to say it/ })).toBeNull();
+        await waitFor(() =>
+          expect(
+            (screen.getByRole("button", { name: /Check what I said/ }) as HTMLButtonElement)
+              .disabled,
+          ).toBe(false),
+        );
+        if (attempt < 5) {
+          fireEvent.click(screen.getByRole("button", { name: /Check what I said/ }));
+        }
+      }
+      fireEvent.click(screen.getByRole("button", { name: `${phrase.hanzi} ${phrase.pinyin}` }));
+    }
     expect(await screen.findByText("That gets the message across.")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(
@@ -330,6 +357,45 @@ describe("voice practice", () => {
         ),
     ).toBe(true);
     expect(screen.getByRole("button", { name: "▶ Listen" })).toBeTruthy();
+  });
+  it("keeps the coach recorder mounted while grading and after a mismatch", async () => {
+    const mission = missions[0];
+    if (!mission) {
+      throw new Error("Missing mission");
+    }
+    const { promise: pending, resolve: finish } = Promise.withResolvers<Response>();
+    vi.mocked(fetch).mockImplementation(async (_input, options) =>
+      JSON.parse(String(options?.body)).action === "start"
+        ? Response.json({
+            id: "scene",
+            source: "ai",
+            scene: "At the counter.",
+            prompt: "Say hello",
+            hint: "A greeting",
+            target: { kind: "phrase", ...mission.phrases[0] },
+          })
+        : pending,
+    );
+    const { container } = render(<ChaosCoach mission={mission} />);
+    fireEvent.click(screen.getByRole("button", { name: /Deal me a situation/ }));
+    await screen.findByText("At the counter.");
+    const recorder = container.querySelector(".voice-practice");
+    expect(recorder).toBeTruthy();
+    fireEvent.click(screen.getByText("Ask for help"));
+    fireEvent.click(screen.getByRole("button", { name: "What does this mean?" }));
+    expect(container.querySelector(".voice-practice")).toBe(recorder);
+    finish(Response.json({ correct: false, source: "ai", feedback: "Try the greeting again." }));
+    await screen.findByText("Try the greeting again.");
+    expect(container.querySelector(".voice-practice")).toBe(recorder);
+  });
+  it("coordinates take playback so recording can stop it without a stop-playing button", () => {
+    const take = document.createElement("audio");
+    const pause = vi.spyOn(take, "pause").mockImplementation(() => undefined);
+    ownSpeechPlayback(take);
+    ownSpeechPlayback(take);
+    expect(pause).not.toHaveBeenCalled();
+    stopSpeechPlayback();
+    expect(pause).toHaveBeenCalledTimes(1);
   });
   it("tries ElevenLabs first and only offers device speech as an explicit fallback", async () => {
     audioPlay.mockRejectedValue(new Error("Unavailable"));

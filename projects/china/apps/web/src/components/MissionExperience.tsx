@@ -194,15 +194,24 @@ function PhraseEncounter({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const screen = useEncounterFocus(phase);
-  async function submit(value: string) {
+  async function submit(value: string, source: "speech" | "choice" = "choice") {
     if (busy) {
       return;
     }
     setBusy(true);
     setError("");
     try {
-      const response = await tripApi<AnswerResult>("answer", { missionId, task, answer: value });
+      const response = await tripApi<AnswerResult>("answer", {
+        missionId,
+        task,
+        answer: value,
+        source,
+      });
       setResult(response);
+      // A misheard take is not a reason to discard the recording or restart the lesson.
+      if (format === "voice" && !response.correct) {
+        return;
+      }
       setPhase("feedback");
       await onSaved(response);
     } catch (cause) {
@@ -288,7 +297,7 @@ function PhraseEncounter({
             </>
           )}
           {format !== "voice" && <SpeechPlayer text={phrase.hanzi} />}
-          {format === "voice" && !tapInstead ? (
+          {format === "voice" && (
             <>
               <p>
                 Say it like you’re asking someone on the street. Record your reply, then check what
@@ -297,20 +306,29 @@ function PhraseEncounter({
               <VoicePractice
                 text={phrase.hanzi}
                 missionId={missionId}
-                onTranscript={(text) => void submit(text)}
-              />
-              <button
-                type="button"
-                className="text-button"
                 disabled={busy}
-                onClick={() => setTapInstead(true)}
-              >
-                No microphone? Pick what you’d say instead →
-              </button>
+                onTranscript={(text) => submit(text, "speech")}
+              />
+              {result?.correct === false && (
+                <p role="status" className="notice">
+                  Not a match yet. Your recording is still here. Retry if you want, or pick the
+                  reply you’d say below and keep going.
+                </p>
+              )}
+              {!tapInstead && result?.correct !== false && (
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() => setTapInstead(true)}
+                >
+                  Pick a reply instead →
+                </button>
+              )}
             </>
-          ) : (
+          )}
+          {(format !== "voice" || tapInstead || result?.correct === false) && (
             <div className="encounter-choices">
-              {format === "voice" && <SpeechPlayer text={phrase.hanzi} />}
               {choices.map((choice) => (
                 <button
                   type="button"
@@ -351,7 +369,14 @@ function PhraseEncounter({
             type="button"
             className="primary"
             disabled={busy}
-            onClick={result?.correct ? onNext : () => setPhase("learn")}
+            onClick={
+              result?.correct
+                ? onNext
+                : () => {
+                    setResult(null);
+                    setPhase("try");
+                  }
+            }
           >
             {busy ? "Saving…" : result?.correct ? "What happens next? →" : "Let’s try again →"}
           </button>

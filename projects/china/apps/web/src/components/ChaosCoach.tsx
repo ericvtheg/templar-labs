@@ -163,14 +163,13 @@ export function ChaosCoach({
             </fieldset>
           ) : (
             <>
-              {!busy && (
-                <VoicePractice
-                  key={`${scene.id}-${messages.length}`}
-                  text={scene.target.hanzi}
-                  missionId={mission.id}
-                  onTranscript={(text) => void send(text)}
-                />
-              )}
+              <VoicePractice
+                key={scene.id}
+                text={scene.target.hanzi}
+                missionId={mission.id}
+                disabled={busy}
+                onTranscript={send}
+              />
               <details>
                 <summary>Pick a reply to say or show instead</summary>
                 <div className="encounter-choices">

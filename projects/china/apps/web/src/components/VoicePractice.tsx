@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { stopSpeechPlayback } from "../lib/audio.ts";
+import { ownSpeechPlayback, stopSpeechPlayback } from "../lib/audio.ts";
 import { SpeechPlayer } from "./SpeechPlayer.tsx";
 
 function stopTracks(media: MediaStream | null) {
@@ -19,10 +19,12 @@ export function VoicePractice({
   text,
   missionId,
   onTranscript,
+  disabled = false,
 }: {
   text: string;
   missionId?: string;
-  onTranscript?: (text: string) => void;
+  onTranscript?: (text: string) => void | Promise<void>;
+  disabled?: boolean;
 }) {
   const [recording, setRecording] = useState(false);
   const [pending, setPending] = useState(false);
@@ -30,6 +32,7 @@ export function VoicePractice({
   const [audio, setAudio] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [message, setMessage] = useState("");
+  const [heard, setHeard] = useState("");
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +98,7 @@ export function VoicePractice({
           setRecording(false);
           if (chunks.length) {
             const recordingBlob = new Blob(chunks, { type: instance.mimeType });
+            setHeard("");
             setBlob(recordingBlob);
             setAudio(URL.createObjectURL(recordingBlob));
           }
@@ -128,7 +132,15 @@ export function VoicePractice({
     }
   }
   async function transcribe() {
-    if (!blob || !missionId || !onTranscript) {
+    if (
+      !blob ||
+      !missionId ||
+      !onTranscript ||
+      upload.current ||
+      disabled ||
+      pending ||
+      recording
+    ) {
       return;
     }
     if (blob.size > 600_000) {
@@ -156,10 +168,8 @@ export function VoicePractice({
         throw new Error(result.error ?? "No speech was recognized. Try a shorter, clearer take.");
       }
       if (alive.current) {
-        onTranscript(result.text);
-        setMessage(
-          "Your spoken reply was sent for feedback. This checks recognized words, not pronunciation or tones.",
-        );
+        setHeard(result.text);
+        await onTranscript(result.text);
       }
     } catch (cause) {
       if (alive.current) {
@@ -170,6 +180,9 @@ export function VoicePractice({
         );
       }
     } finally {
+      if (upload.current === controller) {
+        upload.current = null;
+      }
       if (alive.current) {
         setTranscribing(false);
       }
@@ -181,7 +194,7 @@ export function VoicePractice({
         <button
           type="button"
           className={recording ? "recording" : ""}
-          disabled={pending || transcribing}
+          disabled={!recording && (disabled || pending || transcribing)}
           onClick={() => void record()}
         >
           {pending ? "Allow microphone…" : recording ? "■ Stop recording" : "● Record yourself"}
@@ -199,14 +212,15 @@ export function VoicePractice({
             controls
             src={audio}
             aria-label="Your practice recording"
-            onPlay={stopSpeechPlayback}
+            onPlay={(event) => ownSpeechPlayback(event.currentTarget)}
           />
           <button
             type="button"
-            disabled={transcribing}
+            disabled={disabled || pending || recording || transcribing}
             onClick={() => {
               setAudio(null);
               setBlob(null);
+              setHeard("");
             }}
           >
             Delete
@@ -217,11 +231,18 @@ export function VoicePractice({
         <button
           type="button"
           className="primary"
-          disabled={recording || pending || transcribing}
+          disabled={disabled || recording || pending || transcribing}
           onClick={() => void transcribe()}
         >
           {transcribing ? "Listening to your take…" : "Check what I said →"}
         </button>
+      )}
+      {heard && (
+        <p role="status" className="notice">
+          <strong>Heard:</strong> <span lang="zh-CN">{heard}</span>
+          <br />
+          Speech recognition can mishear you. This is not a pronunciation or tone score.
+        </p>
       )}
       <p className="fine-print">
         Your recording stays in this tab

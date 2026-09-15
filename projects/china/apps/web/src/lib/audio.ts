@@ -7,6 +7,9 @@ export function stopSpeechPlayback() {
   }
 }
 export function ownSpeechPlayback(audio: HTMLAudioElement) {
+  if (currentAudio === audio) {
+    return;
+  }
   stopSpeechPlayback();
   currentAudio = audio;
 }

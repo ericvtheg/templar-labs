@@ -10,6 +10,10 @@ on:
         description: Also test live speech/cache, transcription, and AI coaching (requires owner handoff; small provider usage)
         type: boolean
         default: false
+      inspect_duplicate_profiles:
+        description: Read-only identity and progress comparison for duplicate Eric profiles
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -27,4 +31,5 @@ jobs:
           CHINA_CREW_EMAILS: ${{ secrets.CHINA_CREW_EMAILS }}
           RUN_OWNER_HANDOFF_PROBE: ${{ inputs.probe_owner_handoff }}
           RUN_LEARNING_PROBE: ${{ inputs.probe_learning }}
+          INSPECT_DUPLICATE_PROFILES: ${{ inputs.inspect_duplicate_profiles }}
         run: node projects/china/scripts/auth-diagnostics.mjs

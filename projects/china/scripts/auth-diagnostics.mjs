@@ -84,6 +84,98 @@ const owners = await Promise.all(
   }),
 );
 console.log(JSON.stringify({ owners }, null, 2));
+if (env.INSPECT_DUPLICATE_PROFILES === "true") {
+  const chinaDb = china.bindings.find((binding) => binding.name === "DB")?.id;
+  if (!chinaDb) {
+    throw new Error("China database binding missing.");
+  }
+  const query = async (database, sql, params = []) =>
+    (await cf(`d1/database/${database}/query`, { sql, params }))[0]?.results ?? [];
+  const profiles = await query(
+    chinaDb,
+    "SELECT id, (SELECT COUNT(*) FROM completions WHERE user_id = m.id) AS completed, (SELECT COUNT(*) FROM mastery WHERE user_id = m.id AND level > 0) AS learned_tasks, (SELECT MIN(created_at) FROM completions WHERE user_id = m.id) AS first_completion, (SELECT MAX(created_at) FROM completions WHERE user_id = m.id) AS last_completion FROM members m WHERE lower(trim(name)) = 'eric' ORDER BY completed DESC, id LIMIT 25",
+  );
+  const legacyTables = await query(
+    chinaDb,
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('user', 'account')",
+  );
+  const records = [];
+  for (const profile of profiles) {
+    const central = (
+      await query(db, "SELECT id, email, email_verified, created_at FROM user WHERE id = ?", [
+        profile.id,
+      ])
+    )[0];
+    const legacy = legacyTables.some((table) => table.name === "user")
+      ? (
+          await query(
+            chinaDb,
+            "SELECT id, email, email_verified, created_at FROM user WHERE id = ?",
+            [profile.id],
+          )
+        )[0]
+      : undefined;
+    const identity = central ?? legacy;
+    const accountDb = central ? db : chinaDb;
+    const identityAccounts =
+      identity && (central || legacyTables.some((table) => table.name === "account"))
+        ? await query(accountDb, "SELECT provider_id, account_id FROM account WHERE user_id = ?", [
+            profile.id,
+          ])
+        : [];
+    records.push({
+      profile,
+      central: Boolean(central),
+      legacy: Boolean(legacy),
+      identity,
+      google: identityAccounts
+        .filter((linked) => linked.provider_id === "google")
+        .map((linked) => linked.account_id),
+    });
+  }
+  console.log(
+    JSON.stringify(
+      {
+        duplicateProfileAudit: records.map((record, index) => ({
+          profile: index + 1,
+          completed: record.profile.completed,
+          learnedTasks: record.profile.learned_tasks,
+          firstCompletion: record.profile.first_completion,
+          lastCompletion: record.profile.last_completion,
+          centralIdentity: record.central,
+          legacyIdentity: record.legacy,
+          emailHint: record.identity
+            ? `${record.identity.email.slice(0, 3)}…${record.identity.email.split("@")[0].slice(-3)}@${record.identity.email.split("@")[1]}`
+            : null,
+          configuredOwner: Boolean(
+            record.identity && platformAdminEmails.has(record.identity.email.toLowerCase()),
+          ),
+          verifiedEmail: Boolean(record.identity?.email_verified),
+          googleAccount: record.google.length > 0,
+          syntheticIdPattern: /test|probe/i.test(record.profile.id),
+          idHint:
+            record.profile.id.length > 12
+              ? `${record.profile.id.slice(0, 6)}…${record.profile.id.slice(-6)}`
+              : "short/nonstandard",
+          sameEmailAs: records.flatMap((other, otherIndex) =>
+            otherIndex !== index &&
+            record.identity?.email &&
+            other.identity?.email?.toLowerCase() === record.identity.email.toLowerCase()
+              ? [otherIndex + 1]
+              : [],
+          ),
+          sameGoogleAs: records.flatMap((other, otherIndex) =>
+            otherIndex !== index && record.google.some((subject) => other.google.includes(subject))
+              ? [otherIndex + 1]
+              : [],
+          ),
+        })),
+      },
+      null,
+      2,
+    ),
+  );
+}
 if (env.RUN_OWNER_HANDOFF_PROBE === "true") {
   // Restricted to an existing, verified platform owner configured in central SSO source.
   // This exercises the same code exchange as an existing central session, without touching

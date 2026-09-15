@@ -14,7 +14,7 @@ const wall: TripHype = {
   metric: "20,000+ KM",
   title: "This is not a wall. It’s a civilization-scale undertaking.",
   fact: "UNESCO describes a defensive network over 20,000 km—more than 12,400 miles—built and rebuilt from the 3rd century BCE to the 17th century CE. Construction continued through the Ming dynasty (1368–1644).",
-  why: "You’re not looking at it in a textbook. You’re climbing into those mountain ridgelines with the boys. Jarrell’s calves are about to meet several centuries of ambition.",
+  why: "You’re not looking at it in a textbook. You’re climbing into those mountain ridgelines with the boys. Brent’s calves are about to meet several centuries of ambition.",
   tryIt:
     "Stop at a safe viewpoint. Put the phone away for one minute and actually take in where you are.",
   source: { label: "UNESCO · The Great Wall", url: "https://whc.unesco.org/en/list/438/" },

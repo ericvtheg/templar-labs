@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import { restaurantVideo } from "../lib/activity-content.ts";
 import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
 import { SpeechPlayer } from "./SpeechPlayer.tsx";
@@ -16,7 +16,6 @@ export function VideoFieldReport({
   const [report, setReport] = useState("");
   const [word, setWord] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const id = useId();
   const screen = useEncounterFocus(`${reporting}:${submitted}`);
   if (submitted && onComplete) {
     return (
@@ -127,41 +126,59 @@ export function VideoFieldReport({
         </>
       )}
       {(!onComplete || reporting) && (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            setSubmitted(true);
-          }}
-        >
-          <label htmlFor={`${id}-gist`}>
-            What was broadly happening? English is absolutely fine.
-          </label>
-          <textarea
-            id={`${id}-gist`}
-            value={report}
-            onChange={(event) => {
-              setReport(event.target.value);
-              setSubmitted(false);
-            }}
-            rows={3}
-            maxLength={600}
-            placeholder="I think someone was ordering food. I caught…"
-          />
-          <label htmlFor={`${id}-word`}>One word, sound, or visual clue you noticed</label>
-          <input
-            id={`${id}-word`}
-            value={word}
-            onChange={(event) => {
-              setWord(event.target.value);
-              setSubmitted(false);
-            }}
-            maxLength={120}
-            placeholder="Even ‘I heard ni hao’ is a start."
-          />
-          <button type="submit" className="primary" disabled={!report.trim() || !word.trim()}>
-            Pin my field report →
+        <div>
+          <fieldset className="encounter-choices">
+            <legend>What situation did you recognize?</legend>
+            {[
+              "Ordering food",
+              "Checking into a hotel",
+              "Finding a train",
+              "I couldn’t tell yet",
+            ].map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={report === choice}
+                onClick={() => {
+                  setReport(choice);
+                  setSubmitted(false);
+                }}
+              >
+                {choice}
+              </button>
+            ))}
+          </fieldset>
+          <fieldset className="encounter-choices">
+            <legend>What helped you follow along?</legend>
+            {[
+              "A greeting",
+              "Food or a menu",
+              "A thank-you",
+              "Mostly the pictures",
+              "I need another listen",
+            ].map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={word === choice}
+                onClick={() => {
+                  setWord(choice);
+                  setSubmitted(false);
+                }}
+              >
+                {choice}
+              </button>
+            ))}
+          </fieldset>
+          <button
+            type="button"
+            className="primary"
+            disabled={!report || !word}
+            onClick={() => setSubmitted(true)}
+          >
+            Keep going →
           </button>
-        </form>
+        </div>
       )}
       {submitted && (
         <div className="field-report" role="status">

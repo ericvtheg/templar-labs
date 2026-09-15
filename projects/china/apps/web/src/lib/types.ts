@@ -13,6 +13,7 @@ export type TripData = {
   user: { id: string; name: string };
   groom: string;
   crew: string[];
+  crewRoles?: Record<string, string>;
   missions: Mission[];
   fieldNotes: { hanzi: string; pinyin: string; english: string }[];
   mastery: Mastery[];

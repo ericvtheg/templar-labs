@@ -17,27 +17,23 @@ export type Mission = {
   explanation: string;
 };
 export const groom = "Eric";
-export const crew = [
+export const primaryCrew = [
   groom,
   "Gavin",
-  "Timmy",
+  "Alfredo",
   "Kendall",
   "Ivan",
-  "Seth",
-  "Alfredo",
-  "Miles",
-  "Andrew",
-  "Jarrell",
+  "Timmy",
+  "Brent",
   "Skylar",
   "Carlo",
-  "Brent",
   "Dennis",
-  "Josh",
-  "Ty",
-  "Donovan",
-  "Jack",
   "Rolo",
+  "Andrew",
 ];
+export const crewRoles: Record<string, string> = { Eric: "Groom", Gavin: "Best man" };
+// Keep the wider roster available for existing profiles; use the main cast for stories.
+export const crew = [...primaryCrew, "Seth", "Miles", "Jarrell", "Josh", "Ty", "Donovan", "Jack"];
 export const missions: Mission[] = [
   {
     id: "arrival",
@@ -46,7 +42,7 @@ export const missions: Mission[] = [
     label: "ARRIVAL & SURVIVAL",
     icon: "↗",
     story:
-      "Eric’s bachelor trip has officially landed in Beijing. His Mandarin has not. Gavin has the booking. Timmy has 4% battery. Rolo has wandered toward a sign he absolutely cannot read. Get the boys to the hotel without making the best man run a fucking help desk.",
+      "Eric’s bachelor trip has officially landed in Beijing. His Mandarin has not. Gavin, the best man, has the booking. Timmy has 4% battery. Rolo has wandered toward a sign he absolutely cannot read. Get the boys to the hotel without making the best man run a fucking help desk.",
     phrases: [
       {
         hanzi: "厕所在哪里？",
@@ -85,7 +81,7 @@ export const missions: Mission[] = [
     label: "FOOD & ORDERING",
     icon: "饺",
     story:
-      "Eric asked for a legendary bachelor dinner, not a group colonoscopy. Kendall says she can handle spicy. Her asshole has not been consulted. Ivan wants dumplings. Seth and Alfredo have pointed at six mystery dishes. Order dinner before confidence becomes a medical event.",
+      "Eric asked for a legendary bachelor dinner, not a group colonoscopy. Kendall, the crew’s veteran and resident drunk, says she can handle spicy. Her asshole has not been consulted. Ivan wants dumplings. Carlo and Alfredo have pointed at six mystery dishes. Order dinner before confidence becomes a medical event.",
     phrases: [
       {
         hanzi: "菜单，谢谢。",
@@ -124,7 +120,7 @@ export const missions: Mission[] = [
     label: "THE GREAT WALL",
     icon: "山",
     story:
-      "Eric’s bachelor trip has somehow become leg day. Miles called this a casual walk. Andrew has become a motivational speaker. Jarrell’s calves have filed for divorce. Nobody came to China to die doing fucking cardio. Find water and the way back.",
+      "Eric’s bachelor trip has somehow become leg day. Brent called this a casual walk. Andrew has become a motivational speaker. Skylar’s calves have filed for divorce. Nobody came to China to die doing fucking cardio. Find water and the way back.",
     phrases: [
       {
         hanzi: "我要一瓶水。",
@@ -190,7 +186,7 @@ export const missions: Mission[] = [
     label: "TRAINS & DIRECTIONS",
     icon: "→",
     story:
-      "The boys have one job: get Eric to Shanghai with his passport and dignity. One of those is negotiable. Dennis has appointed himself logistics captain. Josh and Ty are debating snacks. Donovan is at the wrong gate with unbelievable confidence. Get everyone on the same train.",
+      "The boys have one job: get Eric to Shanghai with his passport and dignity. One of those is negotiable. Dennis has appointed himself logistics captain. Ivan and Timmy are debating snacks. Rolo is at the wrong gate with unbelievable confidence. Get everyone on the same train.",
     phrases: [
       {
         hanzi: "这是去上海的高铁吗？",
@@ -211,19 +207,19 @@ export const missions: Mission[] = [
         tip: "Show the seat number. 不好意思 softens an interruption.",
       },
     ],
-    question: "Which sign gets Donovan to the boarding gate?",
+    question: "Which sign gets Rolo to the boarding gate?",
     options: ["出站口", "售票处", "检票口"],
     answer: 2,
     explanation: "检票口 = ticket gate. 售票处 = ticket office. 出站口 = station exit.",
   },
   {
     id: "night",
-    title: "Jack orders the next round.",
+    title: "Skylar orders the next round.",
     city: "Shanghai",
     label: "BARS & NIGHTLIFE",
     icon: "夜",
     story:
-      "It’s Eric’s bachelor toast, and Jack is buying. Rolo has reappeared with the confidence of a man whose blood is now mostly beer. Gavin’s toast is longer than his last relationship. Nobody wants to explain this night to a consulate. Order, pace yourselves, and keep the boys together.",
+      "It’s Eric’s bachelor toast, and Skylar is buying. Rolo has reappeared with the confidence of a man whose blood is now mostly beer. Gavin’s toast is longer than his last relationship. Nobody wants to explain this night to a consulate. Order, pace yourselves, and keep the boys together.",
     phrases: [
       {
         hanzi: "干杯！",
@@ -383,7 +379,7 @@ missions.push({
   label: "HELP & GETTING HOME",
   icon: "+",
   story:
-    "Eric would like the boys at his wedding, not featured in a consular incident report. Dennis is doing a headcount. Donovan is rehearsing ‘I can explain.’ Josh is asking whether the group chat counts as legal representation. Jail jokes belong in the group chat; real trouble gets a sober response. These phrases are not the punchline.",
+    "Eric would like the boys at his wedding, not featured in a consular incident report. Dennis is doing a headcount. Carlo is rehearsing ‘I can explain.’ Andrew is asking whether the group chat counts as legal representation. Jail jokes belong in the group chat; real trouble gets a sober response. These phrases are not the punchline.",
   phrases: [
     {
       hanzi: "请帮帮我。",
@@ -463,7 +459,7 @@ missions.push({
   label: "PRICES, BARGAINING & KEEPING YOUR MONEY",
   icon: "价",
   story:
-    "Eric wants a souvenir. Carlo has somehow raised his own offer twice. Seth thinks every QR code is a coupon. Learn the price, check whether bargaining is welcome, make one calm counteroffer, and leave with a thing you actually wanted—not a fucking financial incident.",
+    "Eric wants a souvenir. Carlo has somehow raised his own offer twice. Brent thinks every QR code is a coupon. Learn the price, check whether bargaining is welcome, make one calm counteroffer, and leave with a thing you actually wanted—not a fucking financial incident.",
   phrases: [
     {
       hanzi: "一个多少钱？",

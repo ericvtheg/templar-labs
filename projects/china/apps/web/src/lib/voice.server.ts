@@ -1,9 +1,7 @@
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
-import { restaurantVideo } from "./activity-content.ts";
-import { fieldNotes, missions } from "./curriculum.ts";
+import { approvedSpeechTexts } from "./speech-catalog.ts";
 import {
   defaultMandarinVoiceId,
-  foundationAudioTexts,
   mandarinModelId,
   type SpeechSpeed,
   speechSpeeds,
@@ -14,15 +12,7 @@ export type VoiceBindings = {
   readonly R2?: R2Bucket;
   readonly DB: D1Database;
 };
-const allowedTexts = new Set<string>([
-  ...missions.flatMap((mission) => mission.phrases.map((phrase) => phrase.hanzi)),
-  ...fieldNotes.map((phrase) => phrase.hanzi),
-  ...foundationAudioTexts,
-  ...missions.flatMap((mission) =>
-    (mission.matches ?? []).map((card) => card.audio ?? `${card.hanzi}。`),
-  ),
-  restaurantVideo.fallback,
-]);
+const allowedTexts = new Set(approvedSpeechTexts);
 const headers = {
   "content-type": "audio/mpeg",
   "x-china-audio-cache": "HIT",
@@ -52,6 +42,7 @@ export async function speechCacheKey(
     version: 1,
     text,
     speed,
+    rate: speechSpeeds[speed],
     voiceId,
     model: mandarinModelId,
     stability: 0.7,

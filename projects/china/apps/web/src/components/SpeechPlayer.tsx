@@ -105,7 +105,7 @@ export function SpeechPlayer({
       </div>
       <p className="speech-status" aria-live="polite">
         {status === "loading"
-          ? "Preparing Mandarin audio… First play can take a few seconds."
+          ? "Loading Mandarin audio…"
           : status === "playing"
             ? "Speaking Mandarin · ElevenLabs"
             : "Mandarin audio by ElevenLabs · replay as often as you like"}

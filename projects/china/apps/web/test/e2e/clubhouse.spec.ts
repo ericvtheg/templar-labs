@@ -179,10 +179,17 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
       await page.getByRole("button", { name: phrase.english, exact: true }).click();
     } else {
       await page.getByRole("button", { name: /My turn to say it/ }).click();
-      await page.getByLabel(/Check what it heard/).fill(phrase.pinyin);
-      await page.getByRole("button", { name: /Check my phrase/ }).click();
+      await expect(page.locator(".session-screen input, .session-screen textarea")).toHaveCount(0);
+      await page.getByRole("button", { name: /No microphone/ }).click();
+      await page
+        .locator(".encounter-choices")
+        .getByRole("button", { name: `${phrase.hanzi} ${phrase.pinyin}`, exact: true })
+        .click();
     }
     await expect(page.getByText("That gets the message across.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "▶ Listen", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "▶ Slower", exact: true })).toBeVisible();
+    await expect(page.locator(".session-screen input, .session-screen textarea")).toHaveCount(0);
     await page.getByRole("button", { name: /What happens next/ }).click();
   }
   await page.route("**/api/trip/match", (route) => {
@@ -220,8 +227,9 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
   });
   await page.getByRole("button", { name: /What happens next/ }).click();
   await page.getByRole("button", { name: /Deal me a situation/ }).click();
-  await page.getByLabel("What do you say?").fill("ni hao");
-  await page.getByRole("button", { name: "Send →", exact: true }).click();
+  await expect(page.locator(".session-screen input, .session-screen textarea")).toHaveCount(0);
+  await page.getByText("Pick a reply to say or show instead", { exact: true }).click();
+  await page.getByRole("button", { name: "Say: Hello.", exact: true }).click();
   await expect(page.getByText(/Ni hao gets you through/)).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("chaos-coach.png"), fullPage: true });
   await page.getByRole("button", { name: /What happens next/ }).click();

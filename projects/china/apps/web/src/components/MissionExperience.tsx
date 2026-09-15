@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { Mission, Phrase } from "../lib/curriculum.ts";
 import { type EncounterFormat, sessionPlan } from "../lib/session-plan.ts";
 import { tripApi } from "../lib/trip-api.ts";
@@ -189,11 +189,10 @@ function PhraseEncounter({
   const [phase, setPhase] = useState<"learn" | "try" | "feedback">("learn");
   const [flipped, setFlipped] = useState(false);
   const [choices] = useState(() => shuffled(phrases));
-  const [answer, setAnswer] = useState("");
+  const [tapInstead, setTapInstead] = useState(false);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const inputId = useId();
   const screen = useEncounterFocus(phase);
   async function submit(value: string) {
     if (busy) {
@@ -263,9 +262,9 @@ function PhraseEncounter({
               <p>{phrase.tip}</p>
             </div>
           )}
+          <SpeechPlayer text={phrase.hanzi} />
           {(flipped || format !== "cards") && (
             <>
-              <SpeechPlayer text={phrase.hanzi} />
               <button type="button" className="primary" onClick={() => setPhase("try")}>
                 {format === "ears"
                   ? "Try it by ear →"
@@ -286,33 +285,32 @@ function PhraseEncounter({
                 <i />
                 <i />
               </div>
-              <SpeechPlayer text={phrase.hanzi} />
             </>
           )}
-          {format === "voice" ? (
+          {format !== "voice" && <SpeechPlayer text={phrase.hanzi} />}
+          {format === "voice" && !tapInstead ? (
             <>
-              <VoicePractice text={phrase.hanzi} missionId={missionId} onTranscript={setAnswer} />
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void submit(answer);
-                }}
+              <p>
+                Say it like you’re asking someone on the street. Record your reply, then check what
+                you said.
+              </p>
+              <VoicePractice
+                text={phrase.hanzi}
+                missionId={missionId}
+                onTranscript={(text) => void submit(text)}
+              />
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                onClick={() => setTapInstead(true)}
               >
-                <label htmlFor={inputId}>Check what it heard—or type pinyin instead</label>
-                <input
-                  id={inputId}
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  maxLength={500}
-                  placeholder="Pinyin or Chinese…"
-                />
-                <button type="submit" className="primary" disabled={busy || !answer.trim()}>
-                  {busy ? "Checking…" : "Check my phrase →"}
-                </button>
-              </form>
+                No microphone? Pick what you’d say instead →
+              </button>
             </>
           ) : (
             <div className="encounter-choices">
+              {format === "voice" && <SpeechPlayer text={phrase.hanzi} />}
               {choices.map((choice) => (
                 <button
                   type="button"
@@ -348,6 +346,7 @@ function PhraseEncounter({
           <p>
             {phrase.pinyin} — {phrase.english}
           </p>
+          <SpeechPlayer text={phrase.hanzi} />
           <button
             type="button"
             className="primary"

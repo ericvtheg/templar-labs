@@ -3,8 +3,11 @@ import { env } from "node:process";
 const account = env.CLOUDFLARE_ACCOUNT_ID;
 const token = env.CLOUDFLARE_API_TOKEN;
 const emails = (env.CHINA_CREW_EMAILS ?? "").split(/[\s,;]+/).filter(Boolean);
-if (env.RUN_LEARNING_PROBE === "true" && env.RUN_OWNER_HANDOFF_PROBE !== "true") {
-  throw new Error("The learning probe requires the owner handoff probe.");
+if (
+  (env.RUN_LEARNING_PROBE === "true" || env.RUN_SPEECH_WARMUP === "true") &&
+  env.RUN_OWNER_HANDOFF_PROBE !== "true"
+) {
+  throw new Error("Learning checks and speech pre-generation require the owner handoff.");
 }
 if (!account || !token) {
   throw new Error("Cloudflare diagnostic credentials missing.");
@@ -172,6 +175,15 @@ if (env.RUN_OWNER_HANDOFF_PROBE === "true") {
     const tripState = await stateResponse.json();
     if (stateResponse.status !== 200) {
       throw new Error("Live owner session cannot access the app.");
+    }
+    if (env.RUN_SPEECH_WARMUP === "true") {
+      const { warmSpeech } = await import("../apps/web/src/lib/speech-warmup.ts");
+      const result = await warmSpeech({
+        origin,
+        session,
+        onProgress: (stats) => console.log(JSON.stringify({ speechWarmupProgress: stats })),
+      });
+      console.log(JSON.stringify({ speechWarmup: result }));
     }
     if (env.RUN_LEARNING_PROBE === "true") {
       const { probeLearning } = await import("./learning-probe.mjs");

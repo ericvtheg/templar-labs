@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CoachReply, CoachScene } from "../lib/coach-types.ts";
 import type { Mission } from "../lib/curriculum.ts";
 import { tripApi } from "../lib/trip-api.ts";
 import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
+import { SpeechPlayer } from "./SpeechPlayer.tsx";
 import { VoicePractice } from "./VoicePractice.tsx";
 export function ChaosCoach({
   mission,
@@ -17,13 +18,11 @@ export function ChaosCoach({
   const [messages, setMessages] = useState<{ id: string; role: "you" | "coach"; text: string }[]>(
     [],
   );
-  const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [won, setWon] = useState(false);
   const screen = useEncounterFocus(`${scene?.id ?? "empty"}:${won}`);
   const controller = useRef<AbortController | null>(null);
-  const inputId = useId();
   useEffect(() => () => controller.current?.abort(), []);
   async function deal() {
     controller.current?.abort();
@@ -39,7 +38,6 @@ export function ChaosCoach({
       );
       setScene(next);
       setMessages([]);
-      setAnswer("");
       setWon(false);
     } catch (cause) {
       if (!request.signal.aborted) {
@@ -51,8 +49,8 @@ export function ChaosCoach({
       }
     }
   }
-  async function send() {
-    if (!scene || !answer.trim()) {
+  async function send(answer: string) {
+    if (!scene || busy || !answer.trim()) {
       return;
     }
     const submitted = answer.trim();
@@ -76,7 +74,6 @@ export function ChaosCoach({
         },
       ]);
       setWon(result.correct);
-      setAnswer("");
     } catch (cause) {
       if (!request.signal.aborted) {
         setError(cause instanceof Error ? cause.message : "Coach unavailable.");
@@ -93,6 +90,7 @@ export function ChaosCoach({
         <span className="eyebrow">SITUATION HANDLED</span>
         <h2>You got the message across.</h2>
         <p>{messages.at(-1)?.text}</p>
+        {scene?.target.kind === "phrase" && <SpeechPlayer text={scene.target.hanzi} />}
         <button type="button" className="primary" onClick={onContinue}>
           What happens next? →
         </button>
@@ -107,12 +105,12 @@ export function ChaosCoach({
     <section ref={screen} className="chaos-lab">
       <div className="encounter-label">
         <span>✦ LIVE FIELD TEST</span>
-        <span>TEXT OR VOICE</span>
+        <span>SPEAK OR TAP</span>
       </div>
       <h2>The boys in the wild.</h2>
       <p>
-        Same useful Mandarin. A different fucking situation. Ask questions, try pinyin, take a hint,
-        or say your answer out loud.
+        Same useful Mandarin. A different fucking situation. Say what you’d say to the person in
+        front of you—or tap a phrase you could show them.
       </p>
       {!scene ? (
         <div className="chaos-poster">
@@ -149,35 +147,69 @@ export function ChaosCoach({
               ✓ You got the message across. Remix it, ask a follow-up, or deal another situation.
             </p>
           )}
-          <form
-            className="coach-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-          >
-            <label htmlFor={inputId}>What do you say?</label>
-            <textarea
-              id={inputId}
-              value={answer}
-              onChange={(event) => setAnswer(event.target.value)}
-              maxLength={600}
-              rows={3}
-              placeholder={
-                scene.target.kind === "emergency"
-                  ? "Three-digit number…"
-                  : "Chinese, pinyin, an English first attempt, or a question…"
-              }
-            />
+          {scene.target.kind === "emergency" ? (
+            <fieldset className="encounter-choices">
+              <legend>Which number would you call?</legend>
+              {["120", "110", "119"].map((number) => (
+                <button
+                  key={number}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void send(number)}
+                >
+                  {number}
+                </button>
+              ))}
+            </fieldset>
+          ) : (
+            <>
+              {!busy && (
+                <VoicePractice
+                  key={`${scene.id}-${messages.length}`}
+                  text={scene.target.hanzi}
+                  missionId={mission.id}
+                  onTranscript={(text) => void send(text)}
+                />
+              )}
+              <details>
+                <summary>Pick a reply to say or show instead</summary>
+                <div className="encounter-choices">
+                  {mission.phrases.map((phrase) => (
+                    <button
+                      key={phrase.hanzi}
+                      type="button"
+                      disabled={busy}
+                      aria-label={`Say: ${phrase.english}`}
+                      onClick={() => void send(phrase.hanzi)}
+                    >
+                      <strong lang="zh-CN">{phrase.hanzi}</strong>
+                      <span>
+                        {phrase.pinyin} · {phrase.english}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </>
+          )}
+          {busy && <p role="status">Listening to your reply…</p>}
+          <details>
+            <summary>Ask for help</summary>
             <div className="button-row">
-              <button className="primary" type="submit" disabled={busy || !answer.trim()}>
-                {busy ? "Coach is thinking…" : "Send →"}
-              </button>
-              <button type="button" disabled={busy} onClick={() => void deal()}>
-                ⤨ Shuffle the situation
-              </button>
+              {["What does this mean?", "How do I say that?", "When would I use this?"].map(
+                (question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void send(question)}
+                  >
+                    {question}
+                  </button>
+                ),
+              )}
             </div>
-          </form>
+          </details>
           <details>
             <summary>Give me a lifeline</summary>
             <div className="coach-lifeline">
@@ -188,17 +220,6 @@ export function ChaosCoach({
               <p>{scene.target.tip}</p>
             </div>
           </details>
-          {scene.target.kind === "phrase" && (
-            <details>
-              <summary>Rather say it? Record your reply</summary>
-              <VoicePractice
-                key={scene.id}
-                text={scene.target.hanzi}
-                missionId={mission.id}
-                onTranscript={setAnswer}
-              />
-            </details>
-          )}
         </>
       )}
       {error && (

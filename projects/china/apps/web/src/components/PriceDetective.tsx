@@ -1,10 +1,10 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
+import { SpeechPlayer } from "./SpeechPlayer.tsx";
 export function PriceDetective({ onComplete }: { onComplete?: () => void } = {}) {
   const [round, setRound] = useState(0);
   const [answer, setAnswer] = useState("");
   const [checked, setChecked] = useState(false);
-  const id = useId();
   const puzzles = [
     { unit: 35, quantity: 3, item: "souvenir fans", label: "单价", meaning: "unit price" },
     { unit: 80, quantity: 4, item: "tickets", label: "每人", meaning: "per person" },
@@ -58,27 +58,25 @@ export function PriceDetective({ onComplete }: { onComplete?: () => void } = {})
         The posted figure is <strong>{puzzle.meaning}</strong>, not the entire crew’s total. No
         unlisted fees in this practice example.
       </p>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          setChecked(true);
-        }}
-      >
-        <label htmlFor={id}>What total should you confirm before paying? (yuan)</label>
-        <input
-          id={id}
-          inputMode="decimal"
-          value={answer}
-          onChange={(event) => {
-            setAnswer(event.target.value);
-            setChecked(false);
-          }}
-          maxLength={12}
-        />
-        <button type="submit" className="primary" disabled={!answer.trim()}>
-          Check the total →
-        </button>
-      </form>
+      <SpeechPlayer text={`${puzzle.label}。`} />
+      <fieldset className="encounter-choices" aria-label="What total would you agree to pay?">
+        <legend>What total would you agree to pay?</legend>
+        {[puzzle.unit, total, puzzle.unit * (puzzle.quantity + 1)]
+          .toSorted((a, b) => a - b)
+          .map((price) => (
+            <button
+              key={price}
+              type="button"
+              aria-pressed={answer === String(price)}
+              onClick={() => {
+                setAnswer(String(price));
+                setChecked(true);
+              }}
+            >
+              ¥{price}
+            </button>
+          ))}
+      </fieldset>
       {checked && (
         <div role="status" className={correct ? "success-note" : "notice"}>
           {correct

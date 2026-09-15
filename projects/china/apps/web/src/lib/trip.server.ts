@@ -1,7 +1,7 @@
 import { canAccessChina, sameOrigin } from "./access.ts";
 import { type Bindings, getAuth } from "./auth.server.ts";
 import { handleCoach } from "./coach.server.ts";
-import { crew, fieldNotes, groom, missions } from "./curriculum.ts";
+import { crew, crewRoles, fieldNotes, groom, missions } from "./curriculum.ts";
 import { grade, gradeMatching, nextReview } from "./learning.ts";
 import { transcribePractice } from "./transcribe.server.ts";
 import type { TripBody } from "./trip-body.ts";
@@ -68,6 +68,7 @@ export async function handleTrip(request: Request, env: Bindings): Promise<Respo
       user: { id, name: profile?.name ?? "" },
       groom,
       crew,
+      crewRoles,
       missions,
       fieldNotes,
       mastery: mastery.results,

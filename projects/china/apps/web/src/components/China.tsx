@@ -333,7 +333,11 @@ function Profile({ data, onSaved }: { data: TripData; onSaved: () => Promise<voi
             onClick={() => setName(person)}
           >
             {person}
-            {person === data.groom ? " · Groom" : ""}
+            {data.crewRoles?.[person]
+              ? ` · ${data.crewRoles[person]}`
+              : person === data.groom
+                ? " · Groom"
+                : ""}
           </button>
         ))}
       </div>
@@ -527,16 +531,14 @@ function Study({
     reviewTask === undefined ? "learn" : "quiz",
   );
   const [index, setIndex] = useState(reviewTask ?? 0);
-  const recallInput = useId();
-  const [typed, setTyped] = useState(false);
-  const [answer, setAnswer] = useState("");
+
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState(false);
   const [hide, setHide] = useState(false);
   const phrase = mission.phrases[index];
-  const listening = phase === "quiz" && index % 2 === 1 && Boolean(phrase) && !typed;
+  const listening = phase === "quiz" && index % 2 === 1 && Boolean(phrase);
   async function submit(value: string) {
     if (busy) {
       return;
@@ -574,7 +576,6 @@ function Study({
     }
     setIndex(index + 1);
     setResult(null);
-    setAnswer("");
     setHint(false);
   }
   return (
@@ -691,11 +692,9 @@ function Study({
                 <span className="eyebrow">
                   {!phrase
                     ? "READ THE SITUATION"
-                    : typed
-                      ? "STRETCH GOAL · TEXT RECALL"
-                      : listening
-                        ? "LISTENING CHECK"
-                        : "RECOGNITION CHECK"}
+                    : listening
+                      ? "LISTENING CHECK"
+                      : "RECOGNITION CHECK"}
                 </span>
                 <h2>
                   {!phrase
@@ -704,22 +703,9 @@ function Study({
                       ? "Listen. What does this mean?"
                       : `How do you say “${phrase.english}”`}
                 </h2>
-                {listening && phrase && <VoicePractice key={`quiz-${index}`} text={phrase.hanzi} />}
+                {phrase && <VoicePractice key={`quiz-${index}`} text={phrase.hanzi} />}
                 {phrase && (
                   <div className="button-row">
-                    <button
-                      type="button"
-                      className="text-button"
-                      disabled={busy || result?.correct}
-                      onClick={() => {
-                        setTyped(!typed);
-                        setResult(null);
-                        setAnswer("");
-                        setHint(false);
-                      }}
-                    >
-                      {typed ? "Back to beginner choices" : "Harder: type pinyin or Chinese"}
-                    </button>
                     <button type="button" className="text-button" onClick={() => setHint(!hint)}>
                       {hint ? "Hide hint" : listening ? "No audio? Show text hint" : "Need a hint?"}
                     </button>
@@ -747,37 +733,6 @@ function Study({
                       </button>
                     ))}
                   </div>
-                ) : typed ? (
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void submit(answer);
-                    }}
-                  >
-                    <label htmlFor={recallInput}>
-                      Pinyin or Chinese (tone marks and spaces optional)
-                    </label>
-                    <input
-                      id={recallInput}
-                      autoComplete="off"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      value={answer}
-                      onChange={(event) => setAnswer(event.target.value)}
-                      maxLength={500}
-                    />
-                    <p className="fine-print">
-                      This checks word recall, not tones. For ü, type ü or v. Beginners: choices are
-                      a perfectly good place to start.
-                    </p>
-                    <button
-                      type="submit"
-                      className="primary"
-                      disabled={busy || result?.correct || !answer.trim()}
-                    >
-                      Check my answer
-                    </button>
-                  </form>
                 ) : (
                   <div className="answers">
                     {mission.phrases

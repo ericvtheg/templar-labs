@@ -39,10 +39,11 @@ test("food chapter separates watching, reflection, and payoff without loading Yo
   await page.getByRole("button", { name: /Video blocked/ }).click();
   await page.getByRole("button", { name: /Tell the boys what you caught/ }).click();
   await expect(page.locator(".radio-scene, iframe")).toHaveCount(0);
-  await page.getByLabel(/What was broadly happening/).fill("Someone was ordering dumplings.");
-  await page.getByLabel(/One word, sound/).fill("ni hao");
-  await page.getByRole("button", { name: /Pin my field report/ }).click();
-  await expect(page.getByText("Clue: ni hao")).toBeVisible();
+  await expect(page.locator(".session-screen input, .session-screen textarea")).toHaveCount(0);
+  await page.getByRole("button", { name: "Ordering food", exact: true }).click();
+  await page.getByRole("button", { name: "A greeting", exact: true }).click();
+  await page.getByRole("button", { name: "Keep going →", exact: true }).click();
+  await expect(page.getByText("Clue: A greeting")).toBeVisible();
   await page.getByRole("button", { name: /What happens next/ }).click();
   await expect(page.locator(".session-reveal")).toHaveCount(1);
   await page.getByRole("button", { name: /Emergency guide/ }).click();

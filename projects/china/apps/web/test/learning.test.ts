@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isCrew, sameOrigin } from "../src/lib/access.ts";
-import { crew, groom, missions } from "../src/lib/curriculum.ts";
+import { crew, crewRoles, groom, missions, primaryCrew } from "../src/lib/curriculum.ts";
 import { grade, nextReview, normalizeRecall } from "../src/lib/learning.ts";
 
 describe("private crew access", () => {
@@ -40,10 +40,28 @@ describe("zero-to-travel curriculum", () => {
     expect(crew[0]).toBe(groom);
     expect(new Set(crew).size).toBe(19);
     expect(missions.every((mission) => mission.story.includes(groom))).toBe(true);
-    for (const name of crew) {
+    expect(primaryCrew).toEqual([
+      "Eric",
+      "Gavin",
+      "Alfredo",
+      "Kendall",
+      "Ivan",
+      "Timmy",
+      "Brent",
+      "Skylar",
+      "Carlo",
+      "Dennis",
+      "Rolo",
+      "Andrew",
+    ]);
+    expect(crewRoles).toEqual({ Eric: "Groom", Gavin: "Best man" });
+    expect(crew).not.toContain("Emma");
+    for (const name of primaryCrew) {
       expect(missions.some((mission) => mission.story.includes(name))).toBe(true);
     }
-    expect(missions.find((mission) => mission.id === "feast")?.story).toContain("Kendall says she");
+    expect(missions.find((mission) => mission.id === "feast")?.story).toContain(
+      "says she can handle spicy",
+    );
   });
   it("has unique IDs, valid sign answers, and a gradeable Chinese and pinyin answer for every phrase", () => {
     expect(new Set(missions.map((mission) => mission.id)).size).toBe(missions.length);

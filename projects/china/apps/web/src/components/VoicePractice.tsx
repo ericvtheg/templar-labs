@@ -64,7 +64,7 @@ export function VoicePractice({
     }
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
       setMessage(
-        "Recording needs HTTPS and microphone support. Try Safari or Chrome, or use the text answer instead.",
+        "Recording needs HTTPS and microphone support. Try Safari or Chrome, or tap a reply instead.",
       );
       return;
     }
@@ -104,7 +104,7 @@ export function VoicePractice({
         stopTracks(media);
         if (alive.current) {
           setRecording(false);
-          setMessage("Recording failed. You can still answer in text.");
+          setMessage("Recording failed. Try again, or tap a reply instead.");
         }
       });
       instance.start();
@@ -118,7 +118,7 @@ export function VoicePractice({
       stopTracks(stream.current);
       if (alive.current) {
         setMessage(
-          "Microphone unavailable or permission denied. Allow it in browser settings, or use the text answer.",
+          "Microphone unavailable or permission denied. Allow it in browser settings, or tap a reply instead.",
         );
       }
     } finally {
@@ -158,7 +158,7 @@ export function VoicePractice({
       if (alive.current) {
         onTranscript(result.text);
         setMessage(
-          "Words transcribed. Check what it heard before submitting—this is not a pronunciation or tone score.",
+          "Your spoken reply was sent for feedback. This checks recognized words, not pronunciation or tones.",
         );
       }
     } catch (cause) {
@@ -166,7 +166,7 @@ export function VoicePractice({
         setMessage(
           cause instanceof Error
             ? cause.message
-            : "Transcription failed. You can answer in text instead.",
+            : "Couldn’t hear that take. Try recording again, or use the tap-to-choose option.",
         );
       }
     } finally {

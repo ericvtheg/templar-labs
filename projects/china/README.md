@@ -67,11 +67,15 @@ food → payments → market bargaining → sights/signs → trains → nightlif
 
 - Interactive foundations unpack 你 + 好, pinyin, isolated sounds, and the third-tone change in 你好
 - One encounter at a time: setup → foundations → teach/try each phrase → signs → optional scenario → trip payoff
-- The app sequences flip cards, listening, and speaking; hints and typed alternatives stay secondary
+- No typing exercises: practice by speaking, listening, recognizing signs, and tapping phrases to say or show
+- Listen and Slower remain available on phrase results, including incorrect attempts
+- Receipt checks and video reflection use tap choices; spaced review never requires a keyboard
 - Home emphasizes Continue; the full itinerary and progress live in a collapsed section
 - Resume skips saved word practice; replay remains available. The itinerary stays fixed during saves
 - Learn visual sign walls, then connect Chinese to English by tap or drag; market receipts teach unit versus total prices
-- AI crew scenarios accept conversational replies, questions, pinyin, and English first attempts within each lesson
+- AI scenarios accept spoken or tapped replies and quick help questions; speech recognition never requires transcript editing
+- The main cast has twelve names; only Eric (groom) and Gavin (best man) get wedding-party titles
+- Emma is Eric’s fiancée, not an assumed travel participant; Kendall uses she/her
 - The food chapter separates video watching from reflection; an original audio scene works when YouTube is blocked
 - One sourced trip-hype reveal closes each chapter; facts no longer compete with the current activity
 - Emergency help remains accessible during sessions; leaving unmounts audio/recording controls
@@ -87,14 +91,20 @@ Matching decks live in `activity-content.ts`; verified facts, price caveats, and
 
 ## Voice, privacy, and travel limitations
 
-- Listen uses ElevenLabs Multilingual v2 in Chinese; normal and slow variants are generated separately
-  and cached in private R2. Only the finite lesson/sign/foundation catalog can be synthesized
+- Deployments pre-generate every approved normal/slow clip into private R2, with at most two requests
+  in flight. Existing clips are reused, not regenerated; missing clips retain a runtime recovery path
+- `speech-catalog.ts` is shared by authorization and pre-generation, preventing catalog drift
+- `speech-warmup.ts` verifies every clip and reports cached/generated counts; failed warmups fail the job
+- Pre-generation uses the existing deployment-owner handoff, never changes profile/mastery data,
+  and needs no new provider key. Re-run diagnostics with owner handoff + **warm_speech** to resume
+- Listen uses ElevenLabs Multilingual v2 in Chinese. Only the finite lesson/sign/foundation catalog
+  can be synthesized; voice/model/speed changes produce new cache identities
 - The included voice works with the current account. Library voices require an eligible ElevenLabs
   plan; choosing a native-Mandarin library voice later means changing the code constant
 - Browser Mandarin speech is an explicit fallback, never silently presented as ElevenLabs
 - Recordings stop after 20 seconds and remain in the tab unless the learner explicitly chooses
   transcription. That action sends audio to ElevenLabs Scribe; the app does not store recordings
-- Transcription checks recognized words, not tones or accent. Learners can edit or type instead
+- Transcription checks recognized words, not tones or accent. Retry aloud or tap a reply if it mishears
 - The coach uses Qwen 3.7 Flash with reasoning disabled for interactive latency; selection lives in
   `coach.server.ts`. Scene generation receives the English goal, not the answer to copy
 - AI receives lesson context, crew first names, and submitted replies—not Google emails or account IDs

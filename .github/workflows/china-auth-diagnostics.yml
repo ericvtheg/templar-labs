@@ -10,10 +10,6 @@ on:
         description: Also test live speech/cache, transcription, and AI coaching (requires owner handoff; small provider usage)
         type: boolean
         default: false
-      warm_speech:
-        description: Pre-generate missing normal/slow lesson audio (requires owner handoff; uses shared ElevenLabs credits)
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
@@ -31,5 +27,4 @@ jobs:
           CHINA_CREW_EMAILS: ${{ secrets.CHINA_CREW_EMAILS }}
           RUN_OWNER_HANDOFF_PROBE: ${{ inputs.probe_owner_handoff }}
           RUN_LEARNING_PROBE: ${{ inputs.probe_learning }}
-          RUN_SPEECH_WARMUP: ${{ inputs.warm_speech }}
         run: node projects/china/scripts/auth-diagnostics.mjs

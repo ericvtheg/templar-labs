@@ -89,14 +89,30 @@ phrase order once people have progress: stored mastery uses mission ID plus phra
 Matching decks live in `activity-content.ts`; verified facts, price caveats, and source links live in
 `trip-hype.ts`. Keep factual corrections separate from the AI’s fictional scene-writing.
 
+## Prepared audio
+
+MP3s live in version control under `audio/mandarin/`, with checksums in `audio/manifest.json`.
+They stay outside public web assets. The authenticated app serves them from private R2.
+
+```sh
+pnpm --filter china audio:pull      # Download matching existing ElevenLabs history; no regeneration
+pnpm --filter china audio:generate  # Explicitly generate only missing files; uses credits
+pnpm --filter china audio:check     # Verify catalog coverage, voice settings, and file checksums
+pnpm --filter china audio:upload    # Upload changed files to R2 using Cloudflare credentials
+```
+
+Local pull/generation reads **Homelab → Eleven Labs API Key** through `pass-cli`, or an explicitly
+provided `ELEVENLABS_API_TOKEN`. The script never prints or writes the key. History reuse requires
+matching text, voice, model, and voice settings; it does not silently regenerate missing history.
+
+Commit prepared files alongside phrase/voice changes. CI checks the manifest and uploads saved
+files only—no ElevenLabs generation, Proton Pass access, or owner impersonation. Local provider
+commands refuse to run in CI. Uploads compare checksums and skip unchanged objects.
+
 ## Voice, privacy, and travel limitations
 
-- Deployments pre-generate every approved normal/slow clip into private R2, with at most two requests
-  in flight. Existing clips are reused, not regenerated; missing clips retain a runtime recovery path
-- `speech-catalog.ts` is shared by authorization and pre-generation, preventing catalog drift
-- `speech-warmup.ts` verifies every clip and reports cached/generated counts; failed warmups fail the job
-- Pre-generation uses the existing deployment-owner handoff, never changes profile/mastery data,
-  and needs no new provider key. Re-run diagnostics with owner handoff + **warm_speech** to resume
+- `speech-catalog.ts` is shared by authorization and local audio preparation, preventing catalog drift
+- Normal/slow playback reuses prepared clips; a missing R2 object retains a runtime recovery path
 - Listen uses ElevenLabs Multilingual v2 in Chinese. Only the finite lesson/sign/foundation catalog
   can be synthesized; voice/model/speed changes produce new cache identities
 - The included voice works with the current account. Library voices require an eligible ElevenLabs

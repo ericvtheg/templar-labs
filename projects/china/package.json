@@ -3,8 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "audio:pull": "node --experimental-strip-types scripts/speech-assets.mjs pull",
+    "audio:generate": "node --experimental-strip-types scripts/speech-assets.mjs generate",
+    "audio:check": "node --experimental-strip-types scripts/speech-assets.mjs check",
+    "audio:upload": "node --experimental-strip-types scripts/speech-assets.mjs upload",
     "build": "node ../../scripts/project-build.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm audio:check",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
     "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
     "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",

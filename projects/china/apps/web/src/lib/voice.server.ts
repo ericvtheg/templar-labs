@@ -1,9 +1,13 @@
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
+import { speechCacheKey } from "./speech-cache.ts";
+
+export { speechCacheKey } from "./speech-cache.ts";
+
 import { approvedSpeechTexts } from "./speech-catalog.ts";
 import {
   defaultMandarinVoiceId,
   mandarinModelId,
-  type SpeechSpeed,
+  mandarinVoiceSettings,
   speechSpeeds,
 } from "./voice-config.ts";
 
@@ -32,24 +36,6 @@ function error(message: string, status: number, retryAfter?: string) {
       },
     },
   );
-}
-export async function speechCacheKey(
-  text: string,
-  speed: SpeechSpeed,
-  voiceId: string,
-): Promise<string> {
-  const identity = JSON.stringify({
-    version: 1,
-    text,
-    speed,
-    rate: speechSpeeds[speed],
-    voiceId,
-    model: mandarinModelId,
-    stability: 0.7,
-    similarityBoost: 0.75,
-  });
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity));
-  return `mandarin/${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}.mp3`;
 }
 async function audioResponse(body: BodyInit, request: Request, cache: "HIT" | "MISS") {
   const bytes = await new Response(body).arrayBuffer();
@@ -136,7 +122,7 @@ export async function serveSpeech(request: Request, env: VoiceBindings): Promise
         modelId: mandarinModelId,
         languageCode: "zh",
         outputFormat: "mp3_44100_128",
-        voiceSettings: { stability: 0.7, similarityBoost: 0.75, speed: speechSpeeds[speed] },
+        voiceSettings: { ...mandarinVoiceSettings, speed: speechSpeeds[speed] },
       },
       { timeoutInSeconds: 25, maxRetries: 0 },
     );

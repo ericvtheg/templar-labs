@@ -1,0 +1,1561 @@
+{
+  "version": 1,
+  "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+  "model": "eleven_multilingual_v2",
+  "clips": [
+    {
+      "text": "你好。",
+      "speed": "normal",
+      "key": "mandarin/8259c975d06845c28462d8eab313683671c80d3ec67ef0bb06fc5e497f43bab3.mp3",
+      "bytes": 29603,
+      "sha256": "2e528f3804693666189ee9c4ed8fc585c179bf0c0ef2720d1a1669c76719a47e"
+    },
+    {
+      "text": "你好。",
+      "speed": "slow",
+      "key": "mandarin/67dced627fb6965cd1ce10f31bd6c221d7c39b031138eaee128c36a4e09e445b.mp3",
+      "bytes": 34619,
+      "sha256": "cbd0382918e9f60b03519f5db40f7b1e5d05e6f41d580e35ded90f4d87eb79f6"
+    },
+    {
+      "text": "谢谢。",
+      "speed": "normal",
+      "key": "mandarin/ac9d10bcf4de4881dd2c665143d66cb99e72609b335eea88791a58198c4c5643.mp3",
+      "bytes": 30857,
+      "sha256": "8e8296957a9d7f1b824ade56435f2709af92a58347674c787af73e9143850cbf"
+    },
+    {
+      "text": "谢谢。",
+      "speed": "slow",
+      "key": "mandarin/25dabd344df75e39d45fb6594646cb79c27fb718342dfa2e83174589f2d23a2e.mp3",
+      "bytes": 35455,
+      "sha256": "5bdc46b0a5046788f6a1c3dee6cfa8e77830e4640688781b86197d18b1739922"
+    },
+    {
+      "text": "不好意思。",
+      "speed": "normal",
+      "key": "mandarin/c1f0984515679c2fd7c3fcd905e126e8e3646f2f3e61fb40bf9ef3793f758a50.mp3",
+      "bytes": 35455,
+      "sha256": "f9f86245bcb6eb3489edc467933356759ff59474fa914d3efc4f3b1f873be17c"
+    },
+    {
+      "text": "不好意思。",
+      "speed": "slow",
+      "key": "mandarin/db5a75634f948190c9cafe80e56e3017c87074464b1f070b9ab480ead38e5190.mp3",
+      "bytes": 41306,
+      "sha256": "334d06515f7ae0e77a2334fd9f66bd323b06a6007a04eaa58f6959c7aaec1470"
+    },
+    {
+      "text": "听不懂。",
+      "speed": "normal",
+      "key": "mandarin/717fc4288d5e6beaf27dbbbb0e1513518f417e0be0a11e642c729a539e6501c2.mp3",
+      "bytes": 34201,
+      "sha256": "6bd8e28078af868a463b85764add28d58d1b0e0c1aaae3212647c839ce8cbee1"
+    },
+    {
+      "text": "听不懂。",
+      "speed": "slow",
+      "key": "mandarin/2f829dbd6f7f1501706ead29758537e5d508856ef0cf658fa12390c7d47d8b0d.mp3",
+      "bytes": 37545,
+      "sha256": "70c384d5918bf87bd31259745676864918b0bdb02c2a9616afce654e6b03576a"
+    },
+    {
+      "text": "厕所在哪里？",
+      "speed": "normal",
+      "key": "mandarin/aefc2bfc5c06b369150de6ba5f69cf24e775e8ae5a3a65fb38635dc15d61875f.mp3",
+      "bytes": 37545,
+      "sha256": "e40504037329f039fd2809f6cb39946e4c4ced18b994d04f8af64cda3b64b051"
+    },
+    {
+      "text": "厕所在哪里？",
+      "speed": "slow",
+      "key": "mandarin/7a942366a5df987e69d8e6d56942f9803da01b90f39abfd220da0ca8d94cec71.mp3",
+      "bytes": 44232,
+      "sha256": "bb11bdf48dfdd1624a730781bcdd2b320e34cb73bf08060f447c82b798a2fadc"
+    },
+    {
+      "text": "我要水。",
+      "speed": "normal",
+      "key": "mandarin/c66460cbe76ddcfca795bdde3e5308557b3e71a410ced7843438827d4e22c748.mp3",
+      "bytes": 34201,
+      "sha256": "0ebe353d45806172086d89b31ad34631d1739c6cb861b7ef42aa0f4c1c07767b"
+    },
+    {
+      "text": "我要水。",
+      "speed": "slow",
+      "key": "mandarin/9dcbb8843565197d57f288738f014e7cf18f6eda4f1e65cba99017f6115d8ab1.mp3",
+      "bytes": 39216,
+      "sha256": "b8755b603ce812f0761574c47972c3688ec9b301d1c6e3b74c44f73f614c1406"
+    },
+    {
+      "text": "多少钱？",
+      "speed": "normal",
+      "key": "mandarin/b971243cdab46b0f61d8dcb86a2d21e800452460e27d9201600d58f1d0080967.mp3",
+      "bytes": 34619,
+      "sha256": "5f27300cb8a7dba758766deac0592b072d23668c246f12d41a6b48618000226c"
+    },
+    {
+      "text": "多少钱？",
+      "speed": "slow",
+      "key": "mandarin/d12771b128d285eff2ede39632ef212b549785beae89ab29a2f5d0317b36d0c8.mp3",
+      "bytes": 40888,
+      "sha256": "d89cb79d3f9995c640a5a99d92fef2496b036cde20b61e598659b877435c45d4"
+    },
+    {
+      "text": "请说慢一点。",
+      "speed": "normal",
+      "key": "mandarin/4ea191df4838cb1d9676be3cbf5c6af70e55b9e252f5ae88352270d3f83bd710.mp3",
+      "bytes": 40052,
+      "sha256": "5976b8dc2314c77fbc923c7a3631b2e7b99f50d37db66e7afb2018a6d0c6c700"
+    },
+    {
+      "text": "请说慢一点。",
+      "speed": "slow",
+      "key": "mandarin/49423825e80c3912073de54ea174c1276acbafe0d5ead9b9a93e59d5a83ee282.mp3",
+      "bytes": 47576,
+      "sha256": "0c52cb8fb1bcaa8d54908eaa25a5ac617c4681309a839953cd779332cb23d389"
+    },
+    {
+      "text": "帅！",
+      "speed": "normal",
+      "key": "mandarin/6579c2694bc3d49f21a4851d545410b72eee666860bfd1073b861e98b815cc12.mp3",
+      "bytes": 30857,
+      "sha256": "a265a0429c928b6649bd89c453383a9599a52c8646bd42336340628736614de8"
+    },
+    {
+      "text": "帅！",
+      "speed": "slow",
+      "key": "mandarin/ea0f6eedc2d8f9a761e45e453a23b5e86738f46826bc644008a9d937d5140b13.mp3",
+      "bytes": 34619,
+      "sha256": "10a435228681cfe36696350c78aadb79f5fc0462a9473c9d3065d4c4c22e7100"
+    },
+    {
+      "text": "你很帅。",
+      "speed": "normal",
+      "key": "mandarin/5794fe41c9ceb1c0db6d68f1937b6c24cb756321f52d22ff56e43ca98f6e9898.mp3",
+      "bytes": 34619,
+      "sha256": "942d54bb52bdba6f8e1d4f7078c2ddab26e032dd6a04f2f04b7e1fd26847c7fa"
+    },
+    {
+      "text": "你很帅。",
+      "speed": "slow",
+      "key": "mandarin/835909e14bc0f18096a56dff3c641f176bfa008877483ad10028b9b597a6953c.mp3",
+      "bytes": 40052,
+      "sha256": "d36370826e5216f74b37a746148607cd0a5d98d23c74eea47eb7c4bd10aab32b"
+    },
+    {
+      "text": "埃里克非常帅。",
+      "speed": "normal",
+      "key": "mandarin/ec754c9ec22d2f30304dca229d36a484623d8a2e95c0c3ed30a77a0cc1d919ba.mp3",
+      "bytes": 42978,
+      "sha256": "90783ef25e932c8e26318246312f09dbddb3ad2fd58f9c59b408642ee7266e72"
+    },
+    {
+      "text": "埃里克非常帅。",
+      "speed": "slow",
+      "key": "mandarin/45fcdba9ffc85dfc30b86f47237f0f4e01de056e57a88b76c03760d90b023e3f.mp3",
+      "bytes": 50501,
+      "sha256": "1980757ce1f2b1bbc04d8dc86de7e71bdbf27e04ebe057fabbb93ad7e0221d4f"
+    },
+    {
+      "text": "我要一瓶水。",
+      "speed": "normal",
+      "key": "mandarin/2607363b95ff30b7db80f30ce6537ff10502b4682e4c326e2de4d44b07a58ad6.mp3",
+      "bytes": 40888,
+      "sha256": "cc2adb37d31898c087892b0066f1b6560dcee8de5e052b31358e1735122f9f27"
+    },
+    {
+      "text": "我要一瓶水。",
+      "speed": "slow",
+      "key": "mandarin/b8120f4de42d03b4e19baa942c1cd6e138aad0b7af1e03aa8dc668ee297e88c2.mp3",
+      "bytes": 48829,
+      "sha256": "18d2db02c8643493f5a08aa81bcc4d370fb2993195aa07093abbfc0eb2fe9e23"
+    },
+    {
+      "text": "出口往哪边走？",
+      "speed": "normal",
+      "key": "mandarin/8d877b44b2a9e0c108989b7e2a2957216680e301a3837a5d8b2d5d54d1289b4f.mp3",
+      "bytes": 40888,
+      "sha256": "18eb0c8c26e737083f7d2b08b6a0d0a48575f3ef8ce23e7b6ab6219fb80c59c3"
+    },
+    {
+      "text": "出口往哪边走？",
+      "speed": "slow",
+      "key": "mandarin/34b0d1280916f8e2b1303cd6272e0a37bfe98468120a32c519442223d3af3ac1.mp3",
+      "bytes": 47994,
+      "sha256": "0c889bf6c0adfe4a7277ebf8025fade914e2f00475f22d0c038679dddff3fa57"
+    },
+    {
+      "text": "菜单，谢谢。",
+      "speed": "normal",
+      "key": "mandarin/5d30d86df1f7222153677a2b28b7ced00408a7ac8b84e70ec7ce21aabc4cbeaa.mp3",
+      "bytes": 38380,
+      "sha256": "d2a0f4ee4b3fb06fcfeb1dae45e0b56d43279cf4f89eadca1155f98758f5b70b"
+    },
+    {
+      "text": "菜单，谢谢。",
+      "speed": "slow",
+      "key": "mandarin/fc4ae1b64988a33d62adc76c831873258dbe566e49333d2a14bbb19a8565d01b.mp3",
+      "bytes": 47576,
+      "sha256": "22701b1f2829431a386bc37db47a11c0449df2cdcbec6f2e3cff6339520f165e"
+    },
+    {
+      "text": "我们要两份饺子。",
+      "speed": "normal",
+      "key": "mandarin/534b2704a40e469f6abada7776b829609c80c037bcc1e0c83d76121108eabd32.mp3",
+      "bytes": 45904,
+      "sha256": "db54acb2ef37e500e9b8432a1af1cb2caa76fb09c6e4192366e4425d034c3d54"
+    },
+    {
+      "text": "我们要两份饺子。",
+      "speed": "slow",
+      "key": "mandarin/4eae46587fbd85eaed5c5b86692c4f2b8cc36fde4fedafe907dcd7cc872394c5.mp3",
+      "bytes": 53427,
+      "sha256": "a07548aa6d3680470cbf4fa9bc782a1ae4c6978eb3ed28356352c6ff4bfe6b78"
+    },
+    {
+      "text": "不要太辣。",
+      "speed": "normal",
+      "key": "mandarin/1306fa5bd447c32cfa88f0dd22cb02d344990394fc3111f37c7fac7b9cceb29e.mp3",
+      "bytes": 34619,
+      "sha256": "12f65acf98acba4ae275f72b5228cd0a7c51ee0294b70d1733f77af8e0a31b23"
+    },
+    {
+      "text": "不要太辣。",
+      "speed": "slow",
+      "key": "mandarin/5946129268e2312399b1d2d15b6c4f7ad1bb8da2c0b3a696ee311f9407dc8400.mp3",
+      "bytes": 40052,
+      "sha256": "cc63494b418992ef6101afdf3f2d61c58872a9d76b51493ec1f76476f17e2845"
+    },
+    {
+      "text": "这个里面有花生吗？",
+      "speed": "normal",
+      "key": "mandarin/4d111996080e3de4718daeeee58605808e2ba673a6f75b98372c3d1b4023277d.mp3",
+      "bytes": 44232,
+      "sha256": "93e42a0b9af274303cb7fd681159010b7acb88b523c2cadeda3bcc2d752bfdc2"
+    },
+    {
+      "text": "这个里面有花生吗？",
+      "speed": "slow",
+      "key": "mandarin/a50364ac49ac3565695f75634135413f10bcdb62184511e329fec317a7131164.mp3",
+      "bytes": 53427,
+      "sha256": "7d0b3d20cd64152a23f39b18f4a81fcd41f46f10a1d10b966765519b5b436480"
+    },
+    {
+      "text": "可以用支付宝吗？",
+      "speed": "normal",
+      "key": "mandarin/0988d816cc33f1eee3bafdb12acb1bec0cf5420310da0e49f5dde00cfdd464cb.mp3",
+      "bytes": 42142,
+      "sha256": "7fcc8406d865ce06021284ef25f7ef9ba298125a2af9b25eb6ca326708159c92"
+    },
+    {
+      "text": "可以用支付宝吗？",
+      "speed": "slow",
+      "key": "mandarin/5f2c8d9d9021f07acf5ea22eca7c32ec3c70158975932619e116cdbfd437ce5a.mp3",
+      "bytes": 51755,
+      "sha256": "05eca956e2b1394ed6977eb06aed32a2bc290b5f831c8dedbe948e840b7157f4"
+    },
+    {
+      "text": "可以刷卡吗？",
+      "speed": "normal",
+      "key": "mandarin/60b9d9b77ea6235989a00e1dfa5d7d3387559a258d6fb663fc893eb906ce86ee.mp3",
+      "bytes": 38380,
+      "sha256": "d38bcbc39fef2bdc05e51b492636b3ede127632e57e942db688fc7dc4fbdc05b"
+    },
+    {
+      "text": "可以刷卡吗？",
+      "speed": "slow",
+      "key": "mandarin/569daff3cc139d6a7bf07fe7ab362e6cdadf76e236011264129608e372174240.mp3",
+      "bytes": 45068,
+      "sha256": "fc82b66bc5eb575934332962888c2d84bf317c86b2612971d952f74cf73b8ad4"
+    },
+    {
+      "text": "可以付现金吗？",
+      "speed": "normal",
+      "key": "mandarin/83a6ed8025f0c0e6f01ad22573fac36f962bad6db12ca463d29ceda021c3e595.mp3",
+      "bytes": 40052,
+      "sha256": "c86655d04542ae2ceb50b29e07f24fc3bcb9e7a43c75999d32fc46e4b8760ba5"
+    },
+    {
+      "text": "可以付现金吗？",
+      "speed": "slow",
+      "key": "mandarin/ad81da102ec0ba35ef8773f72dbc5d93f9c02cf5011df92a03b2b20bdc84c5e2.mp3",
+      "bytes": 47576,
+      "sha256": "cbfd8caf0aa08fc4165a58157c44171dc76583d7f29cda3da74ca75c3dc1bf0e"
+    },
+    {
+      "text": "请把价格写下来。",
+      "speed": "normal",
+      "key": "mandarin/3af5a7c4c87df0ce85426750105e22176896f79940ffab4dd6729e454ca38d60.mp3",
+      "bytes": 43814,
+      "sha256": "b8b3a3e840dbf2338b436e6a782268f8310891bdf760001075f5871c4c1c5a71"
+    },
+    {
+      "text": "请把价格写下来。",
+      "speed": "slow",
+      "key": "mandarin/405a2fb8678e8cae298bf64b1d79db007afae99cd0a3e166b0323be442330012.mp3",
+      "bytes": 51755,
+      "sha256": "c933bee3d90cdbc446d3598b65f5f4fd3cd883a09449f8cbcdf27906595a81c4"
+    },
+    {
+      "text": "一个多少钱？",
+      "speed": "normal",
+      "key": "mandarin/990cc7ef9ce2fb891672c9e0daddf1b79a07b0f89f69df3227f16e0850d09dc6.mp3",
+      "bytes": 38380,
+      "sha256": "58b32973ffae4968b7cab666fffbc5432b93db58ac7073da731ec9b64a1fbb2c"
+    },
+    {
+      "text": "一个多少钱？",
+      "speed": "slow",
+      "key": "mandarin/b019937ffca0b16ddccf5096f71b0ca08ad68d711d7e6fff4552678e710bde1c.mp3",
+      "bytes": 45068,
+      "sha256": "3c75e3837cd144a07dad6df8df724ea4c05708806c357731d6b3d7dde59104b0"
+    },
+    {
+      "text": "一共多少钱？",
+      "speed": "normal",
+      "key": "mandarin/cb103b120a438f3561dad5a8bfd728942f81e46d7b988e4733f8ea077c4fc918.mp3",
+      "bytes": 39216,
+      "sha256": "66f573d3b6b175d5a500ea8ae406a87df5d11d9a6c8366a3e5e3d53034779ce7"
+    },
+    {
+      "text": "一共多少钱？",
+      "speed": "slow",
+      "key": "mandarin/be2700c2e4a78cc71fed65960ac65594c3901cf9e57d7db84bdb3cfc00373da0.mp3",
+      "bytes": 46740,
+      "sha256": "8ecf9287cfcc8672c9a225d95a7cb23d3e885b3dc695f9eb1f128a106ad7b63a"
+    },
+    {
+      "text": "可以便宜一点吗？",
+      "speed": "normal",
+      "key": "mandarin/42e97a70e6b0e093daeea143fa5c1d852eecc3b2482c9148725ba6aeea300c7a.mp3",
+      "bytes": 42142,
+      "sha256": "b11d33f7f1f58be9a117a8dd1812004b9fe5959d760107fa674b611ad2f6ce17"
+    },
+    {
+      "text": "可以便宜一点吗？",
+      "speed": "slow",
+      "key": "mandarin/eee3af8c60a5f17d3e1241de759df196e886c3232ee289e53b968f8ae90870ad.mp3",
+      "bytes": 49665,
+      "sha256": "6fb913dee9524680360616acf9c7913c40e2ce33560ecc17ec06875f02810a4d"
+    },
+    {
+      "text": "一百元可以吗？",
+      "speed": "normal",
+      "key": "mandarin/6a77cbea0ec371e5cc432f89939d52d6c5e7b89b25958d76f4f57e628f99af7e.mp3",
+      "bytes": 40888,
+      "sha256": "353d0debae3a9bbb5611c91f09a9f42058a6ed539e2f1a4ff5eefcc4c9fe517b"
+    },
+    {
+      "text": "一百元可以吗？",
+      "speed": "slow",
+      "key": "mandarin/1dba51622c9011a4388a8bdf37c4422126d57ae5b5bc3b2dc52bc6e628679bd5.mp3",
+      "bytes": 48829,
+      "sha256": "824b6ccbbc6a9f024e1d69a60c0c60619a329f876106519f45db4c0df10ccff7"
+    },
+    {
+      "text": "不用了，谢谢。",
+      "speed": "normal",
+      "key": "mandarin/7ddcebdd142f595959bda52870a798796b311b72581c2b841a742e3b6f73b493.mp3",
+      "bytes": 42978,
+      "sha256": "106c61cc27e45e09bb20c183d138a94dd08a255d83a3402beeca29cf4d040bfc"
+    },
+    {
+      "text": "不用了，谢谢。",
+      "speed": "slow",
+      "key": "mandarin/9caf319322378460c245c5b7f5bc73b6747c11c908ff7b9ed881f7a154fd8461.mp3",
+      "bytes": 49665,
+      "sha256": "bdd405139d3736a07b55c6dd275147983dc81e90a6e40ce52b6451f0f8075ba2"
+    },
+    {
+      "text": "可以帮我们拍张照片吗？",
+      "speed": "normal",
+      "key": "mandarin/4a6ae8ec48c0133b6531e3279cc2a2a696d342884ab4b09920c1fd56cd3865f5.mp3",
+      "bytes": 51755,
+      "sha256": "ecd25c64e00648be32f43ce6d18cfcf4f45fd5d52f458febefbee07c204dbd4c"
+    },
+    {
+      "text": "可以帮我们拍张照片吗？",
+      "speed": "slow",
+      "key": "mandarin/85a52c4267771324be750adb44f231889575afda2eb01581d100724bfbe38300.mp3",
+      "bytes": 60950,
+      "sha256": "7e7c6d2265944ff39058f072bd213bf391df27171fa4f9163da3f502f6fb54ff"
+    },
+    {
+      "text": "这里可以拍照吗？",
+      "speed": "normal",
+      "key": "mandarin/5070972199bfcf3514aa51a188cc3908e9057a18aa4989ac202e49c721474b54.mp3",
+      "bytes": 40052,
+      "sha256": "1abfa1ca51cca8ce72a2c71ab342ce3cbf941589c8f54b628400687522435f8b"
+    },
+    {
+      "text": "这里可以拍照吗？",
+      "speed": "slow",
+      "key": "mandarin/0b794a2ebb79d440194b6314655697850354b9b5f861a3c4df99a22724d56afe.mp3",
+      "bytes": 48829,
+      "sha256": "339d6554aa3f29de0d20ef5519e835d4ddea904f1eade6aec8a1ed13d3f23c02"
+    },
+    {
+      "text": "我们有预约。",
+      "speed": "normal",
+      "key": "mandarin/3d669555ea0904a6ec7e31d85b10998b4fbe8b507d42d8cc11ad6159707ddef4.mp3",
+      "bytes": 38380,
+      "sha256": "1ef80e0a1944a3ec76ebe796187cb1322eec5aa940e42c385f11a317d6f293ac"
+    },
+    {
+      "text": "我们有预约。",
+      "speed": "slow",
+      "key": "mandarin/951912a4f2ab9e6f97370f0aaa0d7e1d740e6a03937b8720f89c28e7ee06276f.mp3",
+      "bytes": 43814,
+      "sha256": "6fa175b6183f04f30560e66fa8ccaddf9ef8ed6fe7147f9659907500be879d54"
+    },
+    {
+      "text": "这是去上海的高铁吗？",
+      "speed": "normal",
+      "key": "mandarin/67727e2f613f0416885aace5de0b9e123ae75eb6aba6e944bd3b3846c198a281.mp3",
+      "bytes": 48829,
+      "sha256": "ee1a08a6e307f09685b36b1370149a50d08c5e925b85da7f0cba3441bfa22cd2"
+    },
+    {
+      "text": "这是去上海的高铁吗？",
+      "speed": "slow",
+      "key": "mandarin/8ff9ecdb2be3dd8f6e75745100d6e4c225bfc0e608988403f686db9414541ac8.mp3",
+      "bytes": 57607,
+      "sha256": "c0d8ef6ba81003c8a0fafa37b380f9ea83003a412807e38e0ce89c7ce0803265"
+    },
+    {
+      "text": "检票口在哪里？",
+      "speed": "normal",
+      "key": "mandarin/2b581d239a1d70141cdc66a3c461b8206c60c10dc34b153a067166959dc8f3ba.mp3",
+      "bytes": 40888,
+      "sha256": "2b76b8d0f3aec43cbd37bac455cdece865c9f5bda600566efbe3c57b97357c98"
+    },
+    {
+      "text": "检票口在哪里？",
+      "speed": "slow",
+      "key": "mandarin/9430059176e18e2e2728cee496bc3775fba63c04e5a7dc00b3d52487ab95eb29.mp3",
+      "bytes": 49665,
+      "sha256": "b22a877523454b1e3dcd4409dbc27b5d0475ed1dc06eeb471f3afbe3e001cea3"
+    },
+    {
+      "text": "不好意思，这是我的座位。",
+      "speed": "normal",
+      "key": "mandarin/8986b595e4ae3b284461efc334b4a50807916c69ae98c416d10e8711a1a13294.mp3",
+      "bytes": 54681,
+      "sha256": "d1c2805a5cc731640e27bc8eaac3cf5ea3ed1bd419775d2fd9a10579568931c1"
+    },
+    {
+      "text": "不好意思，这是我的座位。",
+      "speed": "slow",
+      "key": "mandarin/a3d6d01a4dbf30d1136cba96ebb88c852dda86c6394ba109106db09428da5384.mp3",
+      "bytes": 67638,
+      "sha256": "f32f95149504f997631b9a383912bcbda899441b0b39cd1bcecbbac6c064f531"
+    },
+    {
+      "text": "干杯！",
+      "speed": "normal",
+      "key": "mandarin/ea0f14c1dafc64cdf09d683f83afee092cd82744187595c60e7aa085161158e2.mp3",
+      "bytes": 31693,
+      "sha256": "75ab25d869ed1bea04f9a29206bb0d8b329faf0df168f79f85dacb1d39a6fea8"
+    },
+    {
+      "text": "干杯！",
+      "speed": "slow",
+      "key": "mandarin/587b2959b071ef14792bac8aacb93dea89638ce8b06f31e087917728dfe93275.mp3",
+      "bytes": 36291,
+      "sha256": "0b91277e73167387b22b62a0f948cce3b78de4882ebd1f65f2ad0f29141aaffb"
+    },
+    {
+      "text": "请来四杯啤酒。",
+      "speed": "normal",
+      "key": "mandarin/45f06b6e36d1143815999d92e102de2ae403e8dc9c1dfd22c7fa2eb520994a75.mp3",
+      "bytes": 42978,
+      "sha256": "f056741bdc641b5f34ac7970a370b69d2f09c74d26bb5f079c4df78105f8e6ba"
+    },
+    {
+      "text": "请来四杯啤酒。",
+      "speed": "slow",
+      "key": "mandarin/a59195919343dbd08e8b72af05462f82be48dc2423095cc8b2cf1fc77a19c8b2.mp3",
+      "bytes": 51755,
+      "sha256": "74e0852751d9b5cd4bc27e6009cfcff66e8ad8215df5786220735613d307dcb1"
+    },
+    {
+      "text": "我不喝酒，谢谢。",
+      "speed": "normal",
+      "key": "mandarin/21a82e4bc75706bf06041bb2b0781cd2aa1c7dbf4de84950e52f2a043005b127.mp3",
+      "bytes": 44232,
+      "sha256": "a066fbe1d92c8ac65ff64acd71d15996d2d6555b400366d94e3177cf702e86cd"
+    },
+    {
+      "text": "我不喝酒，谢谢。",
+      "speed": "slow",
+      "key": "mandarin/04f984ee7735650becb613c1cdc52e2859fb43cb9fc52d802a157c8747bd2a99.mp3",
+      "bytes": 54681,
+      "sha256": "f870eca5de8aab50ce01a154d79477247b06794f2e03e1eeeba2f6cc63c50bb4"
+    },
+    {
+      "text": "请问，哪里可以抽烟？",
+      "speed": "normal",
+      "key": "mandarin/2f459a0c7af0c9a4c1644e87db48337f2bdf6a35bdced3288f7ad0437d5cfd3b.mp3",
+      "bytes": 50919,
+      "sha256": "6ea91954c5e7342d21361a37289db7655fad84db36e2eeb6e3304f21ac6c1501"
+    },
+    {
+      "text": "请问，哪里可以抽烟？",
+      "speed": "slow",
+      "key": "mandarin/5824784bc3d58234879c1b94746b943219c0f7d8f8d1a544b94335beb673ef4d.mp3",
+      "bytes": 61368,
+      "sha256": "b9891d5add8c9f045f07f77f6fcc26332573a8c0f77259e63564e9d0cadb290f"
+    },
+    {
+      "text": "有英文歌吗？",
+      "speed": "normal",
+      "key": "mandarin/6419ae91381807ee06015788faef3d4a5715848c7c94fb204e9b4d0196b99f0a.mp3",
+      "bytes": 40052,
+      "sha256": "66218dd9f7ce7ab5998f780c97bd3b7cfdd8ae71f21ef159e66021816856e694"
+    },
+    {
+      "text": "有英文歌吗？",
+      "speed": "slow",
+      "key": "mandarin/92580e40e1942373eb60490d3022d826330d0f6eced057c892ddc483df2a6d2e.mp3",
+      "bytes": 47576,
+      "sha256": "c8b3611b0281eff6fd7f55b0610cc2cc817c1a78eef36529ebb11c3dabfff5ad"
+    },
+    {
+      "text": "我们想要一个大包间。",
+      "speed": "normal",
+      "key": "mandarin/385184411da04b64f96880379c45eff0767c3bfe1e19188a33defa0287c4438d.mp3",
+      "bytes": 49665,
+      "sha256": "2645b68bb89a78da404f6a7a0eb66c6e37ac812e81fc18db80360e8cf47ccf7f"
+    },
+    {
+      "text": "我们想要一个大包间。",
+      "speed": "slow",
+      "key": "mandarin/4423cc163891248b989c12aa6eeba0877dfcc90f10985e641fce65d37968032e.mp3",
+      "bytes": 58442,
+      "sha256": "7eebae5b70772e9f3701f4e599e2939f94e78e694f63f7cfbaa02bffdfe0f92e"
+    },
+    {
+      "text": "买单，谢谢。",
+      "speed": "normal",
+      "key": "mandarin/c523ebe35d479d4b17bd20179d16ae42f5055047fc706d943695fb951f2e15c5.mp3",
+      "bytes": 40052,
+      "sha256": "dcfde05f71ff344fc58415d484ac097d6371bb37bd7f7775742adf2e6eeba0bb"
+    },
+    {
+      "text": "买单，谢谢。",
+      "speed": "slow",
+      "key": "mandarin/e1e96aef325dd367cfcc75a4c6ceb724e384602051ace02cb0f064c6c45ae87f.mp3",
+      "bytes": 50501,
+      "sha256": "bb288693046481826d9007e136928904741758b43ea3bc6fe2382541319c5050"
+    },
+    {
+      "text": "我们回酒店吧。",
+      "speed": "normal",
+      "key": "mandarin/5e5c4d355a907c377c73130ed3ffb12543d8b9596a590a178be5d12a845517e5.mp3",
+      "bytes": 40888,
+      "sha256": "f6b47e6c88350a25214803395872ae5aa9d4a2e86d3541f553694b6ae8d7e8b2"
+    },
+    {
+      "text": "我们回酒店吧。",
+      "speed": "slow",
+      "key": "mandarin/675a2c9f13b2af202f6320203a9c828279d9a157c8605b04f662bc51d0743bf3.mp3",
+      "bytes": 47994,
+      "sha256": "702088c5f7c70cb691f75f090aa76c9ad9e37ec43018d1663691467e8bab15ed"
+    },
+    {
+      "text": "请帮帮我。",
+      "speed": "normal",
+      "key": "mandarin/1a3446991e78c3ee2c45418831ed5bf82c56b08bebe36879d69909b007c54575.mp3",
+      "bytes": 38380,
+      "sha256": "b7fa7b35ebb6e18dcb9b4db3950fd6e1477025649bebd85e31aaf2d0a64bd5c6"
+    },
+    {
+      "text": "请帮帮我。",
+      "speed": "slow",
+      "key": "mandarin/632f8f5917f398a889f752fbe09bf9f63386807da81e3da96e07d14c3d82b254.mp3",
+      "bytes": 46740,
+      "sha256": "39fecf7cb0a711ae070aff12ba537603ff3bff0a8e96c8452832f1b59bbe3920"
+    },
+    {
+      "text": "请叫救护车。",
+      "speed": "normal",
+      "key": "mandarin/d79bee62efacf2e7c551ae801cc55a2ca62b980ccb34476be2251b34449a1ae9.mp3",
+      "bytes": 41306,
+      "sha256": "be9f36cf9a8e29cc989ed8e8882cfdbeaaa592443ffb5dedc3ec3657b15adb1e"
+    },
+    {
+      "text": "请叫救护车。",
+      "speed": "slow",
+      "key": "mandarin/c59eee4beedec53ede58def3bdfee2ede8f1aa4071298b17b20d6f71047730d3.mp3",
+      "bytes": 50501,
+      "sha256": "9bb44c637ca00eddfdc833314fbb1902cb0d070016a25582e502c560dd0e28ff"
+    },
+    {
+      "text": "我的朋友不舒服。",
+      "speed": "normal",
+      "key": "mandarin/1ea367038c984130996df0466d8676f59c39281e676ba9e0dbb907cd5439fe99.mp3",
+      "bytes": 42978,
+      "sha256": "c6aa96d14ed2803045962835c2ca5f8533fdd02bfe1c99e9c247bda13614049d"
+    },
+    {
+      "text": "我的朋友不舒服。",
+      "speed": "slow",
+      "key": "mandarin/e4bffe8b5c9b86e7457912917de0ad8eee2ab4e8e3f26eb32cda6063a0a37c4d.mp3",
+      "bytes": 50919,
+      "sha256": "9a3d080942756058328d84440fbff6dac8a86b459eb49282726cc0e652abbf21"
+    },
+    {
+      "text": "我需要翻译。",
+      "speed": "normal",
+      "key": "mandarin/47df0d15c155d7efbca2adad9a0e7e7110e17306c99d75bb5dc1ee32656888a8.mp3",
+      "bytes": 39216,
+      "sha256": "d335004313e9bae450ec6a21cbf02975abfa676ef23be0b59fd2acd619a12187"
+    },
+    {
+      "text": "我需要翻译。",
+      "speed": "slow",
+      "key": "mandarin/4eacdb4b006e908a736e63a279e633c4e8ba9ce5c3c17b62a7b98f3e6c6a3f53.mp3",
+      "bytes": 45068,
+      "sha256": "2a859a19d62a9d7222b1323eaac5c03e2ded329a39cfda7ddc28b65624eb023b"
+    },
+    {
+      "text": "我想联系美国大使馆或领事馆。",
+      "speed": "normal",
+      "key": "mandarin/281dbd0b123dc8e37cdece6e6c3ccf83ad7c4174e62d6c4a14b4c09a4809c5f4.mp3",
+      "bytes": 67638,
+      "sha256": "2c0a23b5c6dbba35785bd5c85f9ca89f6aa33cb4d2aa478304224afa7f83feb6"
+    },
+    {
+      "text": "我想联系美国大使馆或领事馆。",
+      "speed": "slow",
+      "key": "mandarin/8d99fefa75194a843000527ff07c22ad672721f53d548708cd5271e9e270d2ea.mp3",
+      "bytes": 83938,
+      "sha256": "ebb48aa85d002a6df5dc46262ee55880e68f0c2673e9984c6c3ee7e17cd5979a"
+    },
+    {
+      "text": "我要结婚了。",
+      "speed": "normal",
+      "key": "mandarin/f496be86904d095ac6cd56471f54aa1626650a11fae1c0eaec6398395149a86b.mp3",
+      "bytes": 37545,
+      "sha256": "d0989096aef5a9bc1ef35ee0d719472497b93e49497c42cafbc8821686996359"
+    },
+    {
+      "text": "我要结婚了。",
+      "speed": "slow",
+      "key": "mandarin/08859c253f09262d5c01a6bcbb54919e2f52e45e4ef780e9f1e5359f0c5c1033.mp3",
+      "bytes": 45904,
+      "sha256": "116d1c868736afecff24ff068e5800d6cfb22e38a80e253f68c1605cfd46aea6"
+    },
+    {
+      "text": "牛肉 / 猪肉 / 鸡肉 / 羊肉",
+      "speed": "normal",
+      "key": "mandarin/c94cfd06b8077d0de3a2e2411fa7de1b05049f4c2e3d2eb1f1e3e20996d03fef.mp3",
+      "bytes": 59278,
+      "sha256": "64e84153f54f003780045e4155cb6a77b034e14c733072c389a80ff7410d3b79"
+    },
+    {
+      "text": "牛肉 / 猪肉 / 鸡肉 / 羊肉",
+      "speed": "slow",
+      "key": "mandarin/6ffa7e27ab5a86d4c632951e24f5cfb1354fbaa4f3e9b98bc4ade2ba555cb23b.mp3",
+      "bytes": 65966,
+      "sha256": "c4c3dae3cd5d8ae34047b83d4c13db7a4041e10cb876c55ff9d55979315e0ea2"
+    },
+    {
+      "text": "鱼 / 虾 / 花生 / 鸡蛋",
+      "speed": "normal",
+      "key": "mandarin/9e6ca737710a515bb84851cc2bea2ed4caea88d66abd01bd6f9a640df65c121a.mp3",
+      "bytes": 53427,
+      "sha256": "9df7244cccd43888402c2ac1bd816e42219baafa7fca3ccc64bea5b1ec6c105b"
+    },
+    {
+      "text": "鱼 / 虾 / 花生 / 鸡蛋",
+      "speed": "slow",
+      "key": "mandarin/82e729edbe8a39c6887170a16596df8492dc2795f3cbde1784307cb06588b2d7.mp3",
+      "bytes": 65130,
+      "sha256": "c84145526ba74957f9a0a91db1ae148da0cd336585d79209d42edab0d4eea543"
+    },
+    {
+      "text": "米饭 / 面条 / 饺子 / 小笼包",
+      "speed": "normal",
+      "key": "mandarin/30a2440acddec3e4a54b270d6dfae1dd11c62bdfa830b5c0396ad2b5baf6c5a0.mp3",
+      "bytes": 63876,
+      "sha256": "bffb7cdf51e056f217e38a8ce101f863ac7032da5d51047a4f624a734ddfebf9"
+    },
+    {
+      "text": "米饭 / 面条 / 饺子 / 小笼包",
+      "speed": "slow",
+      "key": "mandarin/6b8ad339c7279cf3e89913f20ece899927eb7fa106737b5a6b7ed58c48e24da6.mp3",
+      "bytes": 81012,
+      "sha256": "b1589243660163f9473a04b92e8a9f53f6d9c49c6baeb70707720c805acb163a"
+    },
+    {
+      "text": "辣 / 不辣 / 素 / 凉",
+      "speed": "normal",
+      "key": "mandarin/099a85d3fd4e64c0a8f1ef945f5a230644335a5d46161fac5023001af1f4ee11.mp3",
+      "bytes": 50501,
+      "sha256": "83e381b57d491c397d047c28af22a630419735dee8de0329b9f5220e79957e8a"
+    },
+    {
+      "text": "辣 / 不辣 / 素 / 凉",
+      "speed": "slow",
+      "key": "mandarin/ee659ba246dc6ef8189ba0072ed664d80862e1ca63b864044289faaa26ef5d43.mp3",
+      "bytes": 59278,
+      "sha256": "e48f0872e083dacfddeb17e72c24b307ddc2866b6265e80ceb7399b52e26d7c0"
+    },
+    {
+      "text": "一 二 三 四 五 六 七 八 九 十",
+      "speed": "normal",
+      "key": "mandarin/c8c8a6eaed25f23797b7d8e2a32bd8b0cbad9a071d22c875e354e982bf9a9635.mp3",
+      "bytes": 56353,
+      "sha256": "0d6df3460c0b663a621f2cb2fe9c60521537003b2d75484cd2a217c4854cae65"
+    },
+    {
+      "text": "一 二 三 四 五 六 七 八 九 十",
+      "speed": "slow",
+      "key": "mandarin/c4d5d97817b97a5cf4f0163e035ad8ff9ea400574ecf0b259e3f1dc3eabf0574.mp3",
+      "bytes": 67638,
+      "sha256": "3b2d99a90bfe152ef3f076d26f672e0aefe0d2f40821f69a7b6b8ce31957be15"
+    },
+    {
+      "text": "左 / 右 / 一直走",
+      "speed": "normal",
+      "key": "mandarin/68f49b2dff5f9f8c2196ca48b80f7e7228bce525e764f27a9ac944af8e4bd00a.mp3",
+      "bytes": 42142,
+      "sha256": "cf3d16002e064c0e7788ca1bd4bb23c7a7e51de7f20bcf5188b145112ac15f83"
+    },
+    {
+      "text": "左 / 右 / 一直走",
+      "speed": "slow",
+      "key": "mandarin/caeeb6acb8073676125f8f0a02444b3cd502cb858eb36f459eb041a84865f74b.mp3",
+      "bytes": 52591,
+      "sha256": "9fa880d95c8c3dc6b9dfeb6ed1cc82eedb838620cbdb7c2dcc194abe52373ff1"
+    },
+    {
+      "text": "入口 / 出口 / 禁止进入",
+      "speed": "normal",
+      "key": "mandarin/c89c08ac1100ab4b751ff23834fd741c200d289eafacba02391a22afe762d57c.mp3",
+      "bytes": 52591,
+      "sha256": "310953b883e815c36a0e17acc78c6480602c304ce987fecd6be4d06f38cf8758"
+    },
+    {
+      "text": "入口 / 出口 / 禁止进入",
+      "speed": "slow",
+      "key": "mandarin/44b9bba4ee4d38f872fc8818a503d62370c3a551a9cf7aa3217982c97144034e.mp3",
+      "bytes": 65966,
+      "sha256": "ce18b23a430618851ed5ff320178c413ab1198bd6f9ddf53d25c6e20d8d83dfc"
+    },
+    {
+      "text": "男 / 女 / 卫生间",
+      "speed": "normal",
+      "key": "mandarin/b08faa94226c51261e5fe7c21020ca6da20cf9c97164552366dd0752818d63a6.mp3",
+      "bytes": 45068,
+      "sha256": "5f96fc09314b7dbea9c7ab50dd308d51998c41da04036cb6063446036c3b308c"
+    },
+    {
+      "text": "男 / 女 / 卫生间",
+      "speed": "slow",
+      "key": "mandarin/5d32c01bef0aeec256689db7284c10e8abaa09838470d2b7307a7ebc44b20d9b.mp3",
+      "bytes": 55517,
+      "sha256": "f22c55b687bd48d0507c70766e3c0dc70b118fa11b46f5c9150b3455e0cf020a"
+    },
+    {
+      "text": "不要冰。 / 我要热水。",
+      "speed": "normal",
+      "key": "mandarin/91c60d4f1c9035d03caa49b46ac9c920c39dc93c6da48bfa9c0831d0d239073f.mp3",
+      "bytes": 51755,
+      "sha256": "e373d7702b847d26699c5aca758aa61d93d1152cd2074c9b9c4112adda98107c"
+    },
+    {
+      "text": "不要冰。 / 我要热水。",
+      "speed": "slow",
+      "key": "mandarin/1f49d3914b3f346dd8043f5319b254a5a79882d1213a52e2fa3ffb05b306439a.mp3",
+      "bytes": 65966,
+      "sha256": "f12708ccc0e7c87499fe6cfad8db6ece2cd56320526278deb78832461584e480"
+    },
+    {
+      "text": "我们有十九个人。",
+      "speed": "normal",
+      "key": "mandarin/d27c31e12b86bda5a997fc14c52c5e086a580332a0e39436f39139ce042a6ab3.mp3",
+      "bytes": 43814,
+      "sha256": "37ba128f25888392a06ae373dc530d38b4d58fc30ce7637494153a05d029673a"
+    },
+    {
+      "text": "我们有十九个人。",
+      "speed": "slow",
+      "key": "mandarin/18f001d5bf11e34a2ca1793890a037db3b0148d4006684f8c9dff9c3d5a68e01.mp3",
+      "bytes": 52591,
+      "sha256": "6880d50697e7622dfc441b429672e95bb5930271696e29f460a9222080cc70cb"
+    },
+    {
+      "text": "我对花生过敏。",
+      "speed": "normal",
+      "key": "mandarin/df4c924e6c5c05367debd89c2135f0e4cff1c3ddd9c526f487666ef9b3a2d1b5.mp3",
+      "bytes": 42142,
+      "sha256": "e1fae2fb22ca62aa38fe934d11cbf9890ec22b95704968ebcad02c52c3a859f9"
+    },
+    {
+      "text": "我对花生过敏。",
+      "speed": "slow",
+      "key": "mandarin/b48980a51a5c8fcecb5cd4013c3062745996b450e7c87edfb3da4c17e7a4942f.mp3",
+      "bytes": 50919,
+      "sha256": "a8174cf0e8ac7ec8a7909b822b92d6674b684b50df13a6e33c7d5b1f3e817017"
+    },
+    {
+      "text": "请带我们去这个地址。",
+      "speed": "normal",
+      "key": "mandarin/57db4b0ce4d33be81e68284f54abb9c9a0349739a1a7e4a0d9e4685151fe6f6b.mp3",
+      "bytes": 49665,
+      "sha256": "afff0571023f40fb40998e9bb3b4b45e9f5be79b9c98a2c0d8a4a5b7f0bea8e3"
+    },
+    {
+      "text": "请带我们去这个地址。",
+      "speed": "slow",
+      "key": "mandarin/0458a3e75c7dcef984075b5c6200e94f2f54fe55e697587fd334a5bdac4218f5.mp3",
+      "bytes": 59278,
+      "sha256": "d999593a1621963648671f27aa34a6e40fb227e5fad17f986a7edfbe14ffd290"
+    },
+    {
+      "text": "可以打字吗？ / 请再说一遍。",
+      "speed": "normal",
+      "key": "mandarin/f853cd325f68cfb35139756567fdc491f74c5b94bbeed31d1acd3d6cc935fe38.mp3",
+      "bytes": 59278,
+      "sha256": "eb8bd836cbc79bac451dd4f1ef13a2399c85a76bec7b872daf9a252571fb9178"
+    },
+    {
+      "text": "可以打字吗？ / 请再说一遍。",
+      "speed": "slow",
+      "key": "mandarin/0de408b045f6d2ccb6f47726688e0488fbdb7ba40fb5ce3c2f83ff33bb3bf218.mp3",
+      "bytes": 70563,
+      "sha256": "23d0b9f61ae23180908a3860d809081956f4341f4d57051ba341a58587002d9f"
+    },
+    {
+      "text": "请在这里停车。",
+      "speed": "normal",
+      "key": "mandarin/dc7d4a1383953a4749186f23df9c022b5d2dc2d9f05b6f02b6ca56f9d7578335.mp3",
+      "bytes": 42142,
+      "sha256": "f6d561b4b786ac183c8c3f2c60024304d4f8eac71caf486d559924edc596520f"
+    },
+    {
+      "text": "请在这里停车。",
+      "speed": "slow",
+      "key": "mandarin/fa7169d9eba9285bf2c3cd4551e59cf19a251885ee9a6f9f9e75f75ba7f288c0.mp3",
+      "bytes": 51755,
+      "sha256": "8b6833a3776a444fb309d1361eb6d0d424f3f1bde7dabd23baf2c6c4363273a6"
+    },
+    {
+      "text": "你。",
+      "speed": "normal",
+      "key": "mandarin/b7c75e2f9d2867da95167115bb58cf7c91a6a425bec0346e6d05e5f741f9bda9.mp3",
+      "bytes": 28767,
+      "sha256": "c64db2e48b9a514500de56c5e2e773705077f1518217142b94857ba031f80a6c"
+    },
+    {
+      "text": "你。",
+      "speed": "slow",
+      "key": "mandarin/1b924c9b2f193e9f472828186c1e8f9f7c22c0fe964dd0933f0ad225e8ec3192.mp3",
+      "bytes": 31693,
+      "sha256": "4baaffd6aa51f00ed05d2adb5723188fd2402281a3325347e86f92d44da28fd2"
+    },
+    {
+      "text": "好。",
+      "speed": "normal",
+      "key": "mandarin/bd7531fbd2d2323df59d37aafb687a72ef6a3442770798a040fc34e6cb190dbe.mp3",
+      "bytes": 28767,
+      "sha256": "6fae47d4f9196f23e7600a53f170b10163ffbcc7ad1e9db7ce9655c26787017c"
+    },
+    {
+      "text": "好。",
+      "speed": "slow",
+      "key": "mandarin/5c59c2c4df82895ac6a3bee2bf33f6bf8e054d8a3764295ab56d2ac21a560a9e.mp3",
+      "bytes": 30439,
+      "sha256": "7afaf5cad3d75bc903d15c8af0e4374410b7736983e808aafc0f8337cd8b80c9"
+    },
+    {
+      "text": "妈。",
+      "speed": "normal",
+      "key": "mandarin/d323b44016fd2e7c7843294ab2c4233e761ea11ac514ff1d0de8634b4ea5a977.mp3",
+      "bytes": 27514,
+      "sha256": "0c0944f71ac9638186172ec19df2ed25d350044f72c316e76845bc48d7aa49c9"
+    },
+    {
+      "text": "妈。",
+      "speed": "slow",
+      "key": "mandarin/a368acceaf036427874b38d107f028ae94d8e8757a633ece344109f513a58543.mp3",
+      "bytes": 30439,
+      "sha256": "74e46ad374f775642f92bbf6c41a9992a4c887632e9d76c73030ed9f2eed40f7"
+    },
+    {
+      "text": "麻。",
+      "speed": "normal",
+      "key": "mandarin/a749fdf38a389f224e79c7a83f181449c2c6c17bbc6ed43b8a8e682a2f7bca37.mp3",
+      "bytes": 27514,
+      "sha256": "d4961dfa8824308d125bbb834e5b835aa0a746ab33f90474da86ce9aaa3710ac"
+    },
+    {
+      "text": "麻。",
+      "speed": "slow",
+      "key": "mandarin/05eb1dd2fefac1b9b8739ae325fccacd3f2d392f0901dc40ef9af11e2b584533.mp3",
+      "bytes": 30439,
+      "sha256": "ac1661db6c01d3de5e460d5c70acabe3e8240904329a8ed27d12cb5c8cf96550"
+    },
+    {
+      "text": "马。",
+      "speed": "normal",
+      "key": "mandarin/f62d5952be503e2a48b25316641cce5d5fda6040b91bb5373b12a56aed259d08.mp3",
+      "bytes": 26678,
+      "sha256": "13d7dbefeebe46036bd036c4835c77fa20a997fdc2c9680326c021cb76a3b0fc"
+    },
+    {
+      "text": "马。",
+      "speed": "slow",
+      "key": "mandarin/c819a8f29f32672ad2d1881f9e39c8a9743ad0a8daef73b448012c217a41fffb.mp3",
+      "bytes": 30439,
+      "sha256": "170109d62f361b7f8650a042a7f473d42fec93449d3b0403fc48b4d8f89767ee"
+    },
+    {
+      "text": "骂。",
+      "speed": "normal",
+      "key": "mandarin/4a8e860d19745a5b14033dbed56d3400a1580c872320253325e62b51b98c0e96.mp3",
+      "bytes": 27514,
+      "sha256": "8a7cbb9b49a51f818af9a877ca63be0c51387ef2ee6cba951b13acc2f3f62c98"
+    },
+    {
+      "text": "骂。",
+      "speed": "slow",
+      "key": "mandarin/751cf52dda19b476b10905cffda5fc19b96bd8684516689c89cba0f422c72359.mp3",
+      "bytes": 29603,
+      "sha256": "5b00972a191f771999a8497eee5d83ebc2d69a4bc930c95c9cd672391725060e"
+    },
+    {
+      "text": "卫生间。",
+      "speed": "normal",
+      "key": "mandarin/12fc28f8dd2dc856d644ccb75f39d6556b521a67fe9dcc91444ef9bd512ee704.mp3",
+      "bytes": 34619,
+      "sha256": "bcd392770c83a53de527c39d764605ed1d5d12e708b4705247d901069e1a0bfc"
+    },
+    {
+      "text": "卫生间。",
+      "speed": "slow",
+      "key": "mandarin/6c1abb186eb8263057d67ca9022b17340ef335dd506dd7d767aa3802885d0f33.mp3",
+      "bytes": 40888,
+      "sha256": "f88d30409604b6eda003631b1c003cecbaee303ecd4c6f220bbfa8a8cc6996a7"
+    },
+    {
+      "text": "出口。",
+      "speed": "normal",
+      "key": "mandarin/ab5c7d5d213b159a5a390e344cc8d330736269dacd73949db54f893367257140.mp3",
+      "bytes": 30439,
+      "sha256": "f0c57ad7318519bcacf6bf199d253ec530cbcdb6d12c4e0f68308745d0d2ffb3"
+    },
+    {
+      "text": "出口。",
+      "speed": "slow",
+      "key": "mandarin/d04a29fcc19e02b8eeff83ad6ad4bdd8797140792cc180e6795db31598e8af9a.mp3",
+      "bytes": 34619,
+      "sha256": "bcd36341e49e19383d85851f7f4f2835e5a51682723cbab864234a52a1c14ee9"
+    },
+    {
+      "text": "入口。",
+      "speed": "normal",
+      "key": "mandarin/0f1d8526e7d1bd6de973d441033cc5ca712d04544fb5f000de61def1cd59f969.mp3",
+      "bytes": 31693,
+      "sha256": "f3661894b580bc7544ed04b1ccb25f54cd91ecd672365f594aca74adbb98d7c7"
+    },
+    {
+      "text": "入口。",
+      "speed": "slow",
+      "key": "mandarin/39776afe24318ca00565c17ef61588e03537117f35204292073ca3f8226a9970.mp3",
+      "bytes": 34619,
+      "sha256": "a341b67877f9dc6d3e45db5fae5d4f6ec0c9c6a49a747d731f21061b78043b9c"
+    },
+    {
+      "text": "地铁。",
+      "speed": "normal",
+      "key": "mandarin/2598d2da0874cebe10a8b74e7cd750d82c495317c4cf7b0c277ec9fd3597269e.mp3",
+      "bytes": 30857,
+      "sha256": "633b302ebcaa7cfc54edad9eb1c8ad517b395e51aab8c8b6f0c0ed6e8d2ac24b"
+    },
+    {
+      "text": "地铁。",
+      "speed": "slow",
+      "key": "mandarin/c3a0d95fb9b9c191aca92a36a4d3f1f7e53e6c391ed9a08122c561feb8bbe7d6.mp3",
+      "bytes": 36291,
+      "sha256": "ba79ec26207bed3c9e2a3bdf714fd700eb8447f29742bf52b5b8e7f672d96856"
+    },
+    {
+      "text": "男。",
+      "speed": "normal",
+      "key": "mandarin/9d304792aeaeff9c445929381df2af47c4065bbdc3cf66d499888a36cf2acb65.mp3",
+      "bytes": 28767,
+      "sha256": "fa83868c95aeaecd28bc1db214007c4a8c5d0e9f672e77c30bbddf39fb0bcd0d"
+    },
+    {
+      "text": "男。",
+      "speed": "slow",
+      "key": "mandarin/f54d4e548a95b1df4d19e4d0614d75cfab64013ab282eacb5becd43cbffe0530.mp3",
+      "bytes": 32529,
+      "sha256": "eb0f797829816a875a28eb7e16230690478a9619bd3a4ccd8c1dd34c37b4daec"
+    },
+    {
+      "text": "女。",
+      "speed": "normal",
+      "key": "mandarin/8b3e1accb9575bf9767c7892bf1df8f9d7c4a01196db7279478a652cb8523b10.mp3",
+      "bytes": 28767,
+      "sha256": "fe0f282cd14e7de730c40034519d0250bf0ee105a4b1f1b8c0f8ffdfe3244020"
+    },
+    {
+      "text": "女。",
+      "speed": "slow",
+      "key": "mandarin/4725735196f0ac01ecef0485e928cee73a2e5b9ee5c955cf117d945d2925e04c.mp3",
+      "bytes": 30857,
+      "sha256": "6e777d026e2cf1169255ef96775def4d4da823bb69971b5a04945ba0c60bfe99"
+    },
+    {
+      "text": "埃里克。",
+      "speed": "normal",
+      "key": "mandarin/acf7f25713dd346d44358f07212818dfa4e68e29e19be497e2b4da503617074c.mp3",
+      "bytes": 34201,
+      "sha256": "04a7bd723e19d29049a30598becd3baf35f8ba6fbb97be0fb21da6afa507f8e1"
+    },
+    {
+      "text": "埃里克。",
+      "speed": "slow",
+      "key": "mandarin/7b50b7b02273b6626dabfa28c864b7496430d2c962a2779bf9068c9df30a1cb2.mp3",
+      "bytes": 38380,
+      "sha256": "22db8590a642bc27e0b9b63ec1d645ef46f0ff908a8d2924d6fa933021c091be"
+    },
+    {
+      "text": "非常。",
+      "speed": "normal",
+      "key": "mandarin/c0bf14ea591258c058fc2db59ee763dd25386eaa69650de2c8a72b08783d42c2.mp3",
+      "bytes": 31693,
+      "sha256": "728ada264f1f2d69af8378ccb7cba911e9b00c440434fac635bf0497bb8fa4fa"
+    },
+    {
+      "text": "非常。",
+      "speed": "slow",
+      "key": "mandarin/7a3416e02b3a6e2fa8a2f6b29236fb5aed420ba53d0418b6c1d52ce075cdb802.mp3",
+      "bytes": 36291,
+      "sha256": "fcc4fdad657fe1f1a012e181cca6b2ef98d40083cc014cc5e54962b841e08b30"
+    },
+    {
+      "text": "帅。",
+      "speed": "normal",
+      "key": "mandarin/f651eb7eb6fd2df79977df54e7439873648d3f25497f4199961db1142ad73b34.mp3",
+      "bytes": 30439,
+      "sha256": "4b91f9e18bcbcdc1a91057be3232764a2b86a8d7114a2c30b6d368838577235b"
+    },
+    {
+      "text": "帅。",
+      "speed": "slow",
+      "key": "mandarin/b07478c4f1a6e7a4d0701e496daec821a028da3efd28f17bbdd4d49ab820bc42.mp3",
+      "bytes": 33365,
+      "sha256": "77d796507223a5c067b63bc21929b3c6f1f2d26345a169afca760fde2b1ad59d"
+    },
+    {
+      "text": "我。",
+      "speed": "normal",
+      "key": "mandarin/386af996656e2d324ca1953407c2e9bfcc206a6a9ecc0d9cc850a9954f1a8b9c.mp3",
+      "bytes": 27931,
+      "sha256": "57bbd80c25423d0ff367d1f0fdbb2d5dbc14876633b592cc7e2d6acc42d9b4b5"
+    },
+    {
+      "text": "我。",
+      "speed": "slow",
+      "key": "mandarin/ec6daa8fc4b90753edbb373766c6f0a34d17d91719987e01162d70bf9dfd9c86.mp3",
+      "bytes": 30857,
+      "sha256": "ea6f7de15e13ec5618de84818203acdf5b318b79cb6bc6bf25fcde51d77ee8af"
+    },
+    {
+      "text": "牛肉。",
+      "speed": "normal",
+      "key": "mandarin/9285ec41d2cdd5786a23cf3ae7c85bd3172b14402c500b361438a9bd7a9473e3.mp3",
+      "bytes": 30857,
+      "sha256": "7ac4bb123e9a93829a73ad49836ea731ae03cdb51a054b6cfaf4000a556cd725"
+    },
+    {
+      "text": "牛肉。",
+      "speed": "slow",
+      "key": "mandarin/5ac6dd06192c6e0dd1b277755919f59c213abc3592d3d21efc9e5a9cb99d1423.mp3",
+      "bytes": 35455,
+      "sha256": "95157ef3547fc15a31472f6ced3cd7ab68fa1cdd4263431d6f9129ae39e2a4ab"
+    },
+    {
+      "text": "猪肉。",
+      "speed": "normal",
+      "key": "mandarin/663929c107c731ff2c21025cca8968044ea358f697fb40efab6c91362dbe1dda.mp3",
+      "bytes": 30439,
+      "sha256": "21f70da9615683cc19818f9d86777a76cbaa26eddb6e75721c383815eee23740"
+    },
+    {
+      "text": "猪肉。",
+      "speed": "slow",
+      "key": "mandarin/3cdae545cd7ef64d976e4c1f91ab63bddb003a11b26dbddc220cd5ba196dd420.mp3",
+      "bytes": 35455,
+      "sha256": "c653b3b1a78ca4498c42a6220e75bbd5de7d6099a0c1f8ee82a1371d3559a6d5"
+    },
+    {
+      "text": "鸡肉。",
+      "speed": "normal",
+      "key": "mandarin/45ac00203714e5513be7ce48803332f17efa341460732187bf1f2f27790b4a0f.mp3",
+      "bytes": 32529,
+      "sha256": "744058e0a8da95e4bdab24192cd20bf31c47d95e629da4b6fcefd93c04f96f3b"
+    },
+    {
+      "text": "鸡肉。",
+      "speed": "slow",
+      "key": "mandarin/c79b10d36e5a9f27d43203b932de8b233af515c902dc0c90b27a451e77de4c0b.mp3",
+      "bytes": 36291,
+      "sha256": "1312d91419b51b6dda27951e962a7b8850bada241458caec7b9b892392953e1c"
+    },
+    {
+      "text": "鱼。",
+      "speed": "normal",
+      "key": "mandarin/33592c95f8e85559112266052b36c20adf3d1fb2288502b08a8ae7a5b272949f.mp3",
+      "bytes": 27514,
+      "sha256": "a6cc66ad92fbd1c8c08decf42d7d271488b62f285584037d932a1d24dea0f487"
+    },
+    {
+      "text": "鱼。",
+      "speed": "slow",
+      "key": "mandarin/75e1584373609b5c46583dc90da19651426a4c1a9d964b055b19de84c9b3b045.mp3",
+      "bytes": 30439,
+      "sha256": "3bdc97de4d1c4388b07aeb5f447003eb9885b5df2c4dfb0a5909edc80e3f2b27"
+    },
+    {
+      "text": "饺子。",
+      "speed": "normal",
+      "key": "mandarin/cf71449d906d53f73aa0cb564f75ad9ccbb5cf1be39d5735e6e8149ae61cf499.mp3",
+      "bytes": 31693,
+      "sha256": "d454e11b73291e6e1dfea184249b0321aef92ea2356cab385a3baa16231ffdf8"
+    },
+    {
+      "text": "饺子。",
+      "speed": "slow",
+      "key": "mandarin/600ac7085798cd59e0044fb99e58f084c9c652e3e89d69208df7d4c595e940fa.mp3",
+      "bytes": 35455,
+      "sha256": "35ab6617d8525f098e743ac697ed35d0fa728a4350cfb02b385ee8122b0a40af"
+    },
+    {
+      "text": "米饭。",
+      "speed": "normal",
+      "key": "mandarin/6d2a10bf78b13a137208c68ab33a65c26afa12861f0284ac0c68672c215a18a1.mp3",
+      "bytes": 32529,
+      "sha256": "c026890237cb7f5e0468e772d4e7a816a51f188772edd96fffdca042f53b47bf"
+    },
+    {
+      "text": "米饭。",
+      "speed": "slow",
+      "key": "mandarin/087db20a0dd2a19d585ac2146b5ad16ae9ec054dd45709a5473584c831595098.mp3",
+      "bytes": 35455,
+      "sha256": "3bd2da8842bdc4310340d4b80b6d317504a25c388f20a7b8c070fedc95e8106a"
+    },
+    {
+      "text": "现金。",
+      "speed": "normal",
+      "key": "mandarin/48b5df5f5fad1d013c6bd06aee34eee23762abfdcc9b37d728d13ac3bce2f3c8.mp3",
+      "bytes": 31693,
+      "sha256": "9cfb8143a852d462c51540761a6f25545047440a4336fd38e15ed99ddb25d38d"
+    },
+    {
+      "text": "现金。",
+      "speed": "slow",
+      "key": "mandarin/7d5bf1afbfffff2e98c6dfba6364f12e14a61c55bce3111f9e45f9c53c72655a.mp3",
+      "bytes": 36291,
+      "sha256": "98cd3e2d070abb2e4475f77916970376608ee08999240bcb9eca5130e10742d0"
+    },
+    {
+      "text": "支付宝。",
+      "speed": "normal",
+      "key": "mandarin/f82427b1bbdbc250931a42a0798da28f093ae3060ac71df859defafaadc822ee.mp3",
+      "bytes": 33365,
+      "sha256": "46ce502297dcfe625cbd701872933e8c25b4792e99bde4922da0f61ae995d697"
+    },
+    {
+      "text": "支付宝。",
+      "speed": "slow",
+      "key": "mandarin/5b3e5dd0067ccac2ef47f2bbfa43489567817b04b3e0052f00c98cc3b8d9a9c5.mp3",
+      "bytes": 37545,
+      "sha256": "6b7370ac21161b95947f75b9ad57b920e8c543c8f3437f0ee314b4ea97a68585"
+    },
+    {
+      "text": "信用卡。",
+      "speed": "normal",
+      "key": "mandarin/2c7134b4e0c51cd950db53b9fdda5293edcf982625f145fd7044a91c3e8e57e0.mp3",
+      "bytes": 35455,
+      "sha256": "9f6c8998f995beb60df16461da020636fdedac2cc1a1956945cd56805e8dbf0a"
+    },
+    {
+      "text": "信用卡。",
+      "speed": "slow",
+      "key": "mandarin/5a9e5b7be4ce904f6767e40a67846bc80b2c10cd7c59811cac240030f7f9fe12.mp3",
+      "bytes": 41306,
+      "sha256": "7b227e95251df28fddd69644a53c8654809adcf6b1b261345485bd9c9f968c02"
+    },
+    {
+      "text": "元。",
+      "speed": "normal",
+      "key": "mandarin/82037371e302673aa062a214a3fcf53a27eef5a7184398be1876f1542f8fd440.mp3",
+      "bytes": 27931,
+      "sha256": "61c3b4a074dee03030a214e4ea7ce1d6b410c303c09199f8f3bba6ba8b4c2109"
+    },
+    {
+      "text": "元。",
+      "speed": "slow",
+      "key": "mandarin/15823ce92904b0f40afa3ff9bb7094a4fa2c547408e0018013caaa2db2f1cac1.mp3",
+      "bytes": 32529,
+      "sha256": "dec660e38d5a052f9b5d51c14c80dc9cc9fc16f26bfbba3480c71506b489cd2f"
+    },
+    {
+      "text": "买单。",
+      "speed": "normal",
+      "key": "mandarin/d8275fd4422e4b564ac9b1fd02a110bf1ddc7d59f0b5ed99d1c06efebb8fc77d.mp3",
+      "bytes": 31693,
+      "sha256": "1846ac15443d53e00e3702d65ef092961cac254c438a5b563b5077f0d53bf03f"
+    },
+    {
+      "text": "买单。",
+      "speed": "slow",
+      "key": "mandarin/7791af002f38786ebbf1fdb175cfb32c1f5df9272e43a5abf4e3b1465faad35a.mp3",
+      "bytes": 37127,
+      "sha256": "16c7204d744715689504ac3cd7dde054292920f6bb2adba48e05dc34f90c8338"
+    },
+    {
+      "text": "单价。",
+      "speed": "normal",
+      "key": "mandarin/e958161bb888323b710559a198dcc9d01b1de3338fc3644afe3baf1b56003e0a.mp3",
+      "bytes": 31693,
+      "sha256": "aecc18ff24a69987fd12bb76f1385d78c941d2a2158285df0c587c327a2943ed"
+    },
+    {
+      "text": "单价。",
+      "speed": "slow",
+      "key": "mandarin/b8ca8ac964d6a078eb3bde062561acb8bdbec4d6a0ff476127b271d447ccc1f2.mp3",
+      "bytes": 35455,
+      "sha256": "b5d560c908ed5ccb901d9b6a64b2661ce30b12896debb936cdbf0e918d4c6c2f"
+    },
+    {
+      "text": "总价。",
+      "speed": "normal",
+      "key": "mandarin/e16b3c42945e69687aed8d852da93ec436d0f013d2bc0afd69d8745dd4889400.mp3",
+      "bytes": 31693,
+      "sha256": "e7328ccd2dadd60e6f347afe4e4cac8baf87e651b8fd91fd2e4cce0ec3fe6481"
+    },
+    {
+      "text": "总价。",
+      "speed": "slow",
+      "key": "mandarin/9bff1e9ab1f459c6631be5073ad41616285f435af99146f5089a1bfc761c6e13.mp3",
+      "bytes": 36291,
+      "sha256": "9333f38470166fc0d1ff5af25104759ad2838f45203511966f0580720cc82a5a"
+    },
+    {
+      "text": "每人。",
+      "speed": "normal",
+      "key": "mandarin/2db51b32342b28d6a0ba01175f225ff4a908f44307f7e32a7a69961c91f4a659.mp3",
+      "bytes": 31693,
+      "sha256": "a640e7da0339b327375b051b4549cbc91e2b26c67ad8c7be76490776f708c0f5"
+    },
+    {
+      "text": "每人。",
+      "speed": "slow",
+      "key": "mandarin/999b6bf0a8a8ffac99f5a4a350a921f56f49177b6d3e2aca9b5e3d5be89ad61e.mp3",
+      "bytes": 36291,
+      "sha256": "7fc222efdb7d6fcecd1db3a9ab6647424780021388661d205ffc53db8574417e"
+    },
+    {
+      "text": "每份。",
+      "speed": "normal",
+      "key": "mandarin/591af44bcfd9f05d01fd0e7c925fe886f11cb8002d7e10b810a4b2b35754c95b.mp3",
+      "bytes": 31693,
+      "sha256": "ce813e5c828afc6054d8595a530ba756536d328d39de0f9c88165e9e75b41c22"
+    },
+    {
+      "text": "每份。",
+      "speed": "slow",
+      "key": "mandarin/fc93c36bfbd45e97780523876d73210cb4b7bb6135a03e25661d3d6df7e13f7b.mp3",
+      "bytes": 34619,
+      "sha256": "4a7058e8ec3c42f008d3ef1651d8e8ac7ea055d1b625e600a08c4e067d5bc50c"
+    },
+    {
+      "text": "不议价。",
+      "speed": "normal",
+      "key": "mandarin/cb4477e28f95eb86ea196a23ab601c84d8fdef66f18ed443f85afa6436ea8c5f.mp3",
+      "bytes": 34201,
+      "sha256": "9fc31ecf150247dab5af41f9478ea0bc2b9705a431fc886e143562854fb0d20e"
+    },
+    {
+      "text": "不议价。",
+      "speed": "slow",
+      "key": "mandarin/53a1d30bc761e2bb026eae8231f1acdf0c4cde4361a457048283f18bd330bdcf.mp3",
+      "bytes": 37545,
+      "sha256": "f0c236318f7104c6f7914027d192f84ec22adc8b99a8e21bf2bd2db35cb7b186"
+    },
+    {
+      "text": "检票口。",
+      "speed": "normal",
+      "key": "mandarin/57c7cabfd067649936a8f500eb1b3abf08440cb32731ec0810ca12d6392088e4.mp3",
+      "bytes": 34201,
+      "sha256": "616638eea8c4eab0adcc4465bdb02cbec97bf05b36dc0a059be1cb744611e9b3"
+    },
+    {
+      "text": "检票口。",
+      "speed": "slow",
+      "key": "mandarin/91c30635c432ba0acd9aba783760a3f61514eb7c31ed79841424d5118d51c431.mp3",
+      "bytes": 40888,
+      "sha256": "3e0403db111cabfa7bd2abe92211c3876c236cb7abf16fbed1d65184935279b4"
+    },
+    {
+      "text": "出站口。",
+      "speed": "normal",
+      "key": "mandarin/89707581a7f096717cdad5375b50cfb5aeeac07c180b6795a012a32318781b9d.mp3",
+      "bytes": 35455,
+      "sha256": "ac52b8609168fc144ac50d7803138b98cd6ffbc15ee93762e25c8564df253cd9"
+    },
+    {
+      "text": "出站口。",
+      "speed": "slow",
+      "key": "mandarin/63ada105dc0eba63032d36d970e88161cb2cd6ce2edeb5e2c4e10220c2c61bfa.mp3",
+      "bytes": 40888,
+      "sha256": "887559a3258c5d288da042727c94fa2a0cd60c3b9e1ce9978dfe89e489ecce73"
+    },
+    {
+      "text": "座位。",
+      "speed": "normal",
+      "key": "mandarin/3ab436db5d84b1f08d28ee7c3b3e2661d3d2c3ba2caf03f28835dd6aa126323e.mp3",
+      "bytes": 30439,
+      "sha256": "8dcee2cfcb77e10ddf3eb5980d0e160b50ad96ebd728bef1a9e08bdc4acc2629"
+    },
+    {
+      "text": "座位。",
+      "speed": "slow",
+      "key": "mandarin/35b0904814745cf4fb8dae2a71a5dd697487f5928bd1735bc17267343b43dd7d.mp3",
+      "bytes": 34201,
+      "sha256": "f9cc21404b98707d14e4c38aba6eb79cab889ab1ffd24a129e62e6f7127cfa3f"
+    },
+    {
+      "text": "高铁。",
+      "speed": "normal",
+      "key": "mandarin/cbb6a5bcf61989ba6eb545834940745c47682f1d1acecf0e7615b00e935cf48c.mp3",
+      "bytes": 31693,
+      "sha256": "53b861429a1799b98250ea58101e98337d3782a519a13a035767d3cb0248cd3f"
+    },
+    {
+      "text": "高铁。",
+      "speed": "slow",
+      "key": "mandarin/3585a78c2a9300eeb3d8e6f59f3d68a1247acc53d8437935aeda963c56225935.mp3",
+      "bytes": 36291,
+      "sha256": "eafa01c364871446a4f15a371855d433077a24b9a7be3e87a137471bf96de723"
+    },
+    {
+      "text": "啤酒。",
+      "speed": "normal",
+      "key": "mandarin/d6856763f897d79f1f4bd2b2710bda11e38a26a8ce8b8eba3e9c22e6e2ab14dc.mp3",
+      "bytes": 31693,
+      "sha256": "8b0a4110ffb10fa025b11ac66fe1160bbad4bfd1a747451fcb08d7ad1c3186d4"
+    },
+    {
+      "text": "啤酒。",
+      "speed": "slow",
+      "key": "mandarin/8ceceb6396dce57e472044b543b45c8860124b51cffcf2554bf9c59993245b54.mp3",
+      "bytes": 35455,
+      "sha256": "87837e346322c8ae5101b3fe6eb3537831a419b2a45ee030b1803e2308c617ec"
+    },
+    {
+      "text": "水。",
+      "speed": "normal",
+      "key": "mandarin/09159b94e50c5a0703175705bfe60074160d5fc3acb3b5ef1fa4cb90a9d646e1.mp3",
+      "bytes": 28767,
+      "sha256": "622d3176c72bd866afdc40f82cb3e2782755d1ed800ed2a55212e45d2583e7be"
+    },
+    {
+      "text": "水。",
+      "speed": "slow",
+      "key": "mandarin/1c68d8b0229e4265ea14c57fd6824fd4db2a2cb0cb8c208e58c11b3c9433bf87.mp3",
+      "bytes": 32529,
+      "sha256": "b07eeab3cb92f4ed5571ff71efb806cc1bb792cc7cd204539898021530cabb98"
+    },
+    {
+      "text": "干杯。",
+      "speed": "normal",
+      "key": "mandarin/adcf3f2c3df8f07339cedfe12a883b7f8c028b8f7943a7219408971f7302489b.mp3",
+      "bytes": 31693,
+      "sha256": "4c02b07915dc5564fbc70c815990223870da6fd59b30d8a7b9aa965b98d08261"
+    },
+    {
+      "text": "干杯。",
+      "speed": "slow",
+      "key": "mandarin/b83834fcabdb012c955a66277c7e02169f06f048469e43cb53f0c52b3214a787.mp3",
+      "bytes": 36291,
+      "sha256": "6dc0dab06aec354e117a462304fb89d0ac65b668fcee9470fa7104d2fd6e6697"
+    },
+    {
+      "text": "禁止吸烟。",
+      "speed": "normal",
+      "key": "mandarin/cefb45c6f1d5b7abfa7fadd76e69a5a2627562d248aebb64a9dc3749a8770cb9.mp3",
+      "bytes": 37545,
+      "sha256": "5f03d2f28845c0bacd73685e12657f78cfbd748b799d9a3e2263758eeeefe570"
+    },
+    {
+      "text": "禁止吸烟。",
+      "speed": "slow",
+      "key": "mandarin/507d8b120c4c24c3613601b4254cdde4b350c9e8fe5d7d91bd1569e9aab0c31d.mp3",
+      "bytes": 45068,
+      "sha256": "54219a64c80aee182bbb6c710433c2f6a3d3d3ae0c1e59ba444dba268454a816"
+    },
+    {
+      "text": "包间。",
+      "speed": "normal",
+      "key": "mandarin/4fde91acb6907f8bb58998ef65027668fb34ccd3285722a62696981d5396e6b1.mp3",
+      "bytes": 30857,
+      "sha256": "9bde9d4df4609903fe060e6ec60da5ca816b87f388204ca13fd5edf33919197a"
+    },
+    {
+      "text": "包间。",
+      "speed": "slow",
+      "key": "mandarin/9b573b1ecc4ddde7cb1903fe7f58d7403c04eb3f6a40956b8f41135cd690c591.mp3",
+      "bytes": 36291,
+      "sha256": "239a6d4062919ccdf78b39b2858ed0af8f784992b8548f244d9bb5a7277f6dcb"
+    },
+    {
+      "text": "歌曲。",
+      "speed": "normal",
+      "key": "mandarin/9d26dae4c8f06520ea2124140203cca675ff9200800e580b8278b87305912fc7.mp3",
+      "bytes": 30857,
+      "sha256": "d756ab1d69fa53f69ab7ab21ba09810dadff2851734bce783ff0dbfdf2108d05"
+    },
+    {
+      "text": "歌曲。",
+      "speed": "slow",
+      "key": "mandarin/8796737a7f51fc5bf030ee20114046e0666c67a16e00ec7c998522950fcbfea1.mp3",
+      "bytes": 35455,
+      "sha256": "5f4b30bfc08033daa7da8852d98c510e26f84463d31c7ab8b83fab1f549adabb"
+    },
+    {
+      "text": "账单。",
+      "speed": "normal",
+      "key": "mandarin/1e9540a3251f1c1222808d0fe9c78bdb192d10a8fa19bb81c736d189dab31232.mp3",
+      "bytes": 31693,
+      "sha256": "ade840f75b7576cac1e44144a29aba9e523f6a373390951c34e4dbec8e313d3e"
+    },
+    {
+      "text": "账单。",
+      "speed": "slow",
+      "key": "mandarin/e2d93bf5897c396378d96762951642e12688180bd863330c6d7c1ac0418fc00c.mp3",
+      "bytes": 37127,
+      "sha256": "a50f0ee5031c2fea4bb6a7c060dca31d7e03c5430fb149dd914873be51a0bf10"
+    },
+    {
+      "text": "出租车。",
+      "speed": "normal",
+      "key": "mandarin/eda0dbea07fdea3c02de6840c5d59c4b2bd681141726fd550496bed729d19566.mp3",
+      "bytes": 34201,
+      "sha256": "86b7fd4416fb1f55ec22f1a17d1059c94f5fb28e89254cf1abe186acbabc048a"
+    },
+    {
+      "text": "出租车。",
+      "speed": "slow",
+      "key": "mandarin/83adca3e380e31f652b9edecdd566b7cb0c7d70aa249ecb9c7996b88ca862bd2.mp3",
+      "bytes": 39216,
+      "sha256": "b98609419d00d2dee4f3ffcc64f6c640ac8df17b4c771d970d3b9f20f7709930"
+    },
+    {
+      "text": "酒店。",
+      "speed": "normal",
+      "key": "mandarin/a56d95ed7c6a6c9347cb32afc963aeb1379acb9af35b3c612c6f04c0f2ba16ae.mp3",
+      "bytes": 30439,
+      "sha256": "349653181e25626f4c7cbd28c9e8c738cf76e5fa229dd6d83c634b3d80a1e556"
+    },
+    {
+      "text": "酒店。",
+      "speed": "slow",
+      "key": "mandarin/1c9391a0853e6fdc9bd7c14866ea99645e32ebe661bd3ac42bf5c5e6002db92d.mp3",
+      "bytes": 37127,
+      "sha256": "582408af17b8c124c3c194aeba080120fa0f01555fe0a724ecad064f09e71014"
+    },
+    {
+      "text": "幺二零。",
+      "speed": "normal",
+      "key": "mandarin/0c226352f1ad5250c33739bc1fc2f15ef6b9ac86fcdcb876aa8d2f05f9479da1.mp3",
+      "bytes": 34619,
+      "sha256": "24200417b8792ea51767d9231bd90cbfd1dbc89c82ccdee4f42121747987dae7"
+    },
+    {
+      "text": "幺二零。",
+      "speed": "slow",
+      "key": "mandarin/d508ee3861878e878eff675cfda4c92162e374f834ffb682633fd0caea59a661.mp3",
+      "bytes": 39216,
+      "sha256": "fa21a97b406ff92b436ea72ad82c5658c78cc92a2d12608cf0ecdbed360375e2"
+    },
+    {
+      "text": "幺幺零。",
+      "speed": "normal",
+      "key": "mandarin/06fdda9b1d36cdbb092b8a01727e79bf59f0535b9101cb505364266714885bd1.mp3",
+      "bytes": 34201,
+      "sha256": "0f5ca50b2b91ce6a64ce380c23acf17cb3222ca7c289a91793da8931299c3145"
+    },
+    {
+      "text": "幺幺零。",
+      "speed": "slow",
+      "key": "mandarin/20109b6c9f1cac2e25e4bd728d7520b4e82f278719b2e512b79213a8c1423591.mp3",
+      "bytes": 40052,
+      "sha256": "dec9f3385fba72e87e0eff67934956205ae58ec049204c159cab1362294ab8c3"
+    },
+    {
+      "text": "幺幺九。",
+      "speed": "normal",
+      "key": "mandarin/a94ff6e3e990c459b734da6cd7bfb28e77857fdfe1f644fabcc6ccfb07b2e19c.mp3",
+      "bytes": 34201,
+      "sha256": "2ecd49cd1c9e15a7350947d514eb3d61a7e07aa45299584485189bc2de3527f0"
+    },
+    {
+      "text": "幺幺九。",
+      "speed": "slow",
+      "key": "mandarin/40d25f64cc9ed1b56294d83d5a1a25964423daf41d6b8a0dce85a0c45d133fb9.mp3",
+      "bytes": 39216,
+      "sha256": "0aa302b7ba9cffda80e2cd8e3fd8ef5fc6e7374254225ee47040fa6b889d868d"
+    },
+    {
+      "text": "医院。",
+      "speed": "normal",
+      "key": "mandarin/7759caee663076a172734f237f456b9bdbf51c2e2b1e22aec73e6fd0b585cf93.mp3",
+      "bytes": 31693,
+      "sha256": "4da53e8eec3ddc511454cb141c1c69d0dbb212cbe44efc7b819a7132996a52da"
+    },
+    {
+      "text": "医院。",
+      "speed": "slow",
+      "key": "mandarin/d0e50ed9c8dfc738bb0e28783a67748daa4c95448b97d0e8b9f6f41c5897dbba.mp3",
+      "bytes": 36291,
+      "sha256": "d29b8b4fef9f6f4613e9fca7c075b58b24d7c6b4d886983fbf0f1db9c70a508d"
+    },
+    {
+      "text": "帮助。",
+      "speed": "normal",
+      "key": "mandarin/ce1cc420e41bca9cc4437471edd91381b889e586e1a6e22e45d2cd59012ddc80.mp3",
+      "bytes": 31693,
+      "sha256": "71a2705b6ddcaa5092ab59d27d75a0250f5a34d86e58344e7dcd0b91a23e6968"
+    },
+    {
+      "text": "帮助。",
+      "speed": "slow",
+      "key": "mandarin/c593fc5d24c58249b1864e8110301a74490df0ed4b439e1fc7e6b43a6d7aaf98.mp3",
+      "bytes": 37127,
+      "sha256": "9f7d3b9a761cc52311a80cf774f54f1dedb8aefdf63b8c468071382381b1ef75"
+    },
+    {
+      "text": "你好。我们要两份饺子。不要太辣。谢谢。",
+      "speed": "normal",
+      "key": "mandarin/34893a7fcd8115340a2aca80871d105272b330c85dd5a7c0a9263eea4b77b0eb.mp3",
+      "bytes": 78505,
+      "sha256": "59cacb1aefe54daad278fae6cc8c740a60256a7b8fb3f5141bc11928673a69eb"
+    },
+    {
+      "text": "你好。我们要两份饺子。不要太辣。谢谢。",
+      "speed": "slow",
+      "key": "mandarin/1ddc6ad4b15a814497dd8d61a8cd1931f2e689bbb9d0781923bde6fcb75132f7.mp3",
+      "bytes": 107762,
+      "sha256": "44afe1cd4ef0e8e1806d107a45b595a42e7b32bb5eb0b4f7c56f4c0111181224"
+    }
+  ]
+}

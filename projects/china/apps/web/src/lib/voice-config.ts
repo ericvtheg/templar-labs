@@ -3,6 +3,7 @@
 // voice only after the shared account's plan permits library voices through the API.
 export const defaultMandarinVoiceId = "JBFqnCBsd6RMkjVDRZzb";
 export const mandarinModelId = "eleven_multilingual_v2";
+export const mandarinVoiceSettings = { stability: 0.7, similarityBoost: 0.75 } as const;
 export const speechSpeeds = { normal: 1, slow: 0.75 } as const;
 export type SpeechSpeed = keyof typeof speechSpeeds;
 export const foundationAudioTexts = [

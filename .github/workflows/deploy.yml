@@ -57,17 +57,14 @@ jobs:
             pnpm run deploy
           fi
 
-      - name: Pre-generate China lesson audio
+      - name: Upload prepared China audio
         timeout-minutes: 20
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CHINA_CREW_EMAILS: ${{ secrets.CHINA_CREW_EMAILS }}
-          RUN_OWNER_HANDOFF_PROBE: "true"
-          RUN_SPEECH_WARMUP: "true"
         run: |
           if [ "${{ github.event_name }}" = "push" ] && git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- projects/china packages/deploy packages/auth pnpm-lock.yaml package.json .github/workflows/deploy.yml; then
-            echo "China unchanged; audio already prepared."
+            echo "China unchanged; prepared audio already deployed."
             exit 0
           fi
-          node projects/china/scripts/auth-diagnostics.mjs
+          pnpm --filter china audio:upload

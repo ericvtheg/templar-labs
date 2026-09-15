@@ -86,9 +86,10 @@ test("a tap can start delayed audio playback, including Safari byte-range reques
   });
   await page.goto("/");
   await page.getByRole("button", { name: /Start from absolute zero/ }).click();
+  await page.getByRole("button", { name: /Let’s begin/ }).click();
   await page.getByRole("button", { name: /Next: hear it/ }).click();
   await page.getByRole("button", { name: "▶ Listen", exact: true }).click();
-  await expect(page.getByText("Speaking Mandarin · ElevenLabs")).toBeVisible();
+  await expect(page.getByText("Speaking Mandarin · ElevenLabs")).toBeVisible({ timeout: 15000 });
   await page.getByRole("button", { name: "■ Stop audio" }).click();
   await expect(page.getByText(/ElevenLabs audio couldn’t play/)).toHaveCount(0);
 });
@@ -126,9 +127,16 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
       task: number;
       answer: string;
     };
-    await route.fulfill({
-      json: { correct: grade(body.missionId, body.task, body.answer), completed: false },
-    });
+    const correct = grade(body.missionId, body.task, body.answer);
+    if (correct) {
+      data.mastery.push({
+        mission_id: body.missionId,
+        task: body.task,
+        level: 1,
+        due: Date.now() + 86400000,
+      });
+    }
+    await route.fulfill({ json: { correct, completed: false } });
   });
   await page.goto("/");
   await expect(page.getByRole("button", { name: /Start from absolute zero/ })).toBeVisible();
@@ -137,7 +145,12 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
   );
   await page.screenshot({ path: test.info().outputPath("missions.png"), fullPage: true });
   await page.getByRole("button", { name: /Start from absolute zero/ }).click();
+  await expect(page.getByText("Your first Chinese words.")).toBeVisible();
+  await expect(page.locator(".experience-nav, .session-reveal")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeHidden();
+  await page.getByRole("button", { name: /Let’s begin/ }).click();
   await expect(page.getByText("CHINESE, FROM LITERALLY ZERO")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Next: hear it/ })).toBeInViewport({ ratio: 1 });
   await page.screenshot({ path: test.info().outputPath("first-lesson.png"), fullPage: true });
   await page.getByRole("button", { name: /Next: hear it/ }).click();
   await page.route("**/api/trip/speech?**", (route) =>
@@ -147,20 +160,35 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
   await expect(page.getByText(/ElevenLabs audio couldn’t play/)).toBeVisible();
   await page.getByRole("button", { name: /Next: tones/ }).click();
   await expect(page.getByText("Your voice changes the word.")).toBeVisible();
-  await page.getByRole("button", { name: /Start here: 你好, characters/ }).click();
-  await page.getByRole("button", { name: "Flip phrase card" }).click();
-  await page.locator(".encounter-choices").getByRole("button", { name: /你好/ }).click();
-  await expect(page.getByText("That gets the message across.")).toBeVisible();
-  await page.getByRole("button", { name: /Ears only/ }).click();
-  await expect(page.getByText("No characters. Just your ears.")).toBeVisible();
-  await page.getByRole("button", { name: /Say it/ }).click();
-  await page.getByLabel(/Check the transcript/).fill("ni hao");
-  await page.getByRole("button", { name: /Check my phrase/ }).click();
-  await expect(page.getByText("That gets the message across.")).toBeVisible();
-  await page.route("**/api/trip/match", (route) =>
-    route.fulfill({ json: { correct: true, completed: false } }),
-  );
-  await page.getByRole("button", { name: /Match the signs/ }).click();
+  await page.getByRole("button", { name: /Next: try it/ }).click();
+  await expect(page.getByRole("button", { name: /Use your first words/ })).toBeDisabled();
+  await page.getByRole("button", { name: "你", exact: true }).click();
+  await page.getByRole("button", { name: /Use your first words/ }).click();
+  for (const [index, phrase] of (missions[0]?.phrases ?? []).entries()) {
+    await expect(page.locator(".phrase-encounter")).toHaveCount(1);
+    await expect(page.locator(".encounter-choices")).toHaveCount(0);
+    if (index % 3 === 0) {
+      await page.getByRole("button", { name: "Flip phrase card" }).click();
+      await page.getByRole("button", { name: /Try it from memory/ }).click();
+      await page
+        .locator(".encounter-choices")
+        .getByRole("button", { name: `${phrase.hanzi} ${phrase.pinyin}`, exact: true })
+        .click();
+    } else if (index % 3 === 1) {
+      await page.getByRole("button", { name: /Try it by ear/ }).click();
+      await page.getByRole("button", { name: phrase.english, exact: true }).click();
+    } else {
+      await page.getByRole("button", { name: /My turn to say it/ }).click();
+      await page.getByLabel(/Check what it heard/).fill(phrase.pinyin);
+      await page.getByRole("button", { name: /Check my phrase/ }).click();
+    }
+    await expect(page.getByText("That gets the message across.")).toBeVisible();
+    await page.getByRole("button", { name: /What happens next/ }).click();
+  }
+  await page.route("**/api/trip/match", (route) => {
+    data.completed = ["basics"];
+    return route.fulfill({ json: { correct: true, completed: true } });
+  });
   await page.screenshot({ path: test.info().outputPath("sign-wall.png"), fullPage: true });
   await page.getByRole("button", { name: /Hide the English/ }).click();
   for (const card of missions[0]?.matches ?? []) {
@@ -190,19 +218,19 @@ test("beginner mission, honest voice fallback, crew board, and offline export", 
             },
     });
   });
-  await page.getByRole("button", { name: /The boys in the wild/ }).click();
+  await page.getByRole("button", { name: /What happens next/ }).click();
   await page.getByRole("button", { name: /Deal me a situation/ }).click();
   await page.getByLabel("What do you say?").fill("ni hao");
   await page.getByRole("button", { name: "Send →", exact: true }).click();
   await expect(page.getByText(/Ni hao gets you through/)).toBeVisible();
   await page.screenshot({ path: test.info().outputPath("chaos-coach.png"), fullPage: true });
-  await page.getByRole("button", { name: /Real-world listening/ }).click();
-  expect(await page.locator("iframe").count()).toBe(0);
-  await page.getByRole("button", { name: /Video blocked/ }).click();
-  await page.getByLabel(/What was broadly happening/).fill("Someone was ordering dumplings.");
-  await page.getByLabel(/One word, sound/).fill("ni hao");
-  await page.getByRole("button", { name: /Pin my field report/ }).click();
-  await expect(page.getByText("Clue: ni hao")).toBeVisible();
+  await page.getByRole("button", { name: /What happens next/ }).click();
+  await expect(page.getByRole("heading", { name: "Passport stamped." })).toBeVisible();
+  await expect(page.locator(".session-reveal")).toHaveCount(1);
+  await expect(page.locator(".video-lab")).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath("session-payoff.png"), fullPage: true });
+  await page.getByRole("button", { name: /Back to your trip/ }).click();
+  await expect(page.getByRole("button", { name: /Pick up where you left off/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   );

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
 import { SpeechPlayer } from "./SpeechPlayer.tsx";
 import { VoicePractice } from "./VoicePractice.tsx";
 
@@ -28,38 +29,52 @@ const pieces = [
       "Together: ‘you + good’ is a greeting. Natural speech sounds like ní hǎo because two third tones meet. Listen to the complete phrase, not just the isolated pieces.",
   },
 ];
-export function HelloPrimer() {
+export function HelloPrimer({ onComplete }: { onComplete?: () => void } = {}) {
   const [step, setStep] = useState(0);
   const [piece, setPiece] = useState(0);
   const [answer, setAnswer] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
+  const screen = useEncounterFocus(step);
   const selected = pieces[piece] ?? pieces[0];
   if (!selected) {
     return null;
   }
   return (
-    <section className="primer hello-lab">
+    <section ref={screen} className="primer hello-lab">
       <span className="eyebrow">CHINESE, FROM LITERALLY ZERO</span>
-      <h2>Start here: what the hell is 你好?</h2>
-      <p>
-        Not an alphabet test. Let’s turn two unfamiliar shapes into something you can actually say.
-      </p>
-      <fieldset className="lab-steps" aria-label="Chinese foundations">
-        {["See it", "Hear it", "Move your voice", "Try it"].map((label, index) => (
-          <button
-            type="button"
-            key={label}
-            aria-pressed={step === index}
-            onClick={() => setStep(index)}
-          >
-            <b>{index + 1}</b>
-            {label}
-          </button>
-        ))}
-      </fieldset>
+      <h2>
+        {onComplete
+          ? [
+              "Two shapes, one greeting.",
+              "Hear them come together.",
+              "Your voice changes the word.",
+              "One tiny win.",
+            ][step]
+          : "Start here: what the hell is 你好?"}
+      </h2>
+      {!onComplete && <p>Let’s turn two unfamiliar shapes into something you can actually say.</p>}
+      {onComplete ? (
+        <p className="foundation-counter">
+          {step + 1} / 4 · {["See it", "Hear it", "Move your voice", "Try it"][step]}
+        </p>
+      ) : (
+        <fieldset className="lab-steps" aria-label="Chinese foundations">
+          {["See it", "Hear it", "Move your voice", "Try it"].map((label, index) => (
+            <button
+              type="button"
+              key={label}
+              aria-pressed={step === index}
+              onClick={() => setStep(index)}
+            >
+              <b>{index + 1}</b>
+              {label}
+            </button>
+          ))}
+        </fieldset>
+      )}
       {step === 0 && (
         <>
-          <h3>Two characters. Read left → right.</h3>
+          {!onComplete && <h3>Two characters. Read left → right.</h3>}
           <div className="character-equation">
             <div>
               <strong lang="zh-CN">你</strong>
@@ -79,20 +94,29 @@ export function HelloPrimer() {
               <b>hello</b>
             </div>
           </div>
-          <p>
-            A <strong>character</strong> is a written symbol. Each of these has one spoken syllable
-            and its own meaning. Characters are not English letters, and a word can contain more
-            than one character.
-          </p>
-          <p>
-            <strong>Pinyin</strong> is the Latin-letter pronunciation guide underneath:{" "}
-            <strong>nǐ hǎo</strong>. You do not need to know how to handwrite 你 to recognize it or
-            say hello.
-          </p>
-          <div className="notice">
-            For this trip, start with <strong>recognizing useful shapes</strong>: restroom, exit,
-            entrance, food. Not memorizing an entire writing system.
-          </div>
+          {onComplete && (
+            <p>
+              Read left → right. The big symbols are <strong>characters</strong>. The smaller
+              letters are <strong>pinyin</strong>: a guide to saying them.
+            </p>
+          )}
+          <details open={!onComplete}>
+            <summary>How does Chinese writing work?</summary>
+            <p>
+              A <strong>character</strong> is a written symbol. Each of these has one spoken
+              syllable and its own meaning. Characters are not English letters, and a word can
+              contain more than one character.
+            </p>
+            <p>
+              <strong>Pinyin</strong> is the Latin-letter pronunciation guide underneath:{" "}
+              <strong>nǐ hǎo</strong>. You do not need to know how to handwrite 你 to recognize it
+              or say hello.
+            </p>
+            <div className="notice">
+              For this trip, start with <strong>recognizing useful shapes</strong>: restroom, exit,
+              entrance, food. Not memorizing an entire writing system.
+            </div>
+          </details>
         </>
       )}
       {step === 1 && (
@@ -125,26 +149,28 @@ export function HelloPrimer() {
       )}
       {step === 2 && (
         <>
-          <h3>Your voice changes the word.</h3>
+          {!onComplete && <h3>Your voice changes the word.</h3>}
           <p>
             The little marks are <strong>tones</strong>: the pitch pattern of a syllable. Not
             shouting, not English word stress. Copy the voice’s movement.
           </p>
-          <div className="tones">
-            {[
-              ["ā", "→", "high & level"],
-              ["á", "↗", "rising"],
-              ["ǎ", "⌄", "low / dipping"],
-              ["à", "↘", "falling"],
-              ["a", "·", "light / neutral"],
-            ].map(([syllable, shape, label]) => (
-              <div key={label}>
-                <strong>{syllable}</strong>
-                <span>{shape}</span>
-                <small>{label}</small>
-              </div>
-            ))}
-          </div>
+          {!onComplete && (
+            <div className="tones">
+              {[
+                ["ā", "→", "high & level"],
+                ["á", "↗", "rising"],
+                ["ǎ", "⌄", "low / dipping"],
+                ["à", "↘", "falling"],
+                ["a", "·", "light / neutral"],
+              ].map(([syllable, shape, label]) => (
+                <div key={label}>
+                  <strong>{syllable}</strong>
+                  <span>{shape}</span>
+                  <small>{label}</small>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="tone-change">
             <span>
               Written
@@ -158,12 +184,21 @@ export function HelloPrimer() {
               <strong>ní hǎo</strong>
             </span>
           </div>
-          <p>
-            Both written marks are third tones. When they sit together,{" "}
-            <strong>the first one rises</strong>. The second stays low and can dip/rise when said on
-            its own. In fast speech, third tones are often just low—don’t force a theatrical scoop
-            into every syllable.
-          </p>
+          {onComplete && (
+            <p>
+              Let the first syllable rise, then say the second low. Copy the audio—you don’t need a
+              whole tone chart yet.
+            </p>
+          )}
+          <details>
+            <summary>Why does the first tone change?</summary>
+            <p>
+              Both written marks are third tones. When they sit together,{" "}
+              <strong>the first one rises</strong>. The second stays low and can dip/rise when said
+              on its own. In fast speech, third tones are often just low—don’t force a theatrical
+              scoop into every syllable.
+            </p>
+          </details>
           <SpeechPlayer text="你好。" />
           <details>
             <summary>Want to hear why tone matters? Try the “ma” lab.</summary>
@@ -191,19 +226,22 @@ export function HelloPrimer() {
                 : "好 means good. Try the other character—there’s no penalty."}
             </p>
           )}
-          <button type="button" className="text-button" onClick={() => setHidden(!hidden)}>
-            {hidden ? "Show hello again" : "Hide the answer & say hello"}
-          </button>
-          <div className={`primer-example ${hidden ? "concealed" : ""}`} aria-hidden={hidden}>
-            <span lang="zh-CN">你好</span>
-            <strong>nǐ hǎo → sounds like ní hǎo</strong>
-            <small>Hello</small>
-          </div>
-          <VoicePractice text="你好。" />
-          <p>
-            Listen. Say it. Listen to yourself. That’s enough for a first step. Next, we’ll turn
-            signs like <span lang="zh-CN">出口</span> into things you can recognize on the street.
-          </p>
+          <details>
+            <summary>Try saying it too (optional)</summary>
+            <button type="button" className="text-button" onClick={() => setHidden(!hidden)}>
+              {hidden ? "Show hello again" : "Hide the answer & say hello"}
+            </button>
+            <div className={`primer-example ${hidden ? "concealed" : ""}`} aria-hidden={hidden}>
+              <span lang="zh-CN">你好</span>
+              <strong>nǐ hǎo → sounds like ní hǎo</strong>
+              <small>Hello</small>
+            </div>
+            <VoicePractice text="你好。" />
+            <p>
+              Listen. Say it. Listen to yourself. That’s enough for a first step. Next, we’ll turn
+              signs like <span lang="zh-CN">出口</span> into things you can recognize on the street.
+            </p>
+          </details>
         </>
       )}
       <div className="button-row spread">
@@ -213,6 +251,10 @@ export function HelloPrimer() {
         {step < 3 ? (
           <button type="button" className="primary" onClick={() => setStep(step + 1)}>
             Next: {["", "hear it", "tones", "try it"][step + 1]} →
+          </button>
+        ) : onComplete ? (
+          <button type="button" className="primary" disabled={answer !== "你"} onClick={onComplete}>
+            Use your first words →
           </button>
         ) : (
           <span className="eyebrow">NOW TRY A MISSION ENCOUNTER BELOW ↓</span>

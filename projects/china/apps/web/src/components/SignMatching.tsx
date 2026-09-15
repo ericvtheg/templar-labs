@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { MatchCard } from "../lib/activity-content.ts";
 import { tripApi } from "../lib/trip-api.ts";
 import type { AnswerResult } from "../lib/types.ts";
+import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
 import { PriceDetective } from "./PriceDetective.tsx";
 import { SpeechPlayer } from "./SpeechPlayer.tsx";
 export function shuffled<T>(items: readonly T[]): T[] {
@@ -16,10 +17,12 @@ export function SignMatching({
   cards,
   missionId,
   onSaved,
+  onContinue,
 }: {
   cards: MatchCard[];
   missionId: string;
   onSaved: () => Promise<void>;
+  onContinue?: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
   const [order, setOrder] = useState(() => shuffled(cards));
@@ -28,6 +31,7 @@ export function SignMatching({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const screen = useEncounterFocus(`${playing}:${saved}`);
   const [audition, setAudition] = useState<MatchCard | null>(null);
   function start() {
     setPlaying(true);
@@ -78,8 +82,31 @@ export function SignMatching({
       void save();
     }
   }
+  if (saved && onContinue) {
+    return (
+      <section ref={screen} className="matching-lab serial-success">
+        <span className="eyebrow">CONNECTED</span>
+        <div className="session-art" aria-hidden="true">
+          ✓
+        </div>
+        <h2>You can read the room. Literally.</h2>
+        <p>
+          You matched the signs to their meanings. That’s useful on an actual street, not just in an
+          app.
+        </p>
+        <button type="button" className="primary" disabled={busy} onClick={onContinue}>
+          {busy ? "Saving…" : "What happens next? →"}
+        </button>
+        {message && (
+          <p role="status" className="fine-print">
+            {message}
+          </p>
+        )}
+      </section>
+    );
+  }
   return (
-    <section className="matching-lab">
+    <section ref={screen} className="matching-lab">
       <div className="encounter-label">
         <span>◈ SIGNS ON THE STREET</span>
         <span>
@@ -190,7 +217,7 @@ export function SignMatching({
           {message}
         </p>
       )}
-      {missionId === "market" && <PriceDetective />}
+      {missionId === "market" && !onContinue && <PriceDetective />}
     </section>
   );
 }

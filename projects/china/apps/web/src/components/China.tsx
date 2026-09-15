@@ -175,7 +175,7 @@ export function China() {
   }
   const active = data.missions.find((mission) => mission.id === selected);
   return (
-    <div className="app-shell">
+    <div className={`app-shell${active ? " in-session" : ""}`}>
       <aside className="sidebar">
         <a className="wordmark" href="/">
           <ChinaFlag />{" "}
@@ -235,16 +235,30 @@ export function China() {
           <span>
             CHINA /{" "}
             <strong>
-              {tab === "missions"
-                ? "THE MISSIONS"
-                : tab === "review"
-                  ? "KEEP IT FRESH"
-                  : tab === "crew"
-                    ? "THE BOYS"
-                    : "POCKET GUIDE"}
+              {active
+                ? "IN SESSION"
+                : tab === "missions"
+                  ? "THE MISSIONS"
+                  : tab === "review"
+                    ? "KEEP IT FRESH"
+                    : tab === "crew"
+                      ? "THE BOYS"
+                      : "POCKET GUIDE"}
             </strong>
           </span>
           <div className="topbar-actions">
+            {active && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setTab("field");
+                  setSelected(null);
+                }}
+              >
+                Emergency guide
+              </button>
+            )}
             <span className="private-badge">
               <ChinaFlag /> 中国 · CREW ONLY
             </span>
@@ -378,16 +392,13 @@ function Missions({
             More <em>你好.</em>
           </h1>
           <p>
-            A living trip simulator, not an owl’s homework assignment. Match the signs, hear the
-            locals, speak for the boys, and improvise when the itinerary goes to shit.
+            One short chapter at a time. We’ll show you something useful, help you try it, and put
+            the boys in a situation where you can use it.
           </p>
           <button className="primary" type="button" onClick={() => next && onSelect(next.id)}>
             {data.completed.length ? "Pick up where you left off" : "Start from absolute zero"} ↗
           </button>
-          <button type="button" className="foundation-entry" onClick={() => onSelect("basics")}>
-            Start here: how the hell does 你好 work? →
-          </button>
-          <small>Short encounters. Different ways to play. Actual progression. No hearts.</small>
+          <small>Up next: {next?.title}. Your saved progress comes with you.</small>
         </div>
         <div className="hero-art">
           <div className="hero-china" lang="zh-CN">
@@ -399,95 +410,100 @@ function Missions({
           </span>
         </div>
       </section>
-      <section className="stats-strip" aria-label="Your progress">
-        <div>
-          <strong>
-            {String(data.completed.length).padStart(2, "0")}
-            <small> / {data.missions.length}</small>
-          </strong>
-          <span>MISSIONS IN THE BAG</span>
+      <details className="trip-route">
+        <summary>
+          Your route & progress · {data.completed.length} / {data.missions.length} chapters
+        </summary>
+        <section className="stats-strip" aria-label="Your progress">
+          <div>
+            <strong>
+              {String(data.completed.length).padStart(2, "0")}
+              <small> / {data.missions.length}</small>
+            </strong>
+            <span>MISSIONS IN THE BAG</span>
+          </div>
+          <div>
+            <strong>
+              {
+                data.mastery.filter(
+                  (item) =>
+                    item.level > 0 &&
+                    item.task <
+                      (data.missions.find((mission) => mission.id === item.mission_id)?.phrases
+                        .length ?? 0),
+                ).length
+              }
+            </strong>
+            <span>PHRASES RECOGNIZED</span>
+          </div>
+          <button type="button" onClick={onReview}>
+            <strong>
+              {due}
+              <small> ↻</small>
+            </strong>
+            <span>READY FOR A REFRESH</span>
+          </button>
+        </section>
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">YOUR LEARNING ITINERARY</span>
+            <h2>From “hello” to “get us home.”</h2>
+          </div>
+          <span className="muted">Easiest → hardest</span>
         </div>
-        <div>
-          <strong>
-            {
-              data.mastery.filter(
-                (item) =>
-                  item.level > 0 &&
-                  item.task <
-                    (data.missions.find((mission) => mission.id === item.mission_id)?.phrases
-                      .length ?? 0),
-              ).length
-            }
-          </strong>
-          <span>PHRASES RECOGNIZED</span>
+        <p className="section-intro">
+          Follow the numbers, not the travel dates. First listen and match. Then say it without
+          looking. Review tomorrow—recognizing it once isn’t knowing it.
+        </p>
+        <div className="mission-grid">
+          {data.missions.map((mission, index) => {
+            const done = data.completed.includes(mission.id);
+            return (
+              <button
+                type="button"
+                key={mission.id}
+                className={`mission-card ${next?.id === mission.id ? "next" : ""}`}
+                onClick={() => onSelect(mission.id)}
+              >
+                <div className="card-meta">
+                  <span>MISSION {String(index + 1).padStart(2, "0")}</span>
+                  <span>
+                    {done
+                      ? "✓ PASSED"
+                      : index < 3
+                        ? "FIRST WORDS"
+                        : index < 7
+                          ? "BUILD IT UP"
+                          : "REAL SITUATIONS"}
+                  </span>
+                </div>
+                <div className="mission-symbol" aria-hidden="true">
+                  {mission.icon}
+                </div>
+                <span className="eyebrow">{mission.label}</span>
+                <h3>{mission.title}</h3>
+                <div className="card-bottom">
+                  <span>
+                    {mission.city} · {mission.phrases.length} phrases
+                  </span>
+                  <span className="round-arrow">↗</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
-        <button type="button" onClick={onReview}>
-          <strong>
-            {due}
-            <small> ↻</small>
-          </strong>
-          <span>READY FOR A REFRESH</span>
-        </button>
-      </section>
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">YOUR LEARNING ITINERARY</span>
-          <h2>From “hello” to “get us home.”</h2>
-        </div>
-        <span className="muted">Easiest → hardest</span>
-      </div>
-      <p className="section-intro">
-        Follow the numbers, not the travel dates. First listen and match. Then say it without
-        looking. Review tomorrow—recognizing it once isn’t knowing it.
-      </p>
-      <div className="mission-grid">
-        {data.missions.map((mission, index) => {
-          const done = data.completed.includes(mission.id);
-          return (
-            <button
-              type="button"
-              key={mission.id}
-              className={`mission-card ${next?.id === mission.id ? "next" : ""}`}
-              onClick={() => onSelect(mission.id)}
-            >
-              <div className="card-meta">
-                <span>MISSION {String(index + 1).padStart(2, "0")}</span>
-                <span>
-                  {done
-                    ? "✓ PASSED"
-                    : index < 3
-                      ? "FIRST WORDS"
-                      : index < 7
-                        ? "BUILD IT UP"
-                        : "REAL SITUATIONS"}
-                </span>
-              </div>
-              <div className="mission-symbol" aria-hidden="true">
-                {mission.icon}
-              </div>
-              <span className="eyebrow">{mission.label}</span>
-              <h3>{mission.title}</h3>
-              <div className="card-bottom">
-                <span>
-                  {mission.city} · {mission.phrases.length} phrases
-                </span>
-                <span className="round-arrow">↗</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      <section className="buddy-note">
-        <span className="note-icon">↔</span>
-        <div>
-          <h3>The best man is a friend, not a translation subscription.</h3>
-          <p>
-            After each mission: pair up. One plays the staff member, one plays the confused
-            American. Swap roles. Ask your Chinese-speaking best man to check your tones when he’s
-            up for it.
-          </p>
-        </div>
-      </section>
+        <section className="buddy-note">
+          <span className="note-icon">↔</span>
+          <div>
+            <h3>The best man is a friend, not a translation subscription.</h3>
+            <p>
+              After each mission: pair up. One plays the staff member, one plays the confused
+              American. Swap roles. Ask your Chinese-speaking best man to check your tones when he’s
+              up for it.
+            </p>
+          </div>
+        </section>
+      </details>
     </>
   );
 }

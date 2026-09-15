@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { China } from "../src/components/China.tsx";
+import { MissionExperience } from "../src/components/MissionExperience.tsx";
 import { PriceDetective } from "../src/components/PriceDetective.tsx";
 import { VoicePractice } from "../src/components/VoicePractice.tsx";
 import { crew, fieldNotes, groom, missions } from "../src/lib/curriculum.ts";
@@ -20,6 +21,7 @@ const fixture: TripData = {
 };
 const audioPlay = vi.fn();
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   audioPlay.mockResolvedValue(undefined);
   class AudioMock extends EventTarget {
     src: string;
@@ -88,7 +90,10 @@ describe("interactive beginner clubhouse", () => {
   it("teaches characters before sounds and explains hello’s tone change", async () => {
     render(<China />);
     fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
-    expect(screen.getByText("Two characters. Read left → right.")).toBeTruthy();
+    expect(screen.getByText("Your first Chinese words.")).toBeTruthy();
+    expect(screen.queryByText("Two characters. Read left → right.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Let’s begin/ }));
+    expect(screen.getByRole("heading", { name: "Two shapes, one greeting." })).toBeTruthy();
     expect(screen.getByText("you", { exact: true })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Next: hear it/ }));
     expect(screen.getByText("Tap a piece. Hear what it does.")).toBeTruthy();
@@ -105,32 +110,91 @@ describe("interactive beginner clubhouse", () => {
         ? Response.json({ correct: true, completed: false })
         : Response.json(fixture),
     );
-    render(<China />);
-    fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
+    const mission = missions.find((item) => item.id === "arrival");
+    if (!mission) {
+      throw new Error("Missing arrival chapter");
+    }
+    render(
+      <MissionExperience
+        mission={mission}
+        mastery={[]}
+        completed={false}
+        completedCount={0}
+        onBack={() => undefined}
+        onRefresh={async () => undefined}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Let’s begin/ }));
     fireEvent.click(screen.getByRole("button", { name: "Flip phrase card" }));
+    fireEvent.click(screen.getByRole("button", { name: /Try it from memory/ }));
     const choices = document.querySelector(".encounter-choices");
     if (!choices) {
       throw new Error("Missing phrase choices");
     }
-    fireEvent.click(within(choices as HTMLElement).getByRole("button", { name: /你好/ }));
+    fireEvent.click(within(choices as HTMLElement).getAllByRole("button")[0] as HTMLButtonElement);
     expect(await screen.findByText("That gets the message across.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Ears only/ }));
-    expect(screen.getByText("No characters. Just your ears.")).toBeTruthy();
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: /What happens next/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /What happens next/ }));
+    expect(screen.queryByText("What did you hear?")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Try it by ear/ }));
+    expect(screen.getByText("What did you hear?")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Say it/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: mission.phrases[1]?.english ?? "Missing phrase" }),
+    );
+    await screen.findByText("That gets the message across.");
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: /What happens next/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /What happens next/ }));
+    fireEvent.click(screen.getByRole("button", { name: /My turn to say it/ }));
     expect(screen.getByRole("button", { name: "● Record yourself" })).toBeTruthy();
-    expect(screen.getByLabelText(/Check the transcript/)).toBeTruthy();
+    expect(screen.getByLabelText(/Check what it heard/)).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Lesson encounters" })).toBeNull();
   });
   it("provides sign matching and AI conversation within the lesson", async () => {
+    const mission = missions[0];
+    if (!mission) {
+      throw new Error("Missing basics chapter");
+    }
+    const resumed = {
+      ...fixture,
+      mastery: mission.phrases.map((_, task) => ({
+        mission_id: mission.id,
+        task,
+        level: 1,
+        due: 0,
+      })),
+    };
+    vi.mocked(fetch).mockImplementation(async (input) =>
+      String(input).endsWith("match")
+        ? Response.json({ correct: true, completed: true })
+        : Response.json(resumed),
+    );
     render(<China />);
     fireEvent.click(await screen.findByRole("button", { name: /Start from absolute zero/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Match the signs/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Let’s begin/ }));
+    expect(screen.queryByText("CHINESE, FROM LITERALLY ZERO")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Hide the English/ }));
-    fireEvent.click(screen.getByRole("button", { name: "卫生间" }));
-    fireEvent.click(screen.getByRole("button", { name: "Restroom" }));
-    expect(screen.getByText("卫生间 = Restroom. Connected.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /The boys in the wild/ }));
+    for (const card of mission.matches ?? []) {
+      fireEvent.click(screen.getByRole("button", { name: card.hanzi }));
+      fireEvent.click(screen.getByRole("button", { name: card.english }));
+    }
+    await screen.findByText(/Sign encounter saved/);
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: /What happens next/ }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /What happens next/ }));
     expect(screen.getByRole("button", { name: /Deal me a situation/ })).toBeTruthy();
+    expect(screen.queryByText("Can you catch anything in the wild?")).toBeNull();
   });
   it("keeps emergency phrases available and social progress honest", async () => {
     render(<China />);

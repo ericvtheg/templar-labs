@@ -66,11 +66,15 @@ Twelve missions: first words → survival requests → groom-approved compliment
 food → payments → market bargaining → sights/signs → trains → nightlife → KTV → getting help.
 
 - Interactive foundations unpack 你 + 好, pinyin, isolated sounds, and the third-tone change in 你好
-- Remix phrases as flip cards, ears-only listening, or recorded/typed replies; choose the encounter order
+- One encounter at a time: setup → foundations → teach/try each phrase → signs → optional scenario → trip payoff
+- The app sequences flip cards, listening, and speaking; hints and typed alternatives stay secondary
+- Home emphasizes Continue; the full itinerary and progress live in a collapsed section
+- Resume skips saved word practice; replay remains available. The itinerary stays fixed during saves
 - Learn visual sign walls, then connect Chinese to English by tap or drag; market receipts teach unit versus total prices
 - AI crew scenarios accept conversational replies, questions, pinyin, and English first attempts within each lesson
-- A creator-attributed Chinese restaurant video offers a gist challenge; an original audio scene works when YouTube is blocked
-- Sourced trip-hype cards cover history, food, skyline, nightlife, and dated price examples—not guaranteed bookings or discounts
+- The food chapter separates video watching from reflection; an original audio scene works when YouTube is blocked
+- One sourced trip-hype reveal closes each chapter; facts no longer compete with the current activity
+- Emergency help remains accessible during sessions; leaving unmounts audio/recording controls
 - Core recall and server-verified signs earn one stamp per mission; AI feedback and video self-reflection do not manufacture mastery
 - Emergency numbers are fixed facts checked by code, not generated or graded by the LLM
 - Reviews at 1/3/7/14/30 days; mistakes return in five minutes

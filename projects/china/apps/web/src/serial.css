@@ -1,0 +1,226 @@
+.app-shell.in-session {
+  grid-template-columns: minmax(0, 1fr);
+}
+.in-session .sidebar {
+  display: none;
+}
+.in-session .main {
+  max-width: 800px;
+  padding: 0 32px 28px;
+  margin: 0 auto;
+}
+.in-session .topbar {
+  height: 58px;
+  border: 0;
+}
+.in-session .private-badge,
+.in-session .mobile-sign-out {
+  display: none;
+}
+.trip-route {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+}
+.trip-route > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--red);
+  padding: 12px 0;
+}
+.serial-session {
+  max-width: 660px;
+  margin: 0 auto;
+}
+.session-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.session-bar .text-button {
+  font-size: 13px;
+}
+.session-progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 8px;
+  background: #e9ddc5;
+  accent-color: var(--red);
+}
+.session-progress::-webkit-progress-bar {
+  background: #e9ddc5;
+  border-radius: 8px;
+}
+.session-progress::-webkit-progress-value {
+  background: var(--red);
+  border-radius: 8px;
+}
+.session-progress::-moz-progress-bar {
+  background: var(--red);
+  border-radius: 8px;
+}
+.session-screen {
+  padding: 26px 0;
+}
+.session-screen:focus,
+.serial-phrase h2:focus {
+  outline: none;
+}
+.serial-session
+  :is(.hello-lab, .phrase-encounter, .matching-lab, .chaos-lab, .video-lab, .price-detective) {
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.serial-session h1 {
+  font-size: clamp(32px, 6vw, 48px);
+  line-height: 1.12;
+  margin: 20px 0;
+}
+.serial-session h2 {
+  line-height: 1.2;
+  margin: 18px 0;
+}
+.serial-session p {
+  line-height: 1.65;
+}
+.serial-session .primary {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  min-height: 48px;
+}
+.serial-session .speech-player {
+  margin: 22px 0;
+}
+.session-intro > small {
+  display: block;
+  margin-top: 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.session-art {
+  width: fit-content;
+  min-width: 100px;
+  padding: 22px;
+  margin: 28px 0;
+  background: var(--deep-red);
+  color: #ffdc78;
+  font-size: 52px;
+  line-height: 1.25;
+  border: 2px solid #b37c2d;
+  box-shadow: 5px 5px 0 #dbc99a;
+  transform: rotate(-3deg);
+}
+.serial-session .foundation-counter {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 8px 0;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.serial-session .button-row.spread {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.serial-session .button-row.spread .primary {
+  width: auto;
+  flex: 1;
+  margin-top: 0;
+}
+.serial-session .flip-card {
+  min-height: 235px;
+  margin-top: 24px;
+}
+.phrase-introduction {
+  padding: 28px 0;
+}
+.phrase-introduction > strong,
+.serial-feedback > strong {
+  font-size: clamp(32px, 7vw, 58px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.serial-feedback {
+  margin-top: 32px;
+}
+.serial-session .listening-orbit {
+  width: 96px;
+  height: 96px;
+  margin: 24px auto;
+}
+.serial-session .encounter-choices {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+.serial-session .encounter-choices button {
+  min-height: 52px;
+  padding: 14px 18px;
+  text-align: left;
+}
+.serial-session .encounter-choices strong {
+  display: block;
+  font-size: 24px;
+}
+.serial-session .encounter-choices small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+}
+.serial-session details {
+  margin-top: 24px;
+}
+.serial-session details > summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--red);
+}
+.serial-session .session-skip {
+  display: block;
+  margin: 24px auto 0;
+  font-size: 13px;
+}
+.session-reveal {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 24px;
+}
+.session-reveal > strong {
+  display: block;
+  color: var(--red);
+  font-size: 42px;
+  margin-top: 16px;
+}
+.session-reveal a {
+  display: block;
+  margin-top: 12px;
+}
+@media (max-width: 600px) {
+  .in-session .main {
+    padding: 0 20px 24px;
+  }
+  .in-session .topbar {
+    font-size: 10px;
+  }
+  .session-screen {
+    padding-top: 20px;
+  }
+  .session-bar {
+    gap: 8px;
+  }
+  .session-art {
+    font-size: 44px;
+    padding: 16px;
+    margin: 20px 0;
+  }
+}

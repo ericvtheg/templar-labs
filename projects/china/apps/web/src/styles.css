@@ -1,4 +1,5 @@
 @import "./interactive.css";
+@import "./serial.css";
 
 :root {
   font-family: "DM Sans", system-ui, -apple-system, sans-serif;

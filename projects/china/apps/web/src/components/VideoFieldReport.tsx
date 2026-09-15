@@ -1,7 +1,15 @@
 import { useId, useState } from "react";
 import { restaurantVideo } from "../lib/activity-content.ts";
+import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
 import { SpeechPlayer } from "./SpeechPlayer.tsx";
-export function VideoFieldReport({ ready }: { ready: boolean }) {
+export function VideoFieldReport({
+  ready,
+  onComplete,
+}: {
+  ready: boolean;
+  onComplete?: () => void;
+}) {
+  const [reporting, setReporting] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [fallback, setFallback] = useState(false);
   const [reveal, setReveal] = useState(false);
@@ -9,8 +17,25 @@ export function VideoFieldReport({ ready }: { ready: boolean }) {
   const [word, setWord] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const id = useId();
+  const screen = useEncounterFocus(`${reporting}:${submitted}`);
+  if (submitted && onComplete) {
+    return (
+      <section ref={screen} className="video-lab serial-success">
+        <span className="eyebrow">YOU CAUGHT SOMETHING</span>
+        <h2>That’s how listening starts.</h2>
+        <p>{report}</p>
+        <p>Clue: {word}</p>
+        <p className="fine-print">
+          Your own reflection, not an automatic grade or a saved mastery stamp.
+        </p>
+        <button type="button" className="primary" onClick={onComplete}>
+          What happens next? →
+        </button>
+      </section>
+    );
+  }
   return (
-    <section className="video-lab">
+    <section ref={screen} className="video-lab">
       <div className="encounter-label">
         <span>▣ OUTSIDE THE APP</span>
         <span>GIST, NOT TRANSLATION</span>
@@ -26,100 +51,118 @@ export function VideoFieldReport({ ready }: { ready: boolean }) {
           first. You can still peek now—understanding one word counts as a start.
         </div>
       )}
-      {fallback ? (
-        <div className="radio-scene">
-          <span className="eyebrow">APP-WRITTEN LISTENING SCENE · NOT THE VIDEO’S TRANSCRIPT</span>
-          <h3>Someone is ordering lunch.</h3>
-          <SpeechPlayer text={restaurantVideo.fallback} />
-          <button type="button" onClick={() => setReveal(!reveal)}>
-            {reveal ? "Hide the words" : "Give me a transcript lifeline"}
-          </button>
-          {reveal && (
-            <div>
-              <p lang="zh-CN">{restaurantVideo.fallback}</p>
-              <p>{restaurantVideo.fallbackPinyin}</p>
-              <p>{restaurantVideo.fallbackMeaning}</p>
+      {(!onComplete || !reporting) && (
+        <>
+          {fallback ? (
+            <div className="radio-scene">
+              <span className="eyebrow">
+                APP-WRITTEN LISTENING SCENE · NOT THE VIDEO’S TRANSCRIPT
+              </span>
+              <h3>Someone is ordering lunch.</h3>
+              <SpeechPlayer text={restaurantVideo.fallback} />
+              <button type="button" onClick={() => setReveal(!reveal)}>
+                {reveal ? "Hide the words" : "Give me a transcript lifeline"}
+              </button>
+              {reveal && (
+                <div>
+                  <p lang="zh-CN">{restaurantVideo.fallback}</p>
+                  <p>{restaurantVideo.fallbackPinyin}</p>
+                  <p>{restaurantVideo.fallbackMeaning}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="video-screen">
+              {loaded ? (
+                <iframe
+                  title="Chinese dining vocabulary with Xiaonita"
+                  src={`https://www.youtube-nocookie.com/embed/${restaurantVideo.id}?rel=0`}
+                  allow="encrypted-media; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              ) : (
+                <button type="button" className="video-cover" onClick={() => setLoaded(true)}>
+                  <span aria-hidden="true">▶</span>
+                  <strong>Step into a real restaurant.</strong>
+                  <small>Load Chinese with Xiaonita’s YouTube video</small>
+                </button>
+              )}
             </div>
           )}
-        </div>
-      ) : (
-        <div className="video-screen">
-          {loaded ? (
-            <iframe
-              title="Chinese dining vocabulary with Xiaonita"
-              src={`https://www.youtube-nocookie.com/embed/${restaurantVideo.id}?rel=0`}
-              allow="encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-          ) : (
-            <button type="button" className="video-cover" onClick={() => setLoaded(true)}>
-              <span aria-hidden="true">▶</span>
-              <strong>Step into a real restaurant.</strong>
-              <small>Load Chinese with Xiaonita’s YouTube video</small>
+          <p className="fine-print">
+            Video:{" "}
+            <a
+              href={`https://www.youtube.com/watch?v=${restaurantVideo.id}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {restaurantVideo.title} · {restaurantVideo.creator}
+            </a>
+            . Chosen from the creator’s beginner-Chinese description; this app doesn’t claim a
+            verified, timestamped transcript. Prefer Chinese captions; use English only as a
+            lifeline. YouTube loads only after you tap and may be unavailable in mainland China.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFallback(!fallback);
+              setSubmitted(false);
+            }}
+          >
+            {fallback
+              ? "Back to the real-world video"
+              : "Video blocked? Try our original audio scene instead"}
+          </button>
+          {onComplete && (
+            <button
+              type="button"
+              className="primary"
+              disabled={!loaded && !fallback}
+              onClick={() => setReporting(true)}
+            >
+              Tell the boys what you caught →
             </button>
           )}
-        </div>
+        </>
       )}
-      <p className="fine-print">
-        Video:{" "}
-        <a
-          href={`https://www.youtube.com/watch?v=${restaurantVideo.id}`}
-          target="_blank"
-          rel="noreferrer"
+      {(!onComplete || reporting) && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setSubmitted(true);
+          }}
         >
-          {restaurantVideo.title} · {restaurantVideo.creator}
-        </a>
-        . Chosen from the creator’s beginner-Chinese description; this app doesn’t claim a verified,
-        timestamped transcript. Prefer Chinese captions; use English only as a lifeline. YouTube
-        loads only after you tap and may be unavailable in mainland China.
-      </p>
-      <button
-        type="button"
-        onClick={() => {
-          setFallback(!fallback);
-          setSubmitted(false);
-        }}
-      >
-        {fallback
-          ? "Back to the real-world video"
-          : "Video blocked? Try our original audio scene instead"}
-      </button>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          setSubmitted(true);
-        }}
-      >
-        <label htmlFor={`${id}-gist`}>
-          What was broadly happening? English is absolutely fine.
-        </label>
-        <textarea
-          id={`${id}-gist`}
-          value={report}
-          onChange={(event) => {
-            setReport(event.target.value);
-            setSubmitted(false);
-          }}
-          rows={3}
-          maxLength={600}
-          placeholder="I think someone was ordering food. I caught…"
-        />
-        <label htmlFor={`${id}-word`}>One word, sound, or visual clue you noticed</label>
-        <input
-          id={`${id}-word`}
-          value={word}
-          onChange={(event) => {
-            setWord(event.target.value);
-            setSubmitted(false);
-          }}
-          maxLength={120}
-          placeholder="Even ‘I heard ni hao’ is a start."
-        />
-        <button type="submit" className="primary" disabled={!report.trim() || !word.trim()}>
-          Pin my field report →
-        </button>
-      </form>
+          <label htmlFor={`${id}-gist`}>
+            What was broadly happening? English is absolutely fine.
+          </label>
+          <textarea
+            id={`${id}-gist`}
+            value={report}
+            onChange={(event) => {
+              setReport(event.target.value);
+              setSubmitted(false);
+            }}
+            rows={3}
+            maxLength={600}
+            placeholder="I think someone was ordering food. I caught…"
+          />
+          <label htmlFor={`${id}-word`}>One word, sound, or visual clue you noticed</label>
+          <input
+            id={`${id}-word`}
+            value={word}
+            onChange={(event) => {
+              setWord(event.target.value);
+              setSubmitted(false);
+            }}
+            maxLength={120}
+            placeholder="Even ‘I heard ni hao’ is a start."
+          />
+          <button type="submit" className="primary" disabled={!report.trim() || !word.trim()}>
+            Pin my field report →
+          </button>
+        </form>
+      )}
       {submitted && (
         <div className="field-report" role="status">
           <span className="eyebrow">YOUR FIELD NOTE · SAVED IN THIS VIEW ONLY</span>

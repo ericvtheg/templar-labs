@@ -2,8 +2,17 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { CoachReply, CoachScene } from "../lib/coach-types.ts";
 import type { Mission } from "../lib/curriculum.ts";
 import { tripApi } from "../lib/trip-api.ts";
+import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
 import { VoicePractice } from "./VoicePractice.tsx";
-export function ChaosCoach({ mission, focus }: { mission: Mission; focus?: number }) {
+export function ChaosCoach({
+  mission,
+  focus,
+  onContinue,
+}: {
+  mission: Mission;
+  focus?: number;
+  onContinue?: () => void;
+}) {
   const [scene, setScene] = useState<CoachScene | null>(null);
   const [messages, setMessages] = useState<{ id: string; role: "you" | "coach"; text: string }[]>(
     [],
@@ -12,6 +21,7 @@ export function ChaosCoach({ mission, focus }: { mission: Mission; focus?: numbe
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [won, setWon] = useState(false);
+  const screen = useEncounterFocus(`${scene?.id ?? "empty"}:${won}`);
   const controller = useRef<AbortController | null>(null);
   const inputId = useId();
   useEffect(() => () => controller.current?.abort(), []);
@@ -77,8 +87,24 @@ export function ChaosCoach({ mission, focus }: { mission: Mission; focus?: numbe
       }
     }
   }
+  if (won && onContinue) {
+    return (
+      <section ref={screen} className="chaos-lab serial-success">
+        <span className="eyebrow">SITUATION HANDLED</span>
+        <h2>You got the message across.</h2>
+        <p>{messages.at(-1)?.text}</p>
+        <button type="button" className="primary" onClick={onContinue}>
+          What happens next? →
+        </button>
+        <button type="button" className="text-button session-skip" onClick={() => setWon(false)}>
+          I have a follow-up question
+        </button>
+        <p className="fine-print">AI practice feedback, not a pronunciation score.</p>
+      </section>
+    );
+  }
   return (
-    <section className="chaos-lab">
+    <section ref={screen} className="chaos-lab">
       <div className="encounter-label">
         <span>✦ LIVE FIELD TEST</span>
         <span>TEXT OR VOICE</span>
@@ -179,6 +205,11 @@ export function ChaosCoach({ mission, focus }: { mission: Mission; focus?: numbe
         <p className="notice" role="alert">
           {error}
         </p>
+      )}
+      {onContinue && (
+        <button type="button" className="session-skip text-button" onClick={onContinue}>
+          Finish without the AI practice this time →
+        </button>
       )}
       <p className="fine-print">
         Fictional crew scenarios. Replies and recent context go to the AI provider; not your Google

@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
-export function PriceDetective() {
+import { useEncounterFocus } from "../lib/use-encounter-focus.ts";
+export function PriceDetective({ onComplete }: { onComplete?: () => void } = {}) {
   const [round, setRound] = useState(0);
   const [answer, setAnswer] = useState("");
   const [checked, setChecked] = useState(false);
@@ -8,15 +9,27 @@ export function PriceDetective() {
     { unit: 35, quantity: 3, item: "souvenir fans", label: "单价", meaning: "unit price" },
     { unit: 80, quantity: 4, item: "tickets", label: "每人", meaning: "per person" },
     { unit: 28, quantity: 2, item: "portions of dumplings", label: "每份", meaning: "per portion" },
-  ];
-  const puzzle = puzzles[round % puzzles.length];
-  if (!puzzle) {
-    return null;
-  }
+  ] as const;
+  const puzzle = puzzles[round % puzzles.length] ?? puzzles[0];
   const total = puzzle.unit * puzzle.quantity;
   const correct = answer.trim() !== "" && Number(answer) === total;
+  const screen = useEncounterFocus(String(checked && correct));
+  if (onComplete && checked && correct) {
+    return (
+      <section ref={screen} className="price-detective serial-success">
+        <span className="eyebrow">NO PRICE SURPRISES</span>
+        <h2>You checked the unit, not just the number.</h2>
+        <p>
+          {puzzle.quantity} × ¥{puzzle.unit} = ¥{total}. That’s the total to confirm before paying.
+        </p>
+        <button type="button" className="primary" onClick={onComplete}>
+          What happens next? →
+        </button>
+      </section>
+    );
+  }
   return (
-    <section className="price-detective">
+    <section ref={screen} className="price-detective">
       <span className="eyebrow">THE PRICE DETECTIVE · EXAMPLE PRICES, NOT LIVE QUOTES</span>
       <h3>Good price—or wrong unit?</h3>
       <div className="receipt">
@@ -73,16 +86,18 @@ export function PriceDetective() {
             : `Try ${puzzle.quantity} × ${puzzle.unit}. The sign is ${puzzle.meaning}; the total is ¥${total}. A unit misunderstanding is not automatically a scam.`}
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          setRound(round + 1);
-          setAnswer("");
-          setChecked(false);
-        }}
-      >
-        Another price situation ⤨
-      </button>
+      {!onComplete && (
+        <button
+          type="button"
+          onClick={() => {
+            setRound(round + 1);
+            setAnswer("");
+            setChecked(false);
+          }}
+        >
+          Another price situation ⤨
+        </button>
+      )}
     </section>
   );
 }

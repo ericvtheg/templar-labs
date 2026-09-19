@@ -1,0 +1,15 @@
+{
+  "requestId": "68da8ab4-4488-42e9-bb80-49d8b84edbd1",
+  "deviceId": "42eaa184-e6cd-42af-aae8-160ecd461157",
+  "samples": [
+    {
+      "sampleId": "df9dd8e9-470a-477c-b22a-f13fd853ce89",
+      "type": "stepCount",
+      "value": 412,
+      "unit": "count",
+      "startAt": "2026-09-18T08:00:00.000Z",
+      "endAt": "2026-09-18T09:00:00.000Z",
+      "source": { "bundleIdentifier": "com.apple.health", "name": "Health" }
+    }
+  ]
+}

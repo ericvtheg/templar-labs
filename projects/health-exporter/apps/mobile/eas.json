@@ -1,0 +1,15 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "internal-testflight": {
+      "distribution": "store",
+      "credentialsSource": "remote",
+      "ios": {
+        "autoIncrement": "buildNumber"
+      }
+    }
+  }
+}

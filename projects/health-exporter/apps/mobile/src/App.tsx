@@ -1,9 +1,19 @@
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  AppState,
+  Button,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import HealthKit from "./healthkit";
+import { archiveStatus, exportHealth, validateDestination } from "./sync";
 
 const keys = {
   endpoint: "health-exporter.endpoint",
@@ -12,10 +22,15 @@ const keys = {
 } as const;
 
 export default function App() {
-  const [endpoint, setEndpoint] = useState("");
+  const [endpoint, setEndpoint] = useState("https://health-export.ericventor.com");
   const [secret, setSecret] = useState("");
-  const [message, setMessage] = useState("Configure the server, then sync recent steps.");
+  const [message, setMessage] = useState(
+    "Connect your destination, then export your health history.",
+  );
+  const [details, setDetails] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const pause = useRef(false);
+  const running = useRef(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -24,137 +39,181 @@ export default function App() {
         SecureStore.getItemAsync(keys.secret),
       ]);
       if (storedEndpoint !== null) {
-        setEndpoint(storedEndpoint);
+        setEndpoint(
+          storedEndpoint === "https://health-exporter-api.ericventor97.workers.dev"
+            ? "https://health-export.ericventor.com"
+            : storedEndpoint,
+        );
       }
       if (storedSecret !== null) {
         setSecret(storedSecret);
       }
     }
     void loadSettings().catch(() => setMessage("Unable to load saved settings. Enter them again."));
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "background") {
+        pause.current = true;
+      }
+    });
+    return () => {
+      pause.current = true;
+      listener.remove();
+    };
   }, []);
 
-  async function sync() {
+  async function destination() {
+    const url = validateDestination(endpoint, secret.trim());
+    let deviceId = await SecureStore.getItemAsync(keys.deviceId);
+    if (deviceId === null) {
+      deviceId = Crypto.randomUUID();
+      await SecureStore.setItemAsync(keys.deviceId, deviceId);
+    }
+    await Promise.all([
+      SecureStore.setItemAsync(keys.endpoint, url),
+      SecureStore.setItemAsync(keys.secret, secret.trim()),
+    ]);
+    return { url, secret: secret.trim(), deviceId };
+  }
+
+  async function sync(fromBeginning = false) {
+    if (running.current) {
+      return;
+    }
+    running.current = true;
+    pause.current = false;
     setBusy(true);
+    setDetails([]);
     try {
-      const baseUrl = endpoint.trim().replace(/\/$/, "");
-      if (!baseUrl.startsWith("https://")) {
-        throw new Error("The server URL must use HTTPS.");
-      }
-      if (secret.length < 32) {
-        throw new Error("The personal secret must be at least 32 characters.");
-      }
-      await Promise.all([
-        SecureStore.setItemAsync(keys.endpoint, baseUrl),
-        SecureStore.setItemAsync(keys.secret, secret),
-      ]);
-      let deviceId = await SecureStore.getItemAsync(keys.deviceId);
-      if (deviceId === null) {
-        deviceId = Crypto.randomUUID();
-        await SecureStore.setItemAsync(keys.deviceId, deviceId);
-      }
-      await HealthKit.requestPermissions();
-      const samples = await HealthKit.readRecentSteps(7);
-      if (samples.length === 0) {
-        setMessage("HealthKit returned no step samples in the last 7 days. Nothing was sent.");
-        return;
-      }
-      const response = await fetch(`${baseUrl}/api/v1/sample-ingestion`, {
-        method: "POST",
-        headers: {
-          authorization: `Bearer ${secret}`,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ requestId: Crypto.randomUUID(), deviceId, samples }),
+      const target = await destination();
+      await HealthKit.keepAwake(true);
+      const result = await exportHealth({
+        destination: target,
+        reader: HealthKit,
+        fromBeginning,
+        paused: () => pause.current,
+        progress: setMessage,
       });
-      if (!response.ok) {
-        throw new Error(`Sync failed with HTTP ${response.status}.`);
-      }
-      const result = (await response.json()) as { inserted: number; unchanged: number };
+      setDetails(result.errors);
       setMessage(
-        `Synced ${samples.length} real samples: ${result.inserted} new, ${result.unchanged} already stored.`,
+        result.paused
+          ? `Paused. ${result.sent.toLocaleString()} records sent. Tap Export / resume to continue.`
+          : result.errors.length
+            ? `Partial export: ${result.completed} types checked; ${result.errors.length} need attention. Saved progress is preserved.`
+            : `Export finished for all readable types. ${result.sent.toLocaleString()} records sent this session. Types without permission or data may be empty.`,
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Sync failed.");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Export interrupted. Tap Export / resume to retry.",
+      );
     } finally {
+      await HealthKit.keepAwake(false).catch(() => undefined);
+      running.current = false;
       setBusy(false);
     }
   }
 
   async function refreshStatus() {
+    if (running.current) {
+      return;
+    }
+    running.current = true;
     setBusy(true);
     try {
-      const baseUrl = endpoint.trim().replace(/\/$/, "");
-      if (!baseUrl.startsWith("https://")) {
-        throw new Error("The server URL must use HTTPS.");
-      }
-      const response = await fetch(`${baseUrl}/api/v1/sample-ingestion`, {
-        headers: { authorization: `Bearer ${secret}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Status failed with HTTP ${response.status}.`);
-      }
-      const status = (await response.json()) as {
-        totalSamples: number;
-        lastSync: { receivedAt: string } | null;
-      };
+      const status = await archiveStatus(await destination());
       setMessage(
-        status.lastSync === null
-          ? "No uploads received yet."
-          : `Server: ${status.totalSamples} stored samples. Last upload: ${status.lastSync.receivedAt}`,
+        `Destination: ${status.totalRecords.toLocaleString()} stored records across ${status.types.length} data types.`,
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Status unavailable.");
+      setMessage(error instanceof Error ? error.message : "Destination unavailable.");
     } finally {
+      running.current = false;
       setBusy(false);
     }
   }
 
   return (
-    <View style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
       <StatusBar style="dark" />
       <View style={styles.card}>
         <Text style={styles.title}>Health Exporter</Text>
         <Text>
-          Latest 100 step samples within 7 days only. Not a complete history or daily total.
+          Export your full accessible Apple Health history to your destination. No seven-day or
+          total sample limit.
         </Text>
-        <Text style={styles.label}>HTTPS server URL</Text>
+        <Text>
+          Keep this app open during export. Progress is saved as uploads finish. You choose what
+          Apple Health allows this app to read.
+        </Text>
+        <Text style={styles.label}>Destination URL</Text>
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
+          editable={!busy}
           onChangeText={setEndpoint}
           style={styles.input}
           value={endpoint}
         />
-        <Text style={styles.label}>Personal bearer secret</Text>
+        <Text style={styles.label}>Access key</Text>
+        <Text>Use the Health Exporter secret saved in Proton Pass.</Text>
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
+          editable={!busy}
           onChangeText={setSecret}
           secureTextEntry
           style={styles.input}
           value={secret}
         />
+        <Button disabled={busy} onPress={() => void sync()} title="Export / resume" />
+        {busy && (
+          <Button
+            onPress={() => {
+              pause.current = true;
+              setMessage("Pausing after the current read or upload…");
+            }}
+            title="Pause export"
+          />
+        )}
+        <Button disabled={busy} onPress={() => void refreshStatus()} title="Check destination" />
         <Button
           disabled={busy}
-          onPress={() => void sync()}
-          title={busy ? "Syncing…" : "Sync latest 100 samples"}
-        />
-        <Button
-          disabled={busy}
-          onPress={() => void refreshStatus()}
-          title="Refresh server status"
+          onPress={() =>
+            Alert.alert(
+              "Export from beginning?",
+              "Re-read all accessible history, including newly granted data types. Existing records are deduplicated.",
+              [
+                { text: "Cancel", style: "cancel" },
+                { text: "Export all history", onPress: () => void sync(true) },
+              ],
+            )
+          }
+          title="Export from beginning"
         />
         <Text accessibilityLiveRegion="polite" style={styles.message}>
           {message}
         </Text>
+        {details.map((detail) => (
+          <Text key={detail} style={styles.message}>
+            {detail}
+          </Text>
+        ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#f4f6f8", justifyContent: "center", padding: 24 },
+  screen: {
+    flexGrow: 1,
+    backgroundColor: "#f4f6f8",
+    justifyContent: "center",
+    padding: 24,
+    paddingTop: 64,
+    paddingBottom: 40,
+  },
   card: { backgroundColor: "white", borderRadius: 16, gap: 12, padding: 20 },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
   label: { fontSize: 14, fontWeight: "600" },

@@ -6,4 +6,4 @@ Templar Labs owns the iPhone exporter and its versioned upload contract. The app
 
 The personal receiver, storage, tests, migrations, container deployment, and tunnel configuration belong to the homelab repository. The personal destination is `https://health-export.ericventor.com` through Cloudflare Tunnel to the homelab. Cloudflare Workers and D1 are not required for this flow.
 
-The installed v1 app exports recent step samples. Full-history export across accessible HealthKit types is the next mobile capability; no receiver implementation belongs in this repository.
+The v1 app exports recent step samples. Version 0.2 uses a general record contract and per-type HealthKit anchors to export full accessible history. Checkpoints advance only after the destination acknowledges every record in the page. No receiver implementation belongs in this repository.

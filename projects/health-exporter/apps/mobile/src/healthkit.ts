@@ -1,18 +1,6 @@
 import { requireNativeModule } from "expo-modules-core";
+import type { HealthReader } from "./sync.ts";
 
-export type StepSample = {
-  sampleId: string;
-  type: "stepCount";
-  value: number;
-  unit: "count";
-  startAt: string;
-  endAt: string;
-  source: { bundleIdentifier: string; name: string };
-};
-
-type HealthKitModule = {
-  requestPermissions(): Promise<void>;
-  readRecentSteps(days: number): Promise<StepSample[]>;
-};
-
-export default requireNativeModule<HealthKitModule>("TemplarHealthKit");
+export default requireNativeModule<HealthReader & { keepAwake(enabled: boolean): Promise<void> }>(
+  "TemplarHealthKit",
+);

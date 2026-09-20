@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: "Health Exporter",
     slug: "health-exporter",
     owner: required("EXPO_OWNER", /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/),
-    version: "0.1.0",
+    version: "0.2.0",
     icon: "./assets/icon.png",
     orientation: "portrait",
     ios: {
@@ -33,13 +33,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         usesNonExemptEncryption: false,
       },
       infoPlist: {
-        NSHealthShareUsageDescription: "Read your recent step-count samples when you tap Sync.",
+        NSHealthClinicalHealthRecordsShareUsageDescription:
+          "Export the clinical health records you select to your chosen destination for your personal archive.",
+        NSHealthShareUsageDescription:
+          "Read your health history, including activity, sleep, heart measurements, workouts, and other types you allow, to export to your chosen destination.",
         // Apple validates both purpose keys when the HealthKit SDK is linked.
         // The native authorization request still uses an empty toShare set.
         NSHealthUpdateUsageDescription:
-          "Health Exporter accesses your step counts for read-only export when you tap Sync.",
+          "Health Exporter reads your authorized health history for export and does not write to Apple Health.",
       },
       entitlements: {
+        "com.apple.developer.healthkit.access": ["health-records"],
         "com.apple.developer.healthkit": true,
       },
     },

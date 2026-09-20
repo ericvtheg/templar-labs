@@ -45,24 +45,16 @@ test("release config fails closed without identity and declares read-only Health
     assert.equal(config.ios?.entitlements?.["com.apple.developer.healthkit"], true);
     assert.ok(config.ios?.infoPlist?.NSHealthShareUsageDescription);
     assert.ok(config.ios?.infoPlist?.NSHealthUpdateUsageDescription);
+    assert.ok(config.ios?.infoPlist?.NSHealthClinicalHealthRecordsShareUsageDescription);
+    assert.deepEqual(config.ios?.entitlements?.["com.apple.developer.healthkit.access"], [
+      "health-records",
+    ]);
     assert.equal(config.ios?.config?.usesNonExemptEncryption, false);
     const eas = JSON.parse(readFileSync(new URL("../eas.json", import.meta.url), "utf8"));
     assert.equal(eas.build["internal-testflight"].distribution, "store");
   } finally {
     process.env = previous;
   }
-});
-
-test("bounded native query selects newest samples and UI states its limit", () => {
-  const swift = readFileSync(
-    new URL("../modules/healthkit/ios/TemplarHealthKitModule.swift", import.meta.url),
-    "utf8",
-  );
-  assert.match(swift, /ascending: false/);
-  assert.match(swift, /limit: 100/);
-  assert.match(swift, /requestAuthorization\(toShare: \[\], read: \[stepType\]\)/);
-  const ui = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
-  assert.match(ui, /latest 100/);
 });
 
 // Autolinking discovery alone is insufficient: resolution must produce a CocoaPod.

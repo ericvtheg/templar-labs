@@ -7,15 +7,32 @@ import CryptoKit
 final class HealthReader: @unchecked Sendable {
   let store = HKHealthStore()
   let pageSize = 25
+  private var requestedObjectPermissions = Set<String>()
 
   func requestPermissions() async throws {
     guard HKHealthStore.isHealthDataAvailable() else { throw failure("HealthKit is unavailable.") }
-    var read = Set<HKObjectType>(HealthTypes.samples(store).filter { !($0 is HKCorrelationType) })
-    read.insert(HKObjectType.activitySummaryType())
-    for id in characteristicIDs { if let type = HKObjectType.characteristicType(forIdentifier: id) { read.insert(type) } }
-    if #available(iOS 26.0, *) { read.insert(HKObjectType.userAnnotatedMedicationType()) }
-    if #available(iOS 16.0, *) { read = read.filter { !$0.requiresPerObjectAuthorization() } }
-    try await store.requestAuthorization(toShare: [], read: read)
+    requestedObjectPermissions.removeAll()
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+      HERequestReadAuthorization(store, HealthTypes.readPermissions(store)) { success, error in
+        if let error { continuation.resume(throwing: error) }
+        else if success { continuation.resume() }
+        else { continuation.resume(throwing: self.failure("Apple Health authorization was cancelled.")) }
+      }
+    }
+  }
+
+  private func requestObjectPermission(_ type: HKObjectType, allowed: Bool) async throws {
+    guard allowed, !requestedObjectPermissions.contains(type.identifier) else { return }
+    if #available(iOS 16.0, *) {
+      try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        HERequestObjectAuthorization(store, type) { success, error in
+          if let error { continuation.resume(throwing: error) }
+          else if success { continuation.resume() }
+          else { continuation.resume(throwing: self.failure("Apple Health selection was cancelled.")) }
+        }
+      }
+      requestedObjectPermissions.insert(type.identifier)
+    }
   }
 
   func types() -> [[String: String]] {
@@ -33,8 +50,8 @@ final class HealthReader: @unchecked Sendable {
       throw failure("Medications require iOS 26.")
     }
     guard let type = HealthTypes.samples(store).first(where: { $0.identifier == identifier }) else { throw failure("Unknown HealthKit type.") }
-    if #available(iOS 16.0, *), allowAuthorization && type.requiresPerObjectAuthorization() {
-      try await store.requestPerObjectReadAuthorization(for: type, predicate: nil)
+    if let permission = HealthTypes.objectPermission(for: type) {
+      try await requestObjectPermission(permission, allowed: allowAuthorization)
     }
     var anchor: HKQueryAnchor?
     if let encodedAnchor, !encodedAnchor.isEmpty {
@@ -185,7 +202,6 @@ final class HealthReader: @unchecked Sendable {
     }
   }
 
-  private let characteristicIDs: [HKCharacteristicTypeIdentifier] = [.biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .activityMoveMode]
   private func characteristics() throws -> [[String: Any]] {
     var values: [String: Any] = [:]
     // Missing/denied characteristics are absent; Apple does not disclose read-denial status.
@@ -217,7 +233,7 @@ final class HealthReader: @unchecked Sendable {
   @available(iOS 26.0, *)
   private func medications(_ allowAuthorization: Bool) async throws -> [[String: Any]] {
     let type = HKObjectType.userAnnotatedMedicationType()
-    if allowAuthorization && type.requiresPerObjectAuthorization() { try await store.requestPerObjectReadAuthorization(for: type, predicate: nil) }
+    try await requestObjectPermission(type, allowed: allowAuthorization)
     let items: [HKUserAnnotatedMedication] = try await withHealthQuery(store: store) { continuation in
       var items: [HKUserAnnotatedMedication] = []
       continuation.execute(HKUserAnnotatedMedicationQuery(predicate: nil, limit: HKObjectQueryNoLimit) { _, item, done, error in

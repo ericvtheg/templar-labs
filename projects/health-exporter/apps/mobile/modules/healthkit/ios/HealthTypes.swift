@@ -3,6 +3,28 @@ import Foundation
 
 // Catalog from the iOS 26.5 SDK. Runtime availability prevents requesting newer types on older phones.
 enum HealthTypes {
+  static let characteristicIDs: [HKCharacteristicTypeIdentifier] = [.biologicalSex, .bloodType, .dateOfBirth, .fitzpatrickSkinType, .wheelchairUse, .activityMoveMode]
+
+  static func readPermissions(_ store: HKHealthStore) -> Set<HKObjectType> {
+    var read = Set<HKObjectType>(samples(store).filter { !($0 is HKCorrelationType) })
+    read.insert(HKObjectType.activitySummaryType())
+    for id in characteristicIDs { if let type = HKObjectType.characteristicType(forIdentifier: id) { read.insert(type) } }
+    // Dose events inherit access from individually selected medications. Requesting
+    // the dose-event type itself raises NSInvalidArgumentException (even though
+    // requiresPerObjectAuthorization() returns false for that type).
+    if #available(iOS 26.0, *) { read.remove(HKObjectType.medicationDoseEventType()) }
+    if #available(iOS 16.0, *) { read = read.filter { !$0.requiresPerObjectAuthorization() } }
+    return read
+  }
+
+  static func objectPermission(for type: HKObjectType) -> HKObjectType? {
+    if #available(iOS 26.0, *), type == HKObjectType.medicationDoseEventType() {
+      return HKObjectType.userAnnotatedMedicationType()
+    }
+    if #available(iOS 16.0, *), type.requiresPerObjectAuthorization() { return type }
+    return nil
+  }
+
   static let quantities: [(String, String, Int, Int)] = [
     ("HKQuantityTypeIdentifierAppleSleepingWristTemperature", "degC", 16, 0),
     ("HKQuantityTypeIdentifierBodyFatPercentage", "%", 8, 0),

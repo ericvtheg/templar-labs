@@ -33,6 +33,13 @@ test("release config fails closed without identity and declares read-only Health
     });
     assert.equal(config.name, "Health Exporter");
     assert.equal(config.slug, "health-exporter");
+    assert.equal(config.icon, "./assets/icon.png");
+    const icon = readFileSync(new URL(`../${config.icon}`, import.meta.url));
+    assert.deepEqual(icon.subarray(0, 8), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    assert.equal(icon.toString("ascii", 12, 16), "IHDR");
+    assert.equal(icon.readUInt32BE(16), 1024);
+    assert.equal(icon.readUInt32BE(20), 1024);
+    assert.equal(icon[25], 2, "App Store icon must use RGB without an alpha channel");
     assert.equal(config.owner, "fixture-owner");
     assert.equal(config.ios?.bundleIdentifier, "test.fixture.health");
     assert.equal(config.ios?.entitlements?.["com.apple.developer.healthkit"], true);

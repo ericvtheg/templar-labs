@@ -23,6 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: "health-exporter",
     owner: required("EXPO_OWNER", /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/),
     version: "0.1.0",
+    icon: "./assets/icon.png",
     orientation: "portrait",
     ios: {
       bundleIdentifier,

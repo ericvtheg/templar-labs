@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#127D80"/>
+      <stop offset="1" stop-color="#064C59"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#background)" d="M0 0h1024v1024H0z"/>
+  <!-- A heart for health, with an outward arrow for export. Full-bleed for iOS masking. -->
+  <path fill="#FFFFFF" d="M512 778C458 733 228 565 228 403c0-92 65-157 150-157 58 0 105 30 134 77 29-47 76-77 134-77 85 0 150 65 150 157 0 162-230 330-284 375Z"/>
+  <path d="M421 590 610 401m-153 0h153v153" fill="none" stroke="#0C6970" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -235,15 +235,19 @@ final class HealthReader: @unchecked Sendable {
   }
   private func textChunks(_ id: String, _ kind: String, _ text: String) -> [[String: Any]] {
     let bytes = Array(text.utf8)
-    return stride(from: 0, to: bytes.count, by: 131072).map { offset in
-      ["id": "\(id)/\(kind)/\(offset / 131072)", "parentId": id, "data": ["kind": kind, "encoding": "base64", "part": offset / 131072,
-        "parts": (bytes.count + 131071) / 131072, "content": String(decoding: bytes[offset..<min(offset + 131072, bytes.count)], as: UTF8.self)]]
+    return stride(from: 0, to: bytes.count, by: 131072).map { offset -> [String: Any] in
+      let content = String(decoding: bytes[offset..<min(offset + 131072, bytes.count)], as: UTF8.self)
+      let data: [String: Any] = ["kind": kind, "encoding": "base64", "part": offset / 131072,
+        "parts": (bytes.count + 131071) / 131072, "content": content]
+      return ["id": "\(id)/\(kind)/\(offset / 131072)", "parentId": id, "data": data]
     }
   }
   private func chunks(_ id: String, _ kind: String, _ items: [[String: Any]]) -> [[String: Any]] {
-    stride(from: 0, to: items.count, by: 500).map { offset in
-      ["id": "\(id)/\(kind)/\(offset / 500)", "parentId": id, "data": ["kind": kind, "part": offset / 500, "parts": (items.count + 499) / 500,
-        "values": Array(items[offset..<min(offset + 500, items.count)])]]
+    stride(from: 0, to: items.count, by: 500).map { offset -> [String: Any] in
+      let values = Array(items[offset..<min(offset + 500, items.count)])
+      let data: [String: Any] = ["kind": kind, "part": offset / 500, "parts": (items.count + 499) / 500,
+        "values": values]
+      return ["id": "\(id)/\(kind)/\(offset / 500)", "parentId": id, "data": data]
     }
   }
   private func jsonValue(_ value: Any) -> Any {

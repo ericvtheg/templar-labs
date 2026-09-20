@@ -28,8 +28,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier,
       appleTeamId,
       supportsTablet: false,
+      config: {
+        usesNonExemptEncryption: false,
+      },
       infoPlist: {
         NSHealthShareUsageDescription: "Read your recent step-count samples when you tap Sync.",
+        // Apple validates both purpose keys when the HealthKit SDK is linked.
+        // The native authorization request still uses an empty toShare set.
+        NSHealthUpdateUsageDescription:
+          "Health Exporter accesses your step counts for read-only export when you tap Sync.",
       },
       entitlements: {
         "com.apple.developer.healthkit": true,

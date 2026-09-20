@@ -1934,6 +1934,10 @@ importers:
         version: 6.0.3
 
   tools/mobile-ci:
+    dependencies:
+      yaml:
+        specifier: ^2.8.1
+        version: 2.9.0
     devDependencies:
       '@templar/tsconfig':
         specifier: workspace:*

@@ -38,9 +38,25 @@ so they also reach the remote builder. Other app-specific variables belong in
 the project's EAS `production` environment or its build profile. Never put the
 personal ingestion secret into the mobile build.
 
-Runs are serialized per project. Rerunning creates a new build with a new build
-number; it never submits whichever build happens to be latest. Before rerunning
-after a timeout, check EAS for a build still running remotely.
+## Avoid duplicate builds
+
+Before spending a build, CI compares a SHA-256 source fingerprint with the project's
+EAS build and submission history. It includes mobile source/assets/native modules,
+linked workspace dependencies, their transitive locked resolutions, build config,
+root toolchain settings, and the app identity. Tests, Markdown docs, backend code,
+and unrelated workspaces or dependency resolutions are excluded.
+
+- Same source already submitted: skip both build and submission
+- Same source built, but upload failed or never started: submit the existing build
+- Matching build or upload still running: stop without creating a duplicate
+- Matching build failed or was canceled: stop; diagnose it before changing source
+- Changed source: build and submit once
+
+Runs are serialized per project. New builds record their source fingerprint in
+EAS metadata; earlier untagged builds are compared using their Git commit. History
+lookup failures stop the workflow rather than risk consuming a duplicate build.
+Changes made only in the EAS dashboard are not part of the Git source fingerprint;
+update the checked-in build profile when changing remote build inputs.
 
 ## Health Exporter
 

@@ -1,0 +1,78 @@
+name: Mobile iOS Build and TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: "Project directory under projects/ (must contain apps/mobile)"
+        required: true
+        default: health-exporter
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-ios-${{ inputs.project }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ inputs.project }} for iOS
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    environment: mobile-${{ inputs.project }}
+    env:
+      CI: "1"
+      MOBILE_PROJECT: ${{ inputs.project }}
+      IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+      EXPO_OWNER: ${{ vars.EXPO_OWNER }}
+      ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+      APPLE_ID: ${{ vars.APPLE_ID }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Validate credentials and prepare remote build configuration
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+        run: node tools/mobile-ci/src/index.ts prepare "$MOBILE_PROJECT"
+
+      - name: Check mobile app and release tooling
+        run: |
+          pnpm --filter @templar/mobile-ci check
+          pnpm --dir "projects/$MOBILE_PROJECT/apps/mobile" check
+          pnpm exec biome check "projects/$MOBILE_PROJECT/apps/mobile"
+          pnpm exec oxlint "projects/$MOBILE_PROJECT/apps/mobile"
+
+      - name: Install EAS CLI
+        run: npm install --global eas-cli@24.7.0
+
+      - name: Build signed iOS app on EAS
+        working-directory: projects/${{ inputs.project }}/apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --profile internal-testflight --platform ios --non-interactive --wait --json > "$RUNNER_TEMP/eas-build.json"
+
+      - name: Identify this run's completed build
+        id: build
+        run: node tools/mobile-ci/src/index.ts build-id "$RUNNER_TEMP/eas-build.json"
+
+      - name: Upload this build to TestFlight
+        working-directory: projects/${{ inputs.project }}/apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.EXPO_APPLE_APP_SPECIFIC_PASSWORD }}
+          EAS_BUILD_ID: ${{ steps.build.outputs.id }}
+        run: eas submit --profile internal-testflight --platform ios --id "$EAS_BUILD_ID" --non-interactive --wait
+
+      - name: Record build
+        env:
+          EAS_BUILD_ID: ${{ steps.build.outputs.id }}
+        run: echo "EAS iOS build for $MOBILE_PROJECT — $EAS_BUILD_ID (commit $GITHUB_SHA)" >> "$GITHUB_STEP_SUMMARY"

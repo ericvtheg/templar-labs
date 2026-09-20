@@ -42,6 +42,7 @@ jobs:
           CHINA_CREW_EMAILS: ${{ secrets.CHINA_CREW_EMAILS }}
           ELEVENLABS_API_TOKEN: ${{ secrets.ELEVENLABS_API_TOKEN }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          HEALTH_EXPORTER_SECRET: ${{ secrets.HEALTH_EXPORTER_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENROUTER_API_TOKEN: ${{ secrets.OPENROUTER_API_TOKEN }}

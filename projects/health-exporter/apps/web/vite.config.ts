@@ -5,19 +5,18 @@ import alchemy from "alchemy/cloudflare/tanstack-start";
 import { defineConfig, type PluginOption } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 
-const cloudflarePlugin = existsSync(".alchemy/local/wrangler.jsonc")
-  ? [alchemy() as PluginOption]
-  : [];
+const usesCloudflare = existsSync(".alchemy/local/wrangler.jsonc");
+const cloudflarePlugin = usesCloudflare ? [alchemy() as PluginOption] : [];
 
 export default defineConfig({
-  build: {
-    rollupOptions: {
-      external: ["cloudflare:workers"],
-    },
-  },
-  ssr: {
-    external: ["cloudflare:workers"],
-  },
+  // Cloudflare owns built-in module resolution during deployment. Only the
+  // standalone smoke-test build needs these imports left external.
+  ...(usesCloudflare
+    ? {}
+    : {
+        build: { rollupOptions: { external: ["cloudflare:workers"] } },
+        ssr: { external: ["cloudflare:workers"] },
+      }),
   plugins: [
     viteTsConfigPaths({ projects: ["./tsconfig.json"] }),
     ...cloudflarePlugin,

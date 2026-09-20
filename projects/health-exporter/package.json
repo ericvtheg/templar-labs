@@ -4,21 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "node ../../scripts/project-build.mjs",
-    "check": "pnpm typecheck && pnpm lint && pnpm test",
-    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
-    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
-    "dev": "alchemy dev alchemy.run.ts --stage prod --profile templar-labs",
-    "lint": "echo 'Linting is handled by the root lint pipeline.'",
-    "test": "pnpm --filter health-exporter-web test",
-    "typecheck": "tsc --noEmit && pnpm --filter health-exporter-web typecheck && pnpm --filter health-exporter-mobile typecheck"
-  },
-  "dependencies": {
-    "@templar/deploy": "workspace:*",
-    "drizzle-orm": "^0.45.2"
-  },
-  "devDependencies": {
-    "alchemy": "^0.93.7",
-    "drizzle-kit": "^0.31.10",
-    "typescript": "6.0.3"
+    "check": "pnpm --filter health-exporter-mobile check",
+    "lint": "pnpm --filter health-exporter-mobile lint",
+    "test": "pnpm --filter health-exporter-mobile test",
+    "typecheck": "pnpm --filter health-exporter-mobile typecheck"
   }
 }

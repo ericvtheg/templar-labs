@@ -55,12 +55,14 @@ final class HealthAutoSync {
     if enabled {
       installObservers()
       enqueue(reader.types().compactMap { $0["id"] })
-      let catalog = HealthTypes.samples(reader.store)
+      let catalog = HealthTypes.observedSamples(reader.store)
       let catalogKey = catalog.map { $0.identifier }.joined(separator: ",")
       if !wasEnabled || defaults.string(forKey: "health-exporter.automatic.catalog") != catalogKey {
         for type in catalog {
           // Some types do not support background delivery; periodic reconciliation covers the others.
-          try? await reader.store.enableBackgroundDelivery(for: type, frequency: .immediate)
+          await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            HEEnableBackgroundDelivery(reader.store, type) { _, _ in continuation.resume() }
+          }
         }
         defaults.set(catalogKey, forKey: "health-exporter.automatic.catalog")
       }
@@ -104,8 +106,9 @@ final class HealthAutoSync {
   private func installObservers() {
     guard observers.isEmpty else { return }
     // Called synchronously from the Expo app-delegate subscriber at launch, before JS starts.
-    for type in HealthTypes.samples(reader.store) {
-      let query = HKObserverQuery(sampleType: type, predicate: nil) { _, completion, _ in
+    for type in HealthTypes.observedSamples(reader.store) {
+      var error: NSError?
+      let query = HECreateObserver(type, { _, completion, _ in
         Task { @MainActor in
           guard self.enabled else { completion(); return }
           self.queue.enqueue([type.identifier], prioritize: true)
@@ -116,9 +119,14 @@ final class HealthAutoSync {
           self.callbacks.append { _ in completion() }
           self.kick()
         }
+      }, &error)
+      guard let query, HEStartObserver(reader.store, query, &error) else {
+        // SDK/platform restrictions must not abort setup or remove data from exports.
+        // The full catalog remains in the durable queue for scheduled reconciliation.
+        setMessage("Some health types will update through periodic checks instead of live notifications.")
+        continue
       }
       observers.append(query)
-      reader.store.execute(query)
     }
   }
 

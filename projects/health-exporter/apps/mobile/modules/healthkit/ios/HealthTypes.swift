@@ -25,6 +25,15 @@ enum HealthTypes {
     return nil
   }
 
+  static func observedSamples(_ store: HKHealthStore) -> [HKSampleType] {
+    samples(store).filter { type in
+      // Vision prescriptions support reading, but HKObserverQuery rejects them.
+      // Keep them in samples() so foreground and periodic exports still read them.
+      if #available(iOS 16.0, *), type == HKObjectType.visionPrescriptionType() { return false }
+      return true
+    }
+  }
+
   static let quantities: [(String, String, Int, Int)] = [
     ("HKQuantityTypeIdentifierAppleSleepingWristTemperature", "degC", 16, 0),
     ("HKQuantityTypeIdentifierBodyFatPercentage", "%", 8, 0),

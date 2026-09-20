@@ -7,16 +7,20 @@ import { fileURLToPath } from "node:url";
 
 const path = (relative: string) => fileURLToPath(new URL(relative, import.meta.url));
 
-test("HealthKit accepts the permission catalog and native exceptions become errors", {
+test("HealthKit accepts permission and query catalogs; native exceptions become errors", {
   skip: process.platform !== "darwin" ? "Requires Apple's HealthKit framework on macOS." : false,
 }, () => {
   const directory = mkdtempSync(join(tmpdir(), "health-authorization-tests-"));
   try {
     const bridge = join(directory, "bridge.o");
     const harness = join(directory, "harness.o");
+    const observation = join(directory, "observation.o");
+    const observationHarness = join(directory, "observation-harness.o");
     for (const [source, output] of [
       [path("../modules/healthkit/ios/HealthAuthorization.m"), bridge],
       [path("./authorization.m"), harness],
+      [path("../modules/healthkit/ios/HealthObservation.m"), observation],
+      [path("./observation.m"), observationHarness],
     ] as const) {
       execFileSync("xcrun", ["clang", "-fobjc-arc", "-c", source, "-o", output], { stdio: "pipe" });
     }
@@ -33,6 +37,8 @@ test("HealthKit accepts the permission catalog and native exceptions become erro
         path("./authorization.swift"),
         bridge,
         harness,
+        observation,
+        observationHarness,
         "-o",
         binary,
       ],

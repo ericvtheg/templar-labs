@@ -43,6 +43,14 @@ test("release config fails closed without identity and declares read-only Health
     assert.equal(config.owner, "fixture-owner");
     assert.equal(config.ios?.bundleIdentifier, "test.fixture.health");
     assert.equal(config.ios?.entitlements?.["com.apple.developer.healthkit"], true);
+    assert.equal(
+      config.ios?.entitlements?.["com.apple.developer.healthkit.background-delivery"],
+      true,
+    );
+    assert.deepEqual(config.ios?.infoPlist?.UIBackgroundModes, ["processing"]);
+    assert.deepEqual(config.ios?.infoPlist?.BGTaskSchedulerPermittedIdentifiers, [
+      "test.fixture.health.health-sync",
+    ]);
     assert.ok(config.ios?.infoPlist?.NSHealthShareUsageDescription);
     assert.ok(config.ios?.infoPlist?.NSHealthUpdateUsageDescription);
     assert.ok(config.ios?.infoPlist?.NSHealthClinicalHealthRecordsShareUsageDescription);
@@ -71,4 +79,5 @@ test("HealthKit resolves to a native pod and Swift module", () => {
   assert.ok(module);
   assert.equal(module.pods[0].podName, "TemplarHealthKit");
   assert.equal(module.modules[0].class, "TemplarHealthKitModule");
+  assert.ok(module.appDelegateSubscribers.includes("HealthSyncAppDelegateSubscriber"));
 });

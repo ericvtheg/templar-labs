@@ -2,6 +2,7 @@
   "platforms": ["apple"],
   "apple": {
     "podspecPath": "TemplarHealthKit.podspec",
-    "modules": ["TemplarHealthKitModule"]
+    "modules": ["TemplarHealthKitModule"],
+    "appDelegateSubscribers": ["HealthSyncAppDelegateSubscriber"]
   }
 }

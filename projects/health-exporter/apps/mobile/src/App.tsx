@@ -8,11 +8,12 @@ import {
   Button,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
 } from "react-native";
-import HealthKit from "./healthkit";
+import HealthKit, { type AutomaticStatus } from "./healthkit";
 import { archiveStatus, exportHealth, validateDestination } from "./sync";
 
 const keys = {
@@ -29,6 +30,8 @@ export default function App() {
   );
   const [details, setDetails] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [automatic, setAutomatic] = useState(true);
+  const [autoStatus, setAutoStatus] = useState<AutomaticStatus | null>(null);
   const pause = useRef(false);
   const running = useRef(false);
 
@@ -49,6 +52,21 @@ export default function App() {
         setSecret(storedSecret);
       }
     }
+    async function loadAutomatic() {
+      const status = await HealthKit.automaticStatus();
+      setAutoStatus(status);
+      if (status.configured) {
+        setAutomatic(status.enabled);
+      }
+    }
+    void loadAutomatic().catch(() => setMessage("Could not read automatic sync status."));
+    const timer = setInterval(() => {
+      if (AppState.currentState === "active") {
+        void HealthKit.automaticStatus()
+          .then(setAutoStatus)
+          .catch(() => undefined);
+      }
+    }, 10_000);
     void loadSettings().catch(() => setMessage("Unable to load saved settings. Enter them again."));
     const listener = AppState.addEventListener("change", (state) => {
       if (state === "background") {
@@ -58,6 +76,7 @@ export default function App() {
     return () => {
       pause.current = true;
       listener.remove();
+      clearInterval(timer);
     };
   }, []);
 
@@ -84,7 +103,11 @@ export default function App() {
     setBusy(true);
     setDetails([]);
     try {
+      await HealthKit.beginForeground();
       const target = await destination();
+      await HealthKit.requestPermissions();
+      await HealthKit.configureAutomatic(target.url, target.secret, target.deviceId, automatic);
+      setAutoStatus(await HealthKit.automaticStatus());
       await HealthKit.keepAwake(true);
       const result = await exportHealth({
         destination: target,
@@ -109,6 +132,38 @@ export default function App() {
       );
     } finally {
       await HealthKit.keepAwake(false).catch(() => undefined);
+      await HealthKit.endForeground().catch(() => undefined);
+      running.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function toggleAutomatic(enabled: boolean) {
+    if (running.current) {
+      return;
+    }
+    running.current = true;
+    setBusy(true);
+    try {
+      await HealthKit.beginForeground();
+      if (enabled) {
+        const target = await destination();
+        await HealthKit.requestPermissions();
+        await HealthKit.configureAutomatic(target.url, target.secret, target.deviceId, true);
+      } else {
+        await HealthKit.disableAutomatic();
+      }
+      setAutomatic(enabled);
+      setAutoStatus(await HealthKit.automaticStatus());
+      setMessage(
+        enabled
+          ? "Automatic updates enabled. iOS will schedule uploads; the first large export is faster with this app open."
+          : "Automatic updates disabled. You can still export manually.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not change automatic updates.");
+    } finally {
+      await HealthKit.endForeground().catch(() => undefined);
       running.current = false;
       setBusy(false);
     }
@@ -143,8 +198,8 @@ export default function App() {
           total sample limit.
         </Text>
         <Text>
-          Keep this app open during export. Progress is saved as uploads finish. You choose what
-          Apple Health allows this app to read.
+          Keep this app open for the first large export. After setup, automatic updates send new
+          data when iOS allows. You choose what Apple Health allows this app to read.
         </Text>
         <Text style={styles.label}>Destination URL</Text>
         <TextInput
@@ -167,6 +222,26 @@ export default function App() {
           style={styles.input}
           value={secret}
         />
+        <View style={styles.automaticRow}>
+          <Text style={styles.label}>Automatic updates</Text>
+          <Switch
+            value={automatic}
+            disabled={busy}
+            onValueChange={(value) => void toggleAutomatic(value)}
+          />
+        </View>
+        <Text>
+          {autoStatus?.configured
+            ? autoStatus.message
+            : "Enabled when you start your first export. You can turn it off here."}
+        </Text>
+        {autoStatus?.lastSuccess ? (
+          <Text>Last automatic check: {new Date(autoStatus.lastSuccess).toLocaleString()}</Text>
+        ) : null}
+        <Text>
+          Background timing is controlled by iOS. Locked health data waits until it becomes
+          available. If you force-quit the app, reopen it to resume automatic updates.
+        </Text>
         <Button disabled={busy} onPress={() => void sync()} title="Export / resume" />
         {busy && (
           <Button
@@ -214,6 +289,7 @@ const styles = StyleSheet.create({
     paddingTop: 64,
     paddingBottom: 40,
   },
+  automaticRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   card: { backgroundColor: "white", borderRadius: 16, gap: 12, padding: 20 },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
   label: { fontSize: 14, fontWeight: "600" },

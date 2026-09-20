@@ -25,15 +25,15 @@ final class HealthReader: @unchecked Sendable {
     return result
   }
 
-  func readPage(_ identifier: String, _ encodedAnchor: String?) async throws -> [String: Any] {
+  func readPage(_ identifier: String, _ encodedAnchor: String?, allowAuthorization: Bool = true) async throws -> [String: Any] {
     if identifier == "characteristics" { return page(try characteristics()) }
     if identifier == "activitySummaries" { return page(try await activitySummaries()) }
     if identifier == "medications" {
-      if #available(iOS 26.0, *) { return page(try await medications()) }
+      if #available(iOS 26.0, *) { return page(try await medications(allowAuthorization)) }
       throw failure("Medications require iOS 26.")
     }
     guard let type = HealthTypes.samples(store).first(where: { $0.identifier == identifier }) else { throw failure("Unknown HealthKit type.") }
-    if #available(iOS 16.0, *), type.requiresPerObjectAuthorization() {
+    if #available(iOS 16.0, *), allowAuthorization && type.requiresPerObjectAuthorization() {
       try await store.requestPerObjectReadAuthorization(for: type, predicate: nil)
     }
     var anchor: HKQueryAnchor?
@@ -44,22 +44,25 @@ final class HealthReader: @unchecked Sendable {
       }
       anchor = decoded
     }
-    let (samples, deleted, next): ([HKSample], [HKDeletedObject], HKQueryAnchor) = try await withCheckedThrowingContinuation { continuation in
+    let (samples, deleted, next): ([HKSample], [HKDeletedObject], HKQueryAnchor) = try await withHealthQuery(store: store) { continuation in
       let query = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchor, limit: pageSize) { _, samples, deleted, next, error in
         if let error { continuation.resume(throwing: error); return }
         guard let next else { continuation.resume(throwing: self.failure("HealthKit did not return a checkpoint.")); return }
         continuation.resume(returning: (samples ?? [], deleted ?? [], next))
       }
-      store.execute(query)
+      continuation.execute(query)
     }
     var records: [[String: Any]] = []
-    for sample in samples { records += try await exportSample(sample) }
+    for sample in samples {
+      try Task.checkCancellation()
+      records += try await exportSample(sample, allowAuthorization: allowAuthorization)
+    }
     let nextEncoded = try NSKeyedArchiver.archivedData(withRootObject: next, requiringSecureCoding: true).base64EncodedString()
     return ["records": records, "deleted": deleted.map { $0.uuid.uuidString.lowercased() }, "anchor": nextEncoded,
             "hasMore": samples.count + deleted.count >= pageSize]
   }
 
-  private func exportSample(_ sample: HKSample) async throws -> [[String: Any]] {
+  private func exportSample(_ sample: HKSample, allowAuthorization: Bool) async throws -> [[String: Any]] {
     let id = sample.uuid.uuidString.lowercased()
     var value: [String: Any] = ["sampleId": id, "type": sample.sampleType.identifier,
       "startAt": iso(sample.startDate), "endAt": iso(sample.endDate),
@@ -101,6 +104,7 @@ final class HealthReader: @unchecked Sendable {
       }
     }
     if let document = sample as? HKDocumentSample {
+      guard allowAuthorization else { throw HealthSyncFailure.needsForeground }
       let documents = try await documentData(document)
       guard let full = documents.first else { throw failure("Document access was not granted; its checkpoint has not advanced.") }
       records += try archive(id, full)
@@ -114,19 +118,19 @@ final class HealthReader: @unchecked Sendable {
   }
 
   private func quantitySeries(_ sample: HKQuantitySample, _ unit: HKUnit) async throws -> [[String: Any]] {
-    try await withCheckedThrowingContinuation { continuation in
+    try await withHealthQuery(store: store) { continuation in
       var values: [[String: Any]] = []
       let query = HKQuantitySeriesSampleQuery(quantityType: sample.quantityType, predicate: HKQuery.predicateForObject(with: sample.uuid)) { _, quantity, interval, _, done, error in
         if let error { continuation.resume(throwing: error); return }
         if let quantity, let interval { values.append(["startAt": self.iso(interval.start), "endAt": self.iso(interval.end), "value": quantity.doubleValue(for: unit), "unit": unit.unitString]) }
         if done { continuation.resume(returning: values) }
       }
-      store.execute(query)
+      continuation.execute(query)
     }
   }
 
   private func routeLocations(_ route: HKWorkoutRoute) async throws -> [[String: Any]] {
-    try await withCheckedThrowingContinuation { continuation in
+    try await withHealthQuery(store: store) { continuation in
       var values: [[String: Any]] = []
       let query = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
         if let error { continuation.resume(throwing: error); return }
@@ -135,24 +139,24 @@ final class HealthReader: @unchecked Sendable {
           "speed": $0.speed, "speedAccuracy": $0.speedAccuracy, "course": $0.course, "courseAccuracy": $0.courseAccuracy] }
         if done { continuation.resume(returning: values) }
       }
-      store.execute(query)
+      continuation.execute(query)
     }
   }
 
   private func heartbeats(_ series: HKHeartbeatSeriesSample) async throws -> [[String: Any]] {
-    try await withCheckedThrowingContinuation { continuation in
+    try await withHealthQuery(store: store) { continuation in
       var values: [[String: Any]] = []
       let query = HKHeartbeatSeriesQuery(heartbeatSeries: series) { _, time, gap, done, error in
         if let error { continuation.resume(throwing: error); return }
         values.append(["timeSinceStart": time, "precededByGap": gap])
         if done { continuation.resume(returning: values) }
       }
-      store.execute(query)
+      continuation.execute(query)
     }
   }
 
   private func voltages(_ ecg: HKElectrocardiogram) async throws -> [[String: Any]] {
-    try await withCheckedThrowingContinuation { continuation in
+    try await withHealthQuery(store: store) { continuation in
       var values: [[String: Any]] = []
       let query = HKElectrocardiogramQuery(ecg) { _, result in
         switch result {
@@ -165,19 +169,19 @@ final class HealthReader: @unchecked Sendable {
         @unknown default: continuation.resume(throwing: self.failure("Unknown ECG result."))
         }
       }
-      store.execute(query)
+      continuation.execute(query)
     }
   }
 
   private func documentData(_ sample: HKDocumentSample) async throws -> [HKDocumentSample] {
-    try await withCheckedThrowingContinuation { continuation in
+    try await withHealthQuery(store: store) { continuation in
       var documents: [HKDocumentSample] = []
       let query = HKDocumentQuery(documentType: sample.documentType, predicate: HKQuery.predicateForObject(with: sample.uuid), limit: HKObjectQueryNoLimit, sortDescriptors: nil, includeDocumentData: true) { _, samples, done, error in
         if let error { continuation.resume(throwing: error); return }
         documents += samples ?? []
         if done { continuation.resume(returning: documents) }
       }
-      store.execute(query)
+      continuation.execute(query)
     }
   }
 
@@ -195,8 +199,8 @@ final class HealthReader: @unchecked Sendable {
   }
 
   private func activitySummaries() async throws -> [[String: Any]] {
-    let summaries: [HKActivitySummary] = try await withCheckedThrowingContinuation { continuation in
-      store.execute(HKActivitySummaryQuery(predicate: nil) { _, summaries, error in
+    let summaries: [HKActivitySummary] = try await withHealthQuery(store: store) { continuation in
+      continuation.execute(HKActivitySummaryQuery(predicate: nil) { _, summaries, error in
         if let error { continuation.resume(throwing: error) } else { continuation.resume(returning: summaries ?? []) }
       })
     }
@@ -211,12 +215,12 @@ final class HealthReader: @unchecked Sendable {
   }
 
   @available(iOS 26.0, *)
-  private func medications() async throws -> [[String: Any]] {
+  private func medications(_ allowAuthorization: Bool) async throws -> [[String: Any]] {
     let type = HKObjectType.userAnnotatedMedicationType()
-    if type.requiresPerObjectAuthorization() { try await store.requestPerObjectReadAuthorization(for: type, predicate: nil) }
-    let items: [HKUserAnnotatedMedication] = try await withCheckedThrowingContinuation { continuation in
+    if allowAuthorization && type.requiresPerObjectAuthorization() { try await store.requestPerObjectReadAuthorization(for: type, predicate: nil) }
+    let items: [HKUserAnnotatedMedication] = try await withHealthQuery(store: store) { continuation in
       var items: [HKUserAnnotatedMedication] = []
-      store.execute(HKUserAnnotatedMedicationQuery(predicate: nil, limit: HKObjectQueryNoLimit) { _, item, done, error in
+      continuation.execute(HKUserAnnotatedMedicationQuery(predicate: nil, limit: HKObjectQueryNoLimit) { _, item, done, error in
         if let error { continuation.resume(throwing: error); return }
         if let item { items.append(item) }
         if done { continuation.resume(returning: items) }

@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: "Health Exporter",
     slug: "health-exporter",
     owner: required("EXPO_OWNER", /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/),
-    version: "0.2.0",
+    version: "0.3.0",
     icon: "./assets/icon.png",
     orientation: "portrait",
     ios: {
@@ -33,6 +33,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         usesNonExemptEncryption: false,
       },
       infoPlist: {
+        UIBackgroundModes: ["processing"],
+        BGTaskSchedulerPermittedIdentifiers: [`${bundleIdentifier}.health-sync`],
         NSHealthClinicalHealthRecordsShareUsageDescription:
           "Export the clinical health records you select to your chosen destination for your personal archive.",
         NSHealthShareUsageDescription:
@@ -45,6 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       entitlements: {
         "com.apple.developer.healthkit.access": ["health-records"],
         "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.background-delivery": true,
       },
     },
     plugins: ["expo-secure-store"],

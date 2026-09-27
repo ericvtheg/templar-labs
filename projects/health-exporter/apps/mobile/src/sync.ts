@@ -115,7 +115,7 @@ export function pageBatches(page: HealthPage) {
   return Array.from({ length: count }, (_, i) => ({
     records: chunks[i] ?? [],
     deleted: page.deleted.slice(i * 100, (i + 1) * 100),
-    ...(i === count - 1 ? { checkpoint: page.anchor } : {}),
+    ...(i === count - 1 ? { checkpoint: page.anchor, hasMore: page.hasMore } : {}),
   }));
 }
 

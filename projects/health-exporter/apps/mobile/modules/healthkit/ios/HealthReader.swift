@@ -47,10 +47,14 @@ final class HealthReader: @unchecked Sendable {
     var result = HealthTypes.samples(store).map { ["id": $0.identifier, "name": $0.identifier] }
     result += [["id": "characteristics", "name": "Personal health characteristics"], ["id": "activitySummaries", "name": "Activity rings"]]
     if #available(iOS 26.0, *) { result.append(["id": "medications", "name": "Medications"]) }
+    result += Self.statisticIdentifiers.map { ["id": "statistics:\($0.rawValue)", "name": "Daily \($0.rawValue)"] }
+    result.append(["id": "workoutDetails", "name": "Detailed workout timelines"])
     return result
   }
 
   func readPage(_ identifier: String, _ encodedAnchor: String?, allowAuthorization: Bool = true) async throws -> [String: Any] {
+    if identifier.hasPrefix("statistics:") { return try await statisticsPage(identifier, encodedAnchor) }
+    if identifier == "workoutDetails" { return try await workoutDetailPage(encodedAnchor) }
     if identifier == "characteristics" { return page(try characteristics()) }
     if identifier == "activitySummaries" { return page(try await activitySummaries()) }
     if identifier == "medications" {
@@ -79,6 +83,7 @@ final class HealthReader: @unchecked Sendable {
       continuation.execute(query)
     }
     var records: [[String: Any]] = []
+    invalidateStatistics(identifier, samples: samples, deleted: deleted)
     for sample in samples {
       try Task.checkCancellation()
       records += try await exportSample(sample, allowAuthorization: allowAuthorization)
@@ -88,7 +93,7 @@ final class HealthReader: @unchecked Sendable {
             "hasMore": samples.count + deleted.count >= pageSize]
   }
 
-  private func exportSample(_ sample: HKSample, allowAuthorization: Bool) async throws -> [[String: Any]] {
+  func exportSample(_ sample: HKSample, allowAuthorization: Bool) async throws -> [[String: Any]] {
     let id = sample.uuid.uuidString.lowercased()
     var value: [String: Any] = ["sampleId": id, "type": sample.sampleType.identifier,
       "startAt": iso(sample.startDate), "endAt": iso(sample.endDate),
@@ -271,7 +276,7 @@ final class HealthReader: @unchecked Sendable {
       return ["id": "\(id)/\(kind)/\(offset / 131072)", "parentId": id, "data": data]
     }
   }
-  private func chunks(_ id: String, _ kind: String, _ items: [[String: Any]]) -> [[String: Any]] {
+  func chunks(_ id: String, _ kind: String, _ items: [[String: Any]]) -> [[String: Any]] {
     stride(from: 0, to: items.count, by: 500).map { offset -> [String: Any] in
       let values = Array(items[offset..<min(offset + 500, items.count)])
       let data: [String: Any] = ["kind": kind, "part": offset / 500, "parts": (items.count + 499) / 500,
@@ -287,8 +292,8 @@ final class HealthReader: @unchecked Sendable {
     if value is String || value is NSNumber || value is NSNull { return value }
     return String(describing: value)
   }
-  private func iso(_ date: Date) -> String {
+  func iso(_ date: Date) -> String {
     dateFormatter.string(from: date)
   }
-  private func failure(_ message: String) -> NSError { NSError(domain: "HealthExporter", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
+  func failure(_ message: String) -> NSError { NSError(domain: "HealthExporter", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
 }

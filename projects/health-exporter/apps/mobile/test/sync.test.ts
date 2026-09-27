@@ -48,7 +48,7 @@ test("250-sample pages use five bounded uploads instead of twenty, committing on
     [undefined, undefined, "250"],
   );
   assert.deepEqual(pageBatches({ ...page, records: [] }), [
-    { records: [], deleted: [], checkpoint: "250" },
+    { records: [], deleted: [], checkpoint: "250", hasMore: true },
   ]);
 });
 

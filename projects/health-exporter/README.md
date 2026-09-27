@@ -55,7 +55,9 @@ Quantities and categories have readable JSON fields. Specialized samples preserv
 
 The app requests read-only access. Availability and permissions determine which records Apple returns; an empty result cannot distinguish no data from denied access. Clinical records require Health Records signing capability. Per-object types may prompt separately. A failed type is reported as a partial export and its checkpoint does not advance.
 
-The initial bulk export runs fastest in the foreground. Version 0.3 adds automatic updates as described below. It does not claim a complete copy of Apple's private database, Medical ID, inaccessible attachments, or fields HealthKit does not expose. Source samples are exported without aggregating overlapping records into daily totals.
+The initial bulk export runs fastest in the foreground. Version 0.3 adds automatic updates as described below. It does not claim a complete copy of Apple's private database, Medical ID, inaccessible attachments, or fields HealthKit does not expose. Source samples retain their original granularity and provenance.
+
+Version 0.5 also exports HealthKit's merged daily activity statistics and minute workout timelines. These let the receiver answer routine questions without adding overlapping Watch/phone samples. The original records remain available for inspection. Derived exports have independent checkpoints, refresh recent and corrected intervals, and periodically rebuild history. Existing raw imports resume without a reset. See the [derived upload format](docs/upload-contract.md#derived-records).
 
 ## Automatic updates
 
@@ -71,7 +73,7 @@ Automatic updates default to on when the destination is first configured by star
 
 iOS decides when background work runs. Locked Health data, connectivity, Background App Refresh settings, and force-quitting can defer it. Open the app after force-quitting to resume. The UI shows the last automatic check and retry status. Types requiring an interactive document permission prompt remain queued for a foreground export.
 
-The receiver remains entirely in the homelab repository. Automatic uploads use the same v2 contract; no receiver changes are required.
+The receiver remains entirely in the homelab repository. Version 0.5 extends the v2 contract with coverage and derived records; deploy the matching receiver update before installing this version.
 
 Version 0.4 reads quantity/category history in 250-sample pages and other sample types in 10-sample pages. Uploads retain the 100-record and size limits; the last batch includes the checkpoint, avoiding a separate request. A typical 250 samples with two records each needs five uploads instead of twenty.
 

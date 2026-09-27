@@ -15,7 +15,9 @@ The mobile app appends `/api/v2/health-archive` to its configured HTTPS base URL
 }
 ```
 
-`types` contains `{ "type": "<HealthKit identifier>", "count": 123 }` entries. `checkpoints` maps each type to an opaque base64 HealthKit anchor. Characteristics, medication concepts, and activity summaries are snapshots and are re-read each session.
+`types` contains `{ "type": "<HealthKit identifier>", "count": 123 }` entries. `checkpoints` maps each type to an opaque base64 cursor; receivers must not interpret it. Raw types use HealthKit anchors; derived types use resumable calculation cursors. Characteristics, medication concepts, and activity summaries are snapshots and are re-read each session.
+
+Version 0.5 requires a receiver accepting `hasMore` and the derived records below. Its GET response advertises `capabilities: ["sync-coverage", "healthkit-statistics", "knowledge-v1"]`; upgrade the receiver before installing the app.
 
 `POST` accepts:
 
@@ -37,6 +39,27 @@ Records are keyed by device, type, and ID. Retrying overwrites that key. Series 
 Each request carries at most 100 records, 100 deleted parent IDs, and 2 MiB of JSON. The client splits large pages into multiple requests. Success acknowledges the committed batch as `{ "accepted": 1, "deleted": 0 }`; clients verify both counts.
 
 Only the **final** batch of a native page includes `checkpoint`. Earlier batches must be acknowledged before sending it. The destination commits the final records, deletions, and checkpoint atomically; a separate empty checkpoint request is also supported for older clients. Empty pages still send a checkpoint. Retrying records and deletions is idempotent. If the final response is lost, the client reads the destination's committed checkpoint on resume. Deletions remove every record sharing that parent ID for this device and type.
+
+Version 0.5 includes `hasMore: true | false` alongside each checkpoint, including empty pages. The receiver records backfilling versus caught-up-at-time separately from record dates. A caught-up query does not establish read permission, wear completeness, or absence of data. Legacy clients omit this field and cannot establish that status.
+
+### Derived records
+
+Raw samples and series remain unchanged. The phone additionally exports:
+
+| Type | Identity | Contents |
+| --- | --- | --- |
+| `statistics:<HealthKit quantity identifier>` | `<IANA time zone>/<YYYY-MM-DD>` | A local calendar day's merged HealthKit statistics |
+| `workoutDetails` | Workout UUID | Workout context and `workoutStatistics` fragments |
+
+Daily records contain `kind: "healthkitStatistic"`, `quantityType`, `date`, `timeZone`, `resolution: "day"`, actual `startAt`/`endAt`, `calculatedAt`, `unit`, `function`, and `value`. Empty results carry `value: null`, never an inferred zero. Discrete results also include `min`/`max`. `contributors` lists contributing HealthKit sources; it does not expose their priority order. Local days can span 23 or 25 hours.
+
+Daily quantities are steps, walking/running distance, cycling distance, active and basal energy, exercise time, resting heart rate, and HRV. They use `HKStatisticsCollectionQuery` without `separateBySource`, allowing HealthKit to merge source data before calculating values. Receivers must not replace a missing cumulative statistic with a sum of raw overlapping samples. See [Apple's statistics documentation](https://developer.apple.com/documentation/healthkit/hkstatistics).
+
+Workout context has `kind: "workoutContext"` and `calculatedAt`. Its timeline uses one-minute intervals anchored at workout start, clipped to workout end, and HealthKit's workout-association predicate. Metrics include heart rate, active energy, walking/running and cycling distance, running speed, and supported cycling power/cadence. Each value identifies its metric, unit, boundaries, function, contributors, and association. Minute values do not establish sets, reps, continuous sensor wear, or calories attributable to a set.
+
+Receiving a new `workoutContext` base record discards that device/workout's old detail fragments before accepting replacements. Readers must withhold incomplete fragment sets. Deleting a raw workout also deletes its derived detail for that exporter. Fragment retries are safe; the last page batch remains the only checkpoint boundary.
+
+Derived streams backfill independently of raw anchors. Subsequent passes refresh seven recent days and any older interval touched by a raw change. Deletions trigger a full recalculation; a full sweep also runs after 30 days to catch source-priority and permission changes. Durable generation counters preserve changes arriving during a sweep. Workout refreshes reread one workout per page, including quantities associated after the workout was first saved. These checks run when foreground or iOS background execution is available.
 
 ## V1: installed step-only builds
 

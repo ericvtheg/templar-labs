@@ -130,6 +130,10 @@ final class HealthAutoSync {
         Task { @MainActor in
           guard self.enabled else { completion(); return }
           self.queue.enqueue([type.identifier], prioritize: true)
+          if HealthReader.statisticIdentifiers.contains(where: { $0.rawValue == type.identifier }) {
+            self.queue.enqueue(["statistics:\(type.identifier)"])
+          }
+          if HealthReader.affectsWorkoutDetails(type.identifier) { self.queue.enqueue(["workoutDetails"]) }
           self.persist()
           self.schedule()
           // Foreground owns the upload lease. The durable queue retains this notification.

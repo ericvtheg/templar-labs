@@ -80,7 +80,7 @@ struct HealthSyncEngine {
           let batch = chunkIndex < chunks.count ? chunks[chunkIndex] : []
           let removals = Array(deleted.dropFirst(chunkIndex * 100).prefix(100))
           var body: [String: Any] = ["deviceId": target.deviceId, "type": type, "records": batch, "deleted": removals]
-          if chunkIndex == count - 1 { body["checkpoint"] = next }
+          if chunkIndex == count - 1 { body["checkpoint"] = next; body["hasMore"] = more }
           let ack = try await request(target, endpoint, body)
           guard ack["accepted"] as? Int == batch.count, ack["deleted"] as? Int == removals.count else { throw HealthSyncFailure.invalidResponse }
           result.sent += batch.count

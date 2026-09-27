@@ -1,7 +1,13 @@
 // biome-ignore-all lint/suspicious/useAwait: async interface fixtures intentionally resolve synchronously.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { batches, exportHealth, type HealthReader, validateDestination } from "../src/sync.ts";
+import {
+  batches,
+  exportHealth,
+  type HealthReader,
+  pageBatches,
+  validateDestination,
+} from "../src/sync.ts";
 
 const destination = {
   url: "https://test.invalid",
@@ -9,6 +15,86 @@ const destination = {
   deviceId: "00000000-0000-4000-8000-000000000000",
 };
 const record = (i: number) => ({ id: String(i), parentId: String(i), data: { value: i } });
+
+test("250-sample pages use five bounded uploads instead of twenty, committing only the last", () => {
+  const page = {
+    records: Array.from({ length: 500 }, (_, i) => record(i)),
+    deleted: [],
+    anchor: "250",
+    hasMore: true,
+  };
+  const chunks = pageBatches(page);
+  assert.equal(chunks.length, 5);
+  assert.deepEqual(
+    chunks.flatMap((c) => c.records),
+    page.records,
+  );
+  assert.deepEqual(
+    chunks.map((c) => c.checkpoint),
+    [undefined, undefined, undefined, undefined, "250"],
+  );
+  const removals = Array.from({ length: 250 }, (_, i) => `deleted-${i}`);
+  const deletionChunks = pageBatches({ ...page, records: [], deleted: removals });
+  assert.deepEqual(
+    deletionChunks.map((c) => c.deleted.length),
+    [100, 100, 50],
+  );
+  assert.deepEqual(
+    deletionChunks.flatMap((c) => c.deleted),
+    removals,
+  );
+  assert.deepEqual(
+    deletionChunks.map((c) => c.checkpoint),
+    [undefined, undefined, "250"],
+  );
+  assert.deepEqual(pageBatches({ ...page, records: [] }), [
+    { records: [], deleted: [], checkpoint: "250" },
+  ]);
+});
+
+test("pausing or a wrong acknowledgment stops before the final checkpoint", async () => {
+  let posts = 0;
+  let saved: string | undefined;
+  let wrong = false;
+  const reader: HealthReader = {
+    requestPermissions: async () => undefined,
+    getTypes: async () => [{ id: "steps", name: "Steps" }],
+    readPage: async () => ({
+      records: Array.from({ length: 500 }, (_, i) => record(i)),
+      deleted: [],
+      anchor: "next",
+      hasMore: false,
+    }),
+  };
+  const fetcher: typeof fetch = async (_, init) => {
+    if (init?.method === "GET") {
+      return Response.json({ protocol: 2, totalRecords: 0, checkpoints: {}, types: [] });
+    }
+    const body = JSON.parse(String(init?.body));
+    posts++;
+    saved = body.checkpoint;
+    return Response.json({
+      accepted: wrong ? 0 : body.records.length,
+      deleted: body.deleted.length,
+    });
+  };
+  const options = {
+    destination,
+    reader,
+    fetcher,
+    progress: () => undefined,
+    paused: () => posts > 0,
+  };
+  const result = await exportHealth(options);
+  assert.equal(result.paused, true);
+  assert.equal(posts, 1);
+  assert.equal(saved, undefined);
+  posts = 0;
+  wrong = true;
+  await assert.rejects(exportHealth({ ...options, paused: () => false }), /acknowledge/);
+  assert.equal(posts, 1);
+  assert.equal(saved, undefined);
+});
 
 test("full history spans many pages; checkpoints follow successful uploads and restart resumes", async () => {
   const posts: Record<string, unknown>[] = [];
@@ -42,16 +128,16 @@ test("full history spans many pages; checkpoints follow successful uploads and r
     if (body.checkpoint !== undefined) {
       saved = body.checkpoint;
     }
-    return Response.json({ accepted: body.records.length });
+    return Response.json({ accepted: body.records.length, deleted: body.deleted.length });
   };
   const options = { destination, reader, fetcher, progress: () => undefined, paused: () => false };
   const result = await exportHealth(options);
   assert.equal(result.sent, 500);
   assert.deepEqual(anchors, [null, "1", "2", "3"]);
-  assert.equal(posts.length, 12);
+  assert.equal(posts.length, 8);
   assert.deepEqual(
-    posts.slice(0, 3).map((p) => p.checkpoint),
-    [undefined, undefined, "1"],
+    posts.slice(0, 2).map((p) => p.checkpoint),
+    [undefined, "1"],
   );
   anchors.length = 0;
   await exportHealth(options);
@@ -87,18 +173,23 @@ test("failed batch never advances its checkpoint; a native type error is reporte
     }
     const body = JSON.parse(String(init?.body));
     posts.push(body);
-    return Response.json({}, { status: posts.length === 2 ? 503 : 200 });
+    return Response.json(
+      { accepted: body.records.length, deleted: body.deleted.length },
+      { status: posts.length === 2 ? 503 : 200 },
+    );
   };
   await assert.rejects(
     exportHealth({ destination, reader, fetcher, progress: () => undefined, paused: () => false }),
     /503/,
   );
-  assert.ok(posts.every((p) => p.checkpoint === undefined));
+  assert.equal(posts[0]?.checkpoint, undefined);
+  assert.equal(posts[1]?.checkpoint, "next", "Only the failed final request contains a checkpoint");
   const succeeds: typeof fetch = async (url, init) => {
     if (init?.method === "GET") {
       return fetcher(url, init);
     }
-    return Response.json({ accepted: 0 });
+    const body = JSON.parse(String(init?.body));
+    return Response.json({ accepted: body.records.length, deleted: body.deleted.length });
   };
   const result = await exportHealth({
     destination,

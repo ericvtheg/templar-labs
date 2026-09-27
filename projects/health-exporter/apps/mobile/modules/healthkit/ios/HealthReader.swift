@@ -6,7 +6,15 @@ import CryptoKit
 // No history window: an empty anchor begins at the oldest accessible HealthKit record.
 final class HealthReader: @unchecked Sendable {
   let store = HKHealthStore()
-  let pageSize = 25
+  // Ordinary samples are small. Series/documents stay on smaller pages to bound memory.
+  static func pageSize(for type: HKSampleType) -> Int {
+    (type is HKQuantityType || type is HKCategoryType) ? 250 : 10
+  }
+  private let dateFormatter: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+  }()
   private var requestedObjectPermissions = Set<String>()
 
   func requestPermissions() async throws {
@@ -50,6 +58,7 @@ final class HealthReader: @unchecked Sendable {
       throw failure("Medications require iOS 26.")
     }
     guard let type = HealthTypes.samples(store).first(where: { $0.identifier == identifier }) else { throw failure("Unknown HealthKit type.") }
+    let pageSize = Self.pageSize(for: type)
     if let permission = HealthTypes.objectPermission(for: type) {
       try await requestObjectPermission(permission, allowed: allowAuthorization)
     }
@@ -279,9 +288,7 @@ final class HealthReader: @unchecked Sendable {
     return String(describing: value)
   }
   private func iso(_ date: Date) -> String {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter.string(from: date)
+    dateFormatter.string(from: date)
   }
   private func failure(_ message: String) -> NSError { NSError(domain: "HealthExporter", code: 1, userInfo: [NSLocalizedDescriptionKey: message]) }
 }

@@ -20,6 +20,9 @@ final class HealthAutoSync {
   private var callbacks: [(Bool) -> Void] = []
   private var watchdog: Task<Void, Never>?
   private var backgroundToken: UIBackgroundTaskIdentifier = .invalid
+  private var foregroundToken: UIBackgroundTaskIdentifier = .invalid
+  private var processing = false
+  private var scheduling = false
   private var queue: HealthSyncQueue
 
   private init() {
@@ -83,11 +86,26 @@ final class HealthAutoSync {
   func beginForeground() async {
     foreground = true
     await stopAndWait()
+    // Give the JS exporter time to finish its current request and hand off its
+    // lease when AppState pauses it on backgrounding.
+    if foregroundToken == .invalid {
+      foregroundToken = UIApplication.shared.beginBackgroundTask(withName: "Finish health export page") {
+        Task { @MainActor in self.endForegroundAssertion() }
+      }
+    }
   }
 
   func endForeground() {
     foreground = false
     if enabled { schedule(); kick() }
+    endForegroundAssertion()
+  }
+
+  private func endForegroundAssertion() {
+    if foregroundToken != .invalid {
+      UIApplication.shared.endBackgroundTask(foregroundToken)
+      foregroundToken = .invalid
+    }
   }
 
   func becameActive() {
@@ -135,17 +153,19 @@ final class HealthAutoSync {
   private func setMessage(_ message: String) { defaults.set(message, forKey: "health-exporter.automatic.message") }
 
   private func schedule() {
-    guard enabled else { return }
-    let request = BGProcessingTaskRequest(identifier: Self.taskIdentifier)
-    request.requiresNetworkConnectivity = true
-    request.requiresExternalPower = false
-    request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-    do { try BGTaskScheduler.shared.submit(request) }
-    catch {
-      // An existing pending request is intentionally retained, without postponing it on each notification.
-      let error = error as NSError
-      if error.code != BGTaskScheduler.Error.Code.tooManyPendingTaskRequests.rawValue {
-        setMessage("iOS background scheduling is unavailable. Updates will also retry when you open the app.")
+    guard enabled, !scheduling else { return }
+    scheduling = true
+    BGTaskScheduler.shared.getPendingTaskRequests { requests in
+      Task { @MainActor in
+        defer { self.scheduling = false }
+        guard self.enabled, !requests.contains(where: { $0.identifier == Self.taskIdentifier }) else { return }
+        // Re-submitting the same identifier replaces its request and postpones it.
+        let request = BGProcessingTaskRequest(identifier: Self.taskIdentifier)
+        request.requiresNetworkConnectivity = true
+        request.requiresExternalPower = false
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        do { try BGTaskScheduler.shared.submit(request) }
+        catch { self.setMessage("iOS background scheduling is unavailable. Updates will also retry when you open the app.") }
       }
     }
   }
@@ -153,6 +173,7 @@ final class HealthAutoSync {
   private func handle(_ task: BGTask) {
     guard enabled, !foreground, worker?.isCancelled != true else { task.setTaskCompleted(success: true); schedule(); return }
     enqueue(reader.types().compactMap { $0["id"] })
+    processing = true
     callbacks.append { success in task.setTaskCompleted(success: success) }
     task.expirationHandler = { Task { @MainActor in self.expire() } }
     schedule()
@@ -164,14 +185,18 @@ final class HealthAutoSync {
     guard !queue.order.isEmpty else { finishCallbacks(true); return }
     let id = UUID()
     runId = id
-    let types = queue.order
-    let generations = queue.generations
     backgroundToken = UIApplication.shared.beginBackgroundTask(withName: "Health export") {
-      Task { @MainActor in self.expire() }
+      Task { @MainActor in
+        // BGProcessingTask owns a separate, longer grant of execution time.
+        guard self.runId == id else { return }
+        if self.processing { self.endBackgroundAssertion() } else { self.expire() }
+      }
     }
     watchdog = Task { @MainActor in
-      do { try await Task.sleep(nanoseconds: 20_000_000_000) } catch { return }
-      if self.runId == id { self.expire() }
+      while self.runId == id {
+        do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
+        if !self.canContinueSync() { self.expire(); return }
+      }
     }
     worker = Task { @MainActor in
       var success = false
@@ -189,14 +214,26 @@ final class HealthAutoSync {
         }, readPage: { type, anchor in
           try await self.reader.readPage(type, anchor, allowAuthorization: false)
         })
-        let pass = try await engine.run(target: target, types: types, deadline: Date(timeIntervalSinceNow: 16))
-        self.queue.finish(pass, started: generations)
-        self.persist()
-        success = pass.failed.isEmpty
-        if !pass.completed.isEmpty {
-          self.defaults.set(ISO8601DateFormatter().string(from: Date()), forKey: "health-exporter.automatic.lastSuccess")
+        var failed = Set<String>()
+        var sent = 0
+        while self.canContinueSync() {
+          try Task.checkCancellation()
+          let types = self.queue.order.filter { !failed.contains($0) }
+          guard !types.isEmpty else { break }
+          let generations = self.queue.generations
+          let pass = try await engine.run(target: target, types: types, maxPagesPerType: 4,
+                                           canContinue: { self.canContinueSync() })
+          self.queue.finish(pass, started: generations)
+          self.persist()
+          failed.formUnion(pass.failed)
+          sent += pass.sent
+          if !pass.completed.isEmpty || pass.sent > 0 {
+            self.defaults.set(ISO8601DateFormatter().string(from: Date()), forKey: "health-exporter.automatic.lastSuccess")
+          }
+          self.setMessage("Automatic export: \(sent) records sent; \(self.queue.order.count) types pending.")
         }
-        self.setMessage(pass.failed.isEmpty ? "Automatic check finished. Remaining updates will retry when iOS allows." : "Some types could not be read in the background. Open the app to export them; progress is preserved.")
+        success = failed.isEmpty
+        self.setMessage(failed.isEmpty ? "Automatic export sent \(sent) records. \(self.queue.order.count) types pending; saved progress resumes when iOS allows." : "Some types need a foreground export. Other types were processed; saved progress is preserved.")
       } catch is CancellationError {
         self.setMessage("Automatic export paused; saved progress will resume on the next opportunity.")
       } catch HealthSyncFailure.unauthorized {
@@ -224,6 +261,17 @@ final class HealthAutoSync {
   private func finishCallbacks(_ success: Bool) {
     let pending = callbacks; callbacks = []
     pending.forEach { $0(success) }
+    processing = false
+    endBackgroundAssertion()
+  }
+
+  private func canContinueSync() -> Bool {
+    HealthSyncBudget.canContinue(active: UIApplication.shared.applicationState == .active,
+      processing: processing, protectedDataAvailable: UIApplication.shared.isProtectedDataAvailable,
+      hasAssertion: backgroundToken != .invalid, remaining: UIApplication.shared.backgroundTimeRemaining)
+  }
+
+  private func endBackgroundAssertion() {
     if backgroundToken != .invalid { UIApplication.shared.endBackgroundTask(backgroundToken); backgroundToken = .invalid }
   }
 

@@ -8,6 +8,7 @@ actor FixtureServer {
   var checkpoints = 0
   var failBatch: Int?
   var wrongAcknowledgment = false
+  var bodies: [[String: Any]] = []
 
   func configure(failBatch: Int? = nil, wrong: Bool = false) {
     self.failBatch = failBatch; self.wrongAcknowledgment = wrong
@@ -19,7 +20,10 @@ actor FixtureServer {
       return (try JSONSerialization.data(withJSONObject: ["protocol": 2, "checkpoints": anchor.map { ["steps": $0] } ?? [:]]), 200)
     }
     let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+    bodies.append(body)
     let records = body["records"] as! [[String: Any]]
+    precondition(records.count <= 100 && (body["deleted"] as! [String]).count <= 100)
+    precondition(request.httpBody!.count < 2 * 1024 * 1024)
     if !records.isEmpty {
       batches += 1
       if batches == failBatch { return (Data("{}".utf8), 503) }
@@ -31,10 +35,17 @@ actor FixtureServer {
   }
 
   func state() -> (String?, Int, Int) { (anchor, stored.count, checkpoints) }
+  func postedCount() -> Int { bodies.count }
+  func checkpointPositions() -> [Int] { bodies.enumerated().compactMap { $0.element["checkpoint"] == nil ? nil : $0.offset } }
 }
 
 @main struct BackgroundSyncTests {
   static func main() async throws {
+    precondition(HealthSyncBudget.canContinue(active: true, processing: false, protectedDataAvailable: true, hasAssertion: false, remaining: 0))
+    precondition(HealthSyncBudget.canContinue(active: false, processing: true, protectedDataAvailable: true, hasAssertion: false, remaining: 0), "BGProcessingTask must not inherit a short UIKit timer")
+    precondition(HealthSyncBudget.canContinue(active: false, processing: false, protectedDataAvailable: true, hasAssertion: true, remaining: 120))
+    precondition(!HealthSyncBudget.canContinue(active: false, processing: false, protectedDataAvailable: true, hasAssertion: true, remaining: 2), "Leave time to finish before suspension")
+    precondition(!HealthSyncBudget.canContinue(active: false, processing: true, protectedDataAvailable: false, hasAssertion: true, remaining: 120), "Defer locked HealthKit reads")
     let store = HKHealthStore() // No queries or permissions are requested by these lifecycle tests.
     let once: Int = try await withHealthQuery(store: store) { completion in
       completion.resume(returning: 7)
@@ -51,6 +62,27 @@ actor FixtureServer {
       preconditionFailure("Early cancellation must throw")
     } catch is CancellationError { }
     let target = HealthSyncTarget(url: "https://test.invalid", secret: "synthetic-secret-for-tests-1234567890", deviceId: "00000000-0000-4000-8000-000000000000")
+    let bulkServer = FixtureServer()
+    let bulk = HealthSyncEngine(transport: { try await bulkServer.send($0) }, readPage: { _, _ in
+      ["records": (0..<500).map { ["id": "\($0)", "parentId": "\($0)", "data": ["value": $0]] },
+       "deleted": (0..<250).map { "old-\($0)" }, "anchor": "bulk", "hasMore": false]
+    })
+    let bulkPass = try await bulk.run(target: target, types: ["steps"])
+    let bulkCount = await bulkServer.postedCount()
+    let bulkCheckpoints = await bulkServer.checkpointPositions()
+    precondition(bulkPass.sent == 500 && bulkCount == 5 && bulkCheckpoints == [4], "Combine records, bounded deletions and final checkpoint into five requests")
+    let rotatingServer = FixtureServer()
+    let rotating = HealthSyncEngine(transport: { try await rotatingServer.send($0) }, readPage: { type, anchor in
+      ["records": [["id": type, "parentId": type, "data": [:]]], "deleted": [String](),
+       "anchor": "\((Int(anchor ?? "0") ?? 0) + 1)", "hasMore": type == "steps"]
+    })
+    let rotated = try await rotating.run(target: target, types: ["steps", "sleep"], maxPagesPerType: 4)
+    precondition(rotated.retry == ["steps"] && rotated.completed == ["sleep"], "A large history must yield to the other types")
+    let interruptedServer = FixtureServer()
+    let interrupted = HealthSyncEngine(transport: { try await interruptedServer.send($0) }, readPage: bulk.readPage)
+    let interruptedPass = try await interrupted.run(target: target, types: ["steps"], canContinue: { await interruptedServer.postedCount() < 1 })
+    let interruptedState = await interruptedServer.state()
+    precondition(interruptedPass.retry == ["steps"] && interruptedState.0 == nil && interruptedState.1 == 100, "Expiration between chunks must leave the previous anchor intact")
     let read: HealthSyncEngine.ReadPage = { _, anchor in
       let page = Int(anchor ?? "0")!
       return ["records": (0..<125).map { ["id": "\(page * 125 + $0)", "parentId": "fixture", "data": ["value": $0]] },

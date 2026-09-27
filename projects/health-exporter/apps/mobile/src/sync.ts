@@ -89,7 +89,7 @@ export function batches(records: ArchiveRecord[]): ArchiveRecord[][] {
   let current: ArchiveRecord[] = [];
   let bytes = 0;
   for (const record of records) {
-    const size = JSON.stringify(record).length * 3; // Conservative UTF-8 bound for UTF-16 code units.
+    const size = JSON.stringify(record).length * 3; // Conservative UTF-8 bound, including surrogate pairs.
     if (size > 1_500_000) {
       throw new Error(
         "A HealthKit record is too large to send safely. Its progress has not advanced.",
@@ -107,6 +107,16 @@ export function batches(records: ArchiveRecord[]): ArchiveRecord[][] {
     result.push(current);
   }
   return result;
+}
+
+export function pageBatches(page: HealthPage) {
+  const chunks = batches(page.records);
+  const count = Math.max(chunks.length, Math.ceil(page.deleted.length / 100), 1);
+  return Array.from({ length: count }, (_, i) => ({
+    records: chunks[i] ?? [],
+    deleted: page.deleted.slice(i * 100, (i + 1) * 100),
+    ...(i === count - 1 ? { checkpoint: page.anchor } : {}),
+  }));
 }
 
 export async function exportHealth(options: {
@@ -144,34 +154,31 @@ export async function exportHealth(options: {
         );
         break;
       }
-      for (const records of batches(page.records)) {
-        if (paused()) {
-          return { paused: true, sent, completed, errors };
-        }
-        await request(destination, fetcher, {
-          deviceId: destination.deviceId,
-          type: type.id,
-          records,
-          deleted: [],
-        });
-        sent += records.length;
-        progress(
-          `${index + 1}/${types.length}: ${displayType(type.name)}\n${sent.toLocaleString()} records sent this session.`,
-        );
-      }
-      // Commit only after every chunk in the HealthKit page was acknowledged.
-      await request(destination, fetcher, {
-        deviceId: destination.deviceId,
-        type: type.id,
-        records: [],
-        deleted: page.deleted,
-        checkpoint: page.anchor,
-      });
       if (page.hasMore && page.anchor === anchor) {
         throw new Error(
           "HealthKit returned a repeated checkpoint. Export stopped without skipping records.",
         );
       }
+      for (const batch of pageBatches(page)) {
+        if (paused()) {
+          return { paused: true, sent, completed, errors };
+        }
+        const ack = (await request(destination, fetcher, {
+          deviceId: destination.deviceId,
+          type: type.id,
+          ...batch,
+        })) as { accepted: number; deleted: number };
+        if (ack.accepted !== batch.records.length || ack.deleted !== batch.deleted.length) {
+          throw new Error(
+            "The destination did not acknowledge the full batch. Export stopped; retry to reconcile saved progress.",
+          );
+        }
+        sent += batch.records.length;
+        progress(
+          `${index + 1}/${types.length}: ${displayType(type.name)}\n${sent.toLocaleString()} records sent this session.`,
+        );
+      }
+      // The receiver commits the final batch and checkpoint in one SQLite transaction.
       anchor = page.anchor;
       more = page.hasMore;
       if (!more) {

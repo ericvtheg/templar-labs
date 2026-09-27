@@ -1,5 +1,13 @@
 import Foundation
 
+enum HealthSyncBudget {
+  static func canContinue(active: Bool, processing: Bool, protectedDataAvailable: Bool,
+                          hasAssertion: Bool, remaining: TimeInterval) -> Bool {
+    guard protectedDataAvailable else { return false }
+    return active || processing || (hasAssertion && remaining > 3)
+  }
+}
+
 struct HealthSyncTarget: Codable, Equatable {
   let url: String
   let secret: String
@@ -36,7 +44,8 @@ struct HealthSyncEngine {
   let transport: Transport
   let readPage: ReadPage
 
-  func run(target: HealthSyncTarget, types: [String], deadline: Date) async throws -> HealthSyncPass {
+  func run(target: HealthSyncTarget, types: [String], deadline: Date = .distantFuture,
+           maxPagesPerType: Int = .max, canContinue: () async -> Bool = { true }) async throws -> HealthSyncPass {
     let endpoint = try target.endpoint()
     let status = try await request(target, endpoint, nil)
     guard status["protocol"] as? Int == 2, let anchors = status["checkpoints"] as? [String: String] else {
@@ -45,9 +54,10 @@ struct HealthSyncEngine {
     var result = HealthSyncPass()
     for (index, type) in types.enumerated() {
       var anchor = anchors[type].flatMap { $0.isEmpty ? nil : $0 }
+      var pages = 0
       while true {
         try Task.checkCancellation()
-        guard Date() < deadline else {
+        guard Date() < deadline, await canContinue() else {
           result.retry += Array(types.dropFirst(index + 1)) + [type]
           return result
         }
@@ -60,22 +70,25 @@ struct HealthSyncEngine {
               let next = page["anchor"] as? String, let more = page["hasMore"] as? Bool,
               !(more && next == anchor) else { throw HealthSyncFailure.invalidResponse }
         let chunks = try batches(records)
-        for batch in chunks {
+        let count = max(chunks.count, (deleted.count + 99) / 100, 1)
+        for chunkIndex in 0..<count {
           try Task.checkCancellation()
-          guard Date() < deadline else {
+          guard Date() < deadline, await canContinue() else {
             result.retry += Array(types.dropFirst(index + 1)) + [type]
             return result
           }
-          let body: [String: Any] = ["deviceId": target.deviceId, "type": type, "records": batch, "deleted": [String]()]
+          let batch = chunkIndex < chunks.count ? chunks[chunkIndex] : []
+          let removals = Array(deleted.dropFirst(chunkIndex * 100).prefix(100))
+          var body: [String: Any] = ["deviceId": target.deviceId, "type": type, "records": batch, "deleted": removals]
+          if chunkIndex == count - 1 { body["checkpoint"] = next }
           let ack = try await request(target, endpoint, body)
-          guard ack["accepted"] as? Int == batch.count else { throw HealthSyncFailure.invalidResponse }
+          guard ack["accepted"] as? Int == batch.count, ack["deleted"] as? Int == removals.count else { throw HealthSyncFailure.invalidResponse }
           result.sent += batch.count
         }
-        try Task.checkCancellation()
-        let ack = try await request(target, endpoint, ["deviceId": target.deviceId, "type": type, "records": [[String: Any]](), "deleted": deleted, "checkpoint": next])
-        guard ack["accepted"] as? Int == 0, ack["deleted"] as? Int == deleted.count else { throw HealthSyncFailure.invalidResponse }
         anchor = next
         if !more { result.completed.append(type); break }
+        pages += 1
+        if pages >= maxPagesPerType { result.retry.append(type); break }
       }
     }
     return result

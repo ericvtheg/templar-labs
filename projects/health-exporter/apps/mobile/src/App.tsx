@@ -119,7 +119,7 @@ export default function App() {
       setDetails(result.errors);
       setMessage(
         result.paused
-          ? `Paused. ${result.sent.toLocaleString()} records sent. Tap Export / resume to continue.`
+          ? `Manual export paused. ${result.sent.toLocaleString()} records sent. ${automatic ? "Automatic updates continue from saved progress when iOS allows." : "Tap Export / resume to continue."}`
           : result.errors.length
             ? `Partial export: ${result.completed} types checked; ${result.errors.length} need attention. Saved progress is preserved.`
             : `Export finished for all readable types. ${result.sent.toLocaleString()} records sent this session. Types without permission or data may be empty.`,

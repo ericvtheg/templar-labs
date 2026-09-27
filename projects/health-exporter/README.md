@@ -73,6 +73,10 @@ iOS decides when background work runs. Locked Health data, connectivity, Backgro
 
 The receiver remains entirely in the homelab repository. Automatic uploads use the same v2 contract; no receiver changes are required.
 
+Version 0.4 reads quantity/category history in 250-sample pages and other sample types in 10-sample pages. Uploads retain the 100-record and size limits; the last batch includes the checkpoint, avoiding a separate request. A typical 250 samples with two records each needs five uploads instead of twenty.
+
+Automatic work rotates after four pages per type, then continues another round while execution time remains. Scheduled processing runs until iOS expires it, the phone locks, or the queue is exhausted; it has no fixed 16-second cap. Short background sessions stop before their UIKit allowance expires. Pending scheduled tasks are preserved rather than postponed by repeated submissions. Manual exports pause on backgrounding and hand off to automatic work when enabled; a short native assertion protects that handoff.
+
 ### Device verification
 
 1. Install the new TestFlight build, run the first export, and leave Automatic updates on

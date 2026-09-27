@@ -34,9 +34,9 @@ The mobile app appends `/api/v2/health-archive` to its configured HTTPS base URL
 
 Records are keyed by device, type, and ID. Retrying overwrites that key. Series and archive fragments share the sample's parent ID; their data includes `kind`, `part`, `parts`, and `values` or base64 `content`. Base64 fragments must be concatenated in part order before decoding. `appleArchive` is an Apple secure keyed archive, not portable XML.
 
-Each request carries at most 100 records and at most 2 MiB of JSON. The client splits large pages into multiple requests. Success acknowledges the committed batch as `{ "accepted": 1, "deleted": 0 }`.
+Each request carries at most 100 records, 100 deleted parent IDs, and 2 MiB of JSON. The client splits large pages into multiple requests. Success acknowledges the committed batch as `{ "accepted": 1, "deleted": 0 }`; clients verify both counts.
 
-After **all** record batches in a native page succeed, the client sends an empty records array, deleted parent IDs, and `checkpoint` with the new anchor. The destination applies deletions and persists the checkpoint atomically. On interruption, the old checkpoint remains available and retries are idempotent. Deletions remove every record sharing that parent ID for this device and type.
+Only the **final** batch of a native page includes `checkpoint`. Earlier batches must be acknowledged before sending it. The destination commits the final records, deletions, and checkpoint atomically; a separate empty checkpoint request is also supported for older clients. Empty pages still send a checkpoint. Retrying records and deletions is idempotent. If the final response is lost, the client reads the destination's committed checkpoint on resume. Deletions remove every record sharing that parent ID for this device and type.
 
 ## V1: installed step-only builds
 

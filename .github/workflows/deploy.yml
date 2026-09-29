@@ -5,6 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      project:
+        description: Project to deploy
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - emma-eric-wedding
 
 concurrency:
   group: deploy-main
@@ -31,7 +40,12 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: pnpm db:migrate:ci
+        run: |
+          if [ "${{ inputs.project }}" = "emma-eric-wedding" ]; then
+            pnpm db:migrate:prod emma-eric-wedding
+          else
+            pnpm db:migrate:ci
+          fi
 
       - name: Deploy projects
         env:
@@ -52,13 +66,45 @@ jobs:
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
           WEDDING_EDITOR_EMAILS: ${{ secrets.WEDDING_EDITOR_EMAILS }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ inputs.project }}" = "emma-eric-wedding" ]; then
+            pnpm --filter emma-eric-wedding run deploy
+          elif [ "${{ github.event_name }}" = "push" ]; then
             pnpm run deploy -- --changed-since "${{ github.event.before }}"
           else
             pnpm run deploy
           fi
 
+      - name: Verify wedding editor binding
+        if: inputs.project == 'emma-eric-wedding'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          account = os.environ["CLOUDFLARE_ACCOUNT_ID"]
+          worker = "emma-eric-wedding-website"
+          request = urllib.request.Request(
+              f"https://api.cloudflare.com/client/v4/accounts/{account}/workers/scripts/{worker}/settings",
+              headers={"Authorization": f"Bearer {os.environ['CLOUDFLARE_API_TOKEN']}"},
+          )
+          with urllib.request.urlopen(request) as response:
+              payload = json.load(response)
+          assert payload.get("success"), "Worker settings request failed"
+          binding = next(
+              (binding for binding in payload["result"]["bindings"]
+               if binding["name"] == "WEDDING_EDITOR_EMAILS"),
+              None,
+          )
+          assert binding and binding["type"] == "secret_text", "Missing editor secret binding"
+          print(f"Verified {worker}: WEDDING_EDITOR_EMAILS is present as secret_text")
+          PY
+
       - name: Upload prepared China audio
+        if: inputs.project != 'emma-eric-wedding'
         timeout-minutes: 20
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

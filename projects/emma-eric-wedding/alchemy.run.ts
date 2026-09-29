@@ -1,5 +1,7 @@
+import { env } from "node:process";
 import { deployApp } from "@templar/deploy";
 import { d1Database, templarApp } from "@templar/deploy/cloudflare";
+import alchemy from "alchemy";
 import { EmailSender, RateLimit } from "alchemy/cloudflare";
 
 const project = "emma-eric-wedding";
@@ -33,6 +35,8 @@ export const website = await templarApp("website", {
   },
   bindings: {
     EMAIL: email,
+    // biome-ignore lint/complexity/useLiteralKeys: Node's env is an index signature under strict TypeScript.
+    WEDDING_EDITOR_EMAILS: alchemy.secret(env["WEDDING_EDITOR_EMAILS"] ?? ""),
     RSVP_LOOKUP_RATE_LIMIT: rsvpLookupRateLimit,
   },
   url: false,

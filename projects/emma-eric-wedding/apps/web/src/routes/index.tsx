@@ -8,16 +8,37 @@ import {
   StateFlowerPair,
 } from "../components/garden-art";
 import { SiteHeader } from "../components/site-header";
+import { WeddingPage } from "../components/wedding-page.tsx";
 import { type WeddingSection, wedding } from "../content/wedding";
+import {
+  loadEditorDiscovery,
+  loadPublishedWeddingPage,
+} from "../lib/wedding-content-server-functions.ts";
 
 export const Route = createFileRoute("/")({
-  component: WeddingHome,
+  loader: async () => {
+    const [published, canEdit] = await Promise.all([
+      loadPublishedWeddingPage(),
+      loadEditorDiscovery(),
+    ]);
+    return { published, canEdit };
+  },
+  component: WeddingHomeRoute,
 });
 
 const topId = "top";
 const rsvpId = "rsvp";
 
-function WeddingHome() {
+function WeddingHomeRoute() {
+  const { published, canEdit } = Route.useLoaderData();
+  if (published !== null) {
+    return <WeddingPage canEdit={canEdit} data={published} />;
+  }
+
+  return <WeddingHome canEdit={canEdit} />;
+}
+
+function WeddingHome({ canEdit }: { readonly canEdit: boolean }) {
   const weddingTitleId = useId();
   const siteRef = useRef<HTMLDivElement>(null);
   const visibleSections =
@@ -28,7 +49,7 @@ function WeddingHome() {
 
   return (
     <div className="wedding-site font-playful" id={topId} ref={siteRef}>
-      <SiteHeader />
+      <SiteHeader editorLink={canEdit} />
       <main>
         <section className="hero" aria-labelledby={weddingTitleId}>
           <div className="hero-wash" />

@@ -1,5 +1,12 @@
-// biome-ignore lint/suspicious/noDeprecatedImports: This file uses primaryKey's current config-object overload.
-import { index, integer, primaryKey, sqliteTable, text } from "@templar/db/sqlite-core";
+import {
+  index,
+  integer,
+  // biome-ignore lint/suspicious/noDeprecatedImports: This file uses the current config-object overload.
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "@templar/db/sqlite-core";
 
 export const households = sqliteTable(
   "households",
@@ -129,4 +136,33 @@ export const plusOneMealSelections = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.guestId, table.eventId] })],
+);
+
+export const weddingSiteDocuments = sqliteTable("wedding_site_documents", {
+  id: text("id").primaryKey(),
+  version: integer("version").notNull(),
+  draftJson: text("draft_json").notNull(),
+  publishedJson: text("published_json"),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  publishedAt: integer("published_at", { mode: "timestamp_ms" }),
+});
+
+export const weddingSiteRevisions = sqliteTable(
+  "wedding_site_revisions",
+  {
+    id: text("id").primaryKey(),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => weddingSiteDocuments.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    action: text("action", { enum: ["save", "publish", "restore"] }).notNull(),
+    contentJson: text("content_json").notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("wedding_site_revisions_document_version_uidx").on(table.documentId, table.version),
+    index("wedding_site_revisions_created_at_idx").on(table.createdAt),
+  ],
 );

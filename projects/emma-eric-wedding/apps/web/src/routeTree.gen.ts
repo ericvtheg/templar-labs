@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StyleRouteImport } from './routes/style'
 import { Route as RsvpRouteImport } from './routes/rsvp'
+import { Route as EditRouteImport } from './routes/edit'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -23,6 +24,11 @@ const StyleRoute = StyleRouteImport.update({
 const RsvpRoute = RsvpRouteImport.update({
   id: '/rsvp',
   path: '/rsvp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditRoute = EditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -44,6 +50,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/edit': typeof EditRoute
   '/rsvp': typeof RsvpRoute
   '/style': typeof StyleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/edit': typeof EditRoute
   '/rsvp': typeof RsvpRoute
   '/style': typeof StyleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,21 +67,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/edit': typeof EditRoute
   '/rsvp': typeof RsvpRoute
   '/style': typeof StyleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/rsvp' | '/style' | '/api/auth/$'
+  fullPaths: '/' | '/admin' | '/edit' | '/rsvp' | '/style' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/rsvp' | '/style' | '/api/auth/$'
-  id: '__root__' | '/' | '/admin' | '/rsvp' | '/style' | '/api/auth/$'
+  to: '/' | '/admin' | '/edit' | '/rsvp' | '/style' | '/api/auth/$'
+  id: '__root__' | '/' | '/admin' | '/edit' | '/rsvp' | '/style' | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  EditRoute: typeof EditRoute
   RsvpRoute: typeof RsvpRoute
   StyleRoute: typeof StyleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -93,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/rsvp'
       fullPath: '/rsvp'
       preLoaderRoute: typeof RsvpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edit': {
+      id: '/edit'
+      path: '/edit'
+      fullPath: '/edit'
+      preLoaderRoute: typeof EditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -122,6 +139,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  EditRoute: EditRoute,
   RsvpRoute: RsvpRoute,
   StyleRoute: StyleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -50,6 +50,7 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+          WEDDING_EDITOR_EMAILS: ${{ secrets.WEDDING_EDITOR_EMAILS }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             pnpm run deploy -- --changed-since "${{ github.event.before }}"

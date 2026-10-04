@@ -1,0 +1,39 @@
+{
+  "name": "confer-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "pnpm --dir ../.. deploy",
+    "destroy": "pnpm --dir ../.. destroy",
+    "dev": "vite --host 127.0.0.1",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "serve": "vite preview --host 127.0.0.1",
+    "test": "node --test test/*.test.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.2.6",
+    "@fontsource/newsreader": "^5.2.5",
+    "docx": "^9.5.1",
+    "lucide-react": "^1.14.0",
+    "mammoth": "^1.10.0",
+    "pdfjs-dist": "^5.4.149",
+    "radix-ui": "^1.4.3",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@templar/dev-ports": "workspace:*",
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "6.0.3",
+    "vite": "^7.1.9"
+  }
+}

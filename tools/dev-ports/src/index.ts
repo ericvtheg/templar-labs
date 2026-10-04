@@ -2,6 +2,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 export const devPorts = {
+  "confer-web": 5189,
   "cardiff-split-web": 5177,
   "emma-eric-wedding-web": 5180,
   "hello-world-web": 5173,

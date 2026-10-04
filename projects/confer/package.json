@@ -1,0 +1,24 @@
+{
+  "name": "confer",
+  "displayName": "Confer · Discovery workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/project-build.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "pnpm --filter confer-web dev",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "pnpm --filter confer-web test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@templar/deploy": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.12.4",
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3"
+  }
+}

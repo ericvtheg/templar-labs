@@ -1,0 +1,10 @@
+{
+  "extends": "@templar/tsconfig/base",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src", "test", "vite.config.ts", "playwright.config.ts"]
+}

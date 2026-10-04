@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "offscroll-local",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "TEMPLAR_AUTH_ISSUER": "https://auth.breli.app",
+    "AUTH_SECRET": "offscroll-local-development-only-not-for-production"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "offscroll-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../db/migrations"
+    }
+  ]
+}

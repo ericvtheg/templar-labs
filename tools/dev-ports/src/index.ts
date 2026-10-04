@@ -10,6 +10,7 @@ export const devPorts = {
   "china-web": 5187,
   "little-chaos-web": 5186,
   "loan-payment-calculator-web": 5176,
+  "offscroll-web": 5188,
   "swedish-fifty-web": 5178,
   "templar-auth-web": 5181,
   "ui-showcase-web": 5174,

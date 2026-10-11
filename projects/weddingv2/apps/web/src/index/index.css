@@ -13,9 +13,9 @@
 }
 
 .index__garland {
-  width: min(760px, 92vw, 88vh);
+  width: min(560px, 92vw, 60vh);
   height: auto;
-  margin-bottom: clamp(-56px, -5vh, -24px);
+  margin-bottom: clamp(-40px, -4vh, -16px);
   pointer-events: none;
 }
 
@@ -27,9 +27,9 @@
 
 .index__names {
   margin-top: 14px;
-  font-family: var(--font-names);
-  font-size: clamp(40px, 6.2vw, 84px);
-  font-weight: 300;
+  font-family: "Fahkwang", var(--font-names);
+  font-size: clamp(38px, 5.8vw, 80px);
+  font-weight: 400;
   line-height: 1.05;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -44,10 +44,23 @@
   color: var(--coral-title);
 }
 
-.index__versions {
+.index__round {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 300px));
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.index__versions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: clamp(14px, 2vw, 28px);
+  width: 100%;
+}
+
+.index__versions li {
+  flex: 0 1 300px;
 }
 
 .index__card {
@@ -100,7 +113,8 @@
 }
 
 .index__name {
-  font-size: 40px;
+  max-width: 6.2em;
+  font-size: 36px;
   line-height: 1;
   letter-spacing: -0.02em;
   text-transform: uppercase;
@@ -132,8 +146,8 @@
     align-content: start;
   }
 
-  .index__versions {
-    grid-template-columns: minmax(0, 420px);
+  .index__versions li {
+    flex-basis: 420px;
   }
 
   .index__blurb {

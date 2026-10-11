@@ -1,7 +1,7 @@
 // Pages and design versions. Every page has its own URL in every version.
 
 export type PageId = "home" | "schedule" | "travel" | "stay" | "things-to-do" | "faq";
-export type VersionId = "v1" | "v2" | "v3";
+export type VersionId = "v1" | "v2" | "v3" | "v4" | "v5";
 
 export type Page = {
   id: PageId;
@@ -32,26 +32,45 @@ export type Version = {
   number: string;
   name: string;
   blurb: string;
+  /** 1 is the first exploration. 2 follows Emma's feedback on it. */
+  round: 1 | 2;
 };
 
 export const versions: readonly Version[] = [
+  {
+    id: "v4",
+    number: "04",
+    name: "As Emma made it",
+    blurb: "Her Canva, panel for panel: her fonts, her coral, her scroll. One spot for a photo.",
+    round: 2,
+  },
+  {
+    id: "v5",
+    number: "05",
+    name: "The same, no photo",
+    blurb: "Exactly 04, with nothing added to her homepage.",
+    round: 2,
+  },
   {
     id: "v1",
     number: "01",
     name: "As is",
     blurb: "Emma’s Canva design, page for page. Same type, palette and florals, split into pages.",
+    round: 1,
   },
   {
     id: "v2",
     number: "02",
     name: "Riffed",
     blurb: "The same design, come alive. Swaying florals, drifting petals and paper you can feel.",
+    round: 1,
   },
   {
     id: "v3",
     number: "03",
     name: "Super riffed",
     blurb: "The invitation suite, opened on a garden-party table in dappled light.",
+    round: 1,
   },
 ];
 

@@ -1,0 +1,185 @@
+<!doctype html>
+<!--
+  Score candidate fonts against a crop of Emma's Canva lettering.
+
+  For each candidate the text is fitted to the reference (font size from the
+  cap height, letter-spacing from the ink width) and then compared as ink
+  masks. The score is intersection over union: 1 is a perfect overlap.
+
+  Driven by tools/font-match.mjs, which injects window.JOB.
+-->
+<meta charset="utf-8" />
+<body style="margin: 0; background: #f6ede6">
+  <script>
+    const SCALE = 4; // the reference crops are upscaled 4x before masking
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+      });
+    }
+
+    /** Ink mask (Uint8Array of 0/1) and its bounding box, from a canvas. */
+    function maskOf(canvas, inkTest) {
+      const { width, height } = canvas;
+      const data = canvas.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, width, height).data;
+      const mask = new Uint8Array(width * height);
+      let x0 = width;
+      let y0 = height;
+      let x1 = -1;
+      let y1 = -1;
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const i = (y * width + x) * 4;
+          if (inkTest(data[i], data[i + 1], data[i + 2], data[i + 3])) {
+            mask[y * width + x] = 1;
+            if (x < x0) { x0 = x; }
+            if (x > x1) { x1 = x; }
+            if (y < y0) { y0 = y; }
+            if (y > y1) { y1 = y; }
+          }
+        }
+      }
+      return { mask, width, height, box: { x0, y0, x1, y1, w: x1 - x0 + 1, h: y1 - y0 + 1 } };
+    }
+
+    async function referenceMask(dataUrl, crop) {
+      const image = await loadImage(dataUrl);
+      const canvas = document.createElement("canvas");
+      canvas.width = crop.w * SCALE;
+      canvas.height = crop.h * SCALE;
+      const context = canvas.getContext("2d");
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, crop.x, crop.y, crop.w, crop.h, 0, 0, canvas.width, canvas.height);
+      // Ink is anything clearly darker than the cream paper (246, 237, 230).
+      return maskOf(canvas, (r, g, b) => 246 - r + (237 - g) + (230 - b) > 110);
+    }
+
+    function draw(text, font, size, spacing, pad) {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      const fontSpec = `${font.style ?? "normal"} ${font.weight} ${size}px "${font.family}"`;
+      context.font = fontSpec;
+      context.letterSpacing = `${spacing}px`;
+      const metrics = context.measureText(text);
+      // Resizing a canvas resets its context, so the font is set again afterwards.
+      canvas.width = Math.ceil(metrics.width + Math.abs(spacing) * text.length + pad * 2);
+      canvas.height = Math.ceil(size * 1.6 + pad * 2);
+      context.font = fontSpec;
+      context.letterSpacing = `${spacing}px`;
+      context.fillStyle = "#000";
+      context.textBaseline = "alphabetic";
+      context.fillText(text, pad, pad + size * 1.15);
+      return maskOf(canvas, (_r, _g, _b, a) => a > 110);
+    }
+
+    /** Thickens a mask by `radius` pixels, so thin strokes that are a hair apart still count as overlapping. */
+    function dilate(source, radius) {
+      if (!radius) { return source; }
+      const { width, height, mask } = source;
+      const pass = new Uint8Array(width * height);
+      const out = new Uint8Array(width * height);
+      for (let y = 0; y < height; y += 1) {
+        let run = 0;
+        for (let x = -radius; x < width; x += 1) {
+          const enter = x + radius;
+          const leave = x - radius - 1;
+          if (enter < width && mask[y * width + enter] === 1) { run += 1; }
+          if (leave >= 0 && mask[y * width + leave] === 1) { run -= 1; }
+          if (x >= 0 && run > 0) { pass[y * width + x] = 1; }
+        }
+      }
+      for (let x = 0; x < width; x += 1) {
+        let run = 0;
+        for (let y = -radius; y < height; y += 1) {
+          const enter = y + radius;
+          const leave = y - radius - 1;
+          if (enter < height && pass[enter * width + x] === 1) { run += 1; }
+          if (leave >= 0 && pass[leave * width + x] === 1) { run -= 1; }
+          if (y >= 0 && run > 0) { out[y * width + x] = 1; }
+        }
+      }
+      return { ...source, mask: out };
+    }
+
+    /** Best intersection over union of two masks, aligned on their boxes with a small search. */
+    function iou(a, b) {
+      let best = 0;
+      for (let dy = -3; dy <= 3; dy += 1) {
+        for (let dx = -3; dx <= 3; dx += 1) {
+          let inter = 0;
+          let union = 0;
+          const w = Math.max(a.box.w, b.box.w) + 6;
+          const h = Math.max(a.box.h, b.box.h) + 6;
+          for (let y = -3; y < h; y += 2) {
+            for (let x = -3; x < w; x += 2) {
+              const ax = a.box.x0 + x;
+              const ay = a.box.y0 + y;
+              const bx = b.box.x0 + x + dx;
+              const by = b.box.y0 + y + dy;
+              const inA = ax >= 0 && ay >= 0 && ax < a.width && ay < a.height && a.mask[ay * a.width + ax] === 1;
+              const inB = bx >= 0 && by >= 0 && bx < b.width && by < b.height && b.mask[by * b.width + bx] === 1;
+              if (inA && inB) { inter += 1; }
+              if (inA || inB) { union += 1; }
+            }
+          }
+          const score = union === 0 ? 0 : inter / union;
+          if (score > best) { best = score; }
+        }
+      }
+      return best;
+    }
+
+    async function scoreFont(font, lines, tolerance) {
+      await document.fonts.load(`${font.style ?? "normal"} ${font.weight} 100px "${font.family}"`, lines.map((l) => l.text).join(""));
+      if (!document.fonts.check(`${font.style ?? "normal"} ${font.weight} 100px "${font.family}"`)) {
+        return null;
+      }
+      const base = 400;
+      const fitLine = lines[0];
+      // Font size from the height of the fit line's ink, letter-spacing from its width.
+      const probe = draw(fitLine.text, font, base, 0, 40);
+      const size = (base * fitLine.ref.box.h) / probe.box.h;
+      const natural = draw(fitLine.text, font, size, 0, 40);
+      const gaps = Math.max(fitLine.text.length - 1, 1);
+      const spacing = fitLine.fitSpacing === false ? 0 : (fitLine.ref.box.w - natural.box.w) / gaps;
+      const scores = {};
+      let total = 0;
+      for (const line of lines) {
+        const rendered = draw(line.text, font, size, line.text.length > 1 ? spacing : 0, 60);
+        scores[line.name] = Math.round(iou(line.thick, dilate(rendered, tolerance)) * 1000) / 1000;
+        total += scores[line.name];
+      }
+      return {
+        font: `${font.family} ${font.weight}${font.style === "italic" ? "i" : ""}`,
+        score: Math.round((total / lines.length) * 1000) / 1000,
+        ...scores,
+        sizePx: Math.round((size / SCALE) * 10) / 10,
+        spacingEm: Math.round((spacing / size) * 1000) / 1000,
+      };
+    }
+
+    window.run = async function run(job) {
+      const lines = [];
+      for (const line of job.lines) {
+        const ref = await referenceMask(job.images[line.image], line.crop);
+        lines.push({ ...line, ref, thick: dilate(ref, job.tolerance ?? 0) });
+      }
+      const results = [];
+      const errors = new Set();
+      for (const font of job.fonts) {
+        try {
+          const result = await scoreFont(font, lines, job.tolerance ?? 0);
+          if (result) { results.push(result); }
+        } catch (error) {
+          errors.add(String(error?.message ?? error));
+        }
+      }
+      results.sort((a, b) => b.score - a.score);
+      return { results, errors: [...errors] };
+    };
+  </script>
+</body>

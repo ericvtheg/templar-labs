@@ -32,7 +32,7 @@ export function Home() {
         <p className="v1-date">{couple.date}</p>
       </header>
 
-      <img className="v1-home__bouquet" src={art.bouquet} alt="" width={1228} height={1224} />
+      <img className="v1-home__bouquet" src={art.bouquet} alt="" width={1500} height={1499} />
 
       <div className="v1-home__photos">
         {second && <Photo slot={second} className="v1-photo" eager />}
@@ -188,7 +188,7 @@ export function ThingsToDo() {
   return (
     <div className="v1-list-page">
       <h1 className="v1-heading">{thingsToDo.title}</h1>
-      <img className="v1-list-page__art" src={art.lily} alt="" width={980} height={1026} />
+      <img className="v1-list-page__art" src={art.lily} alt="" width={1261} height={1320} />
       <div className="v1-list">
         {thingsToDo.activities.map((activity) => (
           <section key={activity.id} className="v1-list__item">
@@ -215,7 +215,7 @@ export function Faq() {
   return (
     <div className="v1-list-page v1-list-page--faq">
       <h1 className="v1-heading">{faq.title}</h1>
-      <img className="v1-list-page__art" src={art.lily} alt="" width={980} height={1026} />
+      <img className="v1-list-page__art" src={art.lily} alt="" width={1261} height={1320} />
       <div className="v1-list v1-faq">
         {faq.items.map((item) => {
           const open = item.id === openId;

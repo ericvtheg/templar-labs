@@ -89,7 +89,7 @@ export const schedule = {
       id: "wedding",
       day: "Saturday, September 25",
       name: "The Wedding",
-      time: "5:00 PM – 10:30 PM",
+      time: "5:00 PM - 10:30 PM",
       moments: [
         { id: "seated", time: "4:45 PM" },
         { id: "start", time: "5:00 PM" },
@@ -136,7 +136,7 @@ export const travel = {
     {
       label: "Flight",
       lines: [
-        "Fly into Wichita Dwight D. Eisenhower National Airport – ICT.",
+        "Fly into Wichita Dwight D. Eisenhower National Airport - ICT.",
         "The airport is just 10 minutes away from Downtown Wichita. There are no direct flights from California but plenty of options daily with layovers.",
       ],
     },
@@ -298,7 +298,7 @@ export const faq = {
       id: "getting-to-wichita",
       question: "How do I get to Wichita, Kansas?",
       answer:
-        "Wichita has its own airport – Wichita Dwight D. Eisenhower National Airport – ICT. The airport is just 10 minutes away from Downtown Wichita. There are no direct flights from California to Wichita but plenty of options every day that have layovers.",
+        "Wichita has its own airport - Wichita Dwight D. Eisenhower National Airport - ICT. The airport is just 10 minutes away from Downtown Wichita. There are no direct flights from California to Wichita but plenty of options every day that have layovers.",
     },
   ],
 } as const;

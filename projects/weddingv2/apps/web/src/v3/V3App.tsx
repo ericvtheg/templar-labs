@@ -116,7 +116,7 @@ function Envelope({ phase, onOpen, onReset }: EnvelopeProps) {
 function Invitation() {
   return (
     <div className="v3-invite">
-      <img className="v3-invite__bouquet" src={art.bouquet} alt="" width={1228} height={1224} />
+      <img className="v3-invite__bouquet" src={art.bouquet} alt="" width={1500} height={1499} />
       <p className="v3-invite__tagline">{home.tagline}</p>
       <h1 className="v3-invite__names">
         {couple.first} <i>&amp;</i> {couple.second}

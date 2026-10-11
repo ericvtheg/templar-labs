@@ -32,7 +32,19 @@ Travel is two pages because the Canva design has two "Travel" panels and neither
 - `src/content/pages.ts` lists the pages, slugs and nav labels
 - Each event carries its own venue, so a venue change is a one-line edit. The welcome party venue (Elderslie) is stored but not shown, because the Canva copy says the details come later. Set `announced: true` to show it. The rehearsal dinner is stored with `guestFacing: false`
 
-## Versions
+## Round two: versions 4 and 5
+
+Emma reviewed the first round and wanted her own design back: her scroll, her fonts, no photo placeholders, sharper flowers. Versions 4 and 5 are that. They are one implementation (`src/v4`), and v5 only leaves the photo off the homepage.
+
+- Each of her Canva pages is a panel of 1366 by 768 "panel pixels" that scales with the window, the way a Canva site does. Panels stack, so the page scrolls as her design does
+- Every piece of text sits at a position measured from her screenshot. `tools/fit-canva.mjs` overlays the page on her screenshot and corrects each block until the ink lines up. 36 of 37 blocks are within one pixel
+- Fonts were identified, not chosen: `tools/font-match.mjs` scores candidates by overlap with her lettering, and `tools/font-layout.mjs` by where the words fall on a line
+- Her handwriting font is not a Google font, so those five phrases are images of her own lettering
+- Below 960 pixels wide the same content reflows into one column
+- The one new element is the navigation, a row of links in her serif above the first panel
+- The FAQ is the one page that differs from her Canva on purpose: she asked for click-to-open
+
+## Versions (first round)
 
 ### v1: As is
 

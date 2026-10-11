@@ -5,6 +5,14 @@ import { V1Layout } from "./v1/V1Layout.tsx";
 import * as v2 from "./v2/pages.tsx";
 import { V2Layout } from "./v2/V2Layout.tsx";
 import { V3App } from "./v3/V3App.tsx";
+import * as v4 from "./v4/pages.tsx";
+import { V4Layout, type Variant } from "./v4/V4Layout.tsx";
+
+// v4 and v5 are one design. v5 leaves the photo off the homepage.
+const variants: readonly Variant[] = [
+  { id: "v4", photo: true },
+  { id: "v5", photo: false },
+];
 
 export function App() {
   return (
@@ -38,6 +46,17 @@ export function App() {
         <Route path="things-to-do" element={null} />
         <Route path="faq" element={null} />
       </Route>
+
+      {variants.map((variant) => (
+        <Route key={variant.id} path={`/${variant.id}`} element={<V4Layout variant={variant} />}>
+          <Route index element={<v4.Home />} />
+          <Route path="schedule" element={<v4.Schedule />} />
+          <Route path="travel" element={<v4.Travel />} />
+          <Route path="stay" element={<v4.Travel />} />
+          <Route path="things-to-do" element={<v4.ThingsToDo />} />
+          <Route path="faq" element={<v4.Faq />} />
+        </Route>
+      ))}
 
       <Route path="*" element={<NotFound />} />
     </Routes>

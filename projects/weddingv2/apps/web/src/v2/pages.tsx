@@ -65,7 +65,7 @@ export function Home() {
       </div>
 
       <div className="v2-collage">
-        <img className="v2-collage__bouquet" src={art.bouquet} alt="" width={1228} height={1224} />
+        <img className="v2-collage__bouquet" src={art.bouquet} alt="" width={1500} height={1499} />
         <Stem name="stemCosmos" className="v2-collage__stem-a" delay={0.5} sway={2.4} />
         <Stem name="stemSprig" className="v2-collage__stem-b" delay={0.75} sway={3} />
         {fourth && <Frame slot={fourth} seed={41} className="v2-collage__d" tape="right" />}

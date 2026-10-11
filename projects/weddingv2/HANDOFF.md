@@ -1,6 +1,6 @@
 # weddingv2 handoff
 
-> **Status:** the three versions are built and deployed at `weddingv2.ericventor.com` (Eric asked for the deploy after this brief was written). Start with `README.md` and `PLAN.md`. This file is the original brief, kept for reference. Since it was written, Eric confirmed that the wedding (ceremony and reception) is at Botanica, and the welcome party and rehearsal dinner are at Elderslie.
+> **Status:** the three versions are built and deployed at `weddingv2.ericventor.com` (Eric asked for the deploy after this brief was written). Start with `README.md` and `PLAN.md`. This file is the original brief, kept for reference. Two things in it turned out to be wrong about Emma: she does not mind scrolling, and she wants her Canva design kept as it is, not reinterpreted. Versions 4 and 5 follow her notes. Since it was written, Eric confirmed that the wedding (ceremony and reception) is at Botanica, and the welcome party and rehearsal dinner are at Elderslie.
 
 Read this file fully before you start. It records the brief, the decisions made so far, and the next steps.
 

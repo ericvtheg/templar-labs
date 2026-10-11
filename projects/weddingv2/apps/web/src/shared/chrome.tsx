@@ -22,16 +22,18 @@ export function VersionSwitcher() {
       <Link to="/" aria-label="All versions">
         ‹
       </Link>
-      {versions.map((candidate) => (
-        <Link
-          key={candidate.id}
-          to={slug === "" ? `/${candidate.id}` : `/${candidate.id}/${slug}`}
-          aria-current={candidate.id === version ? "true" : undefined}
-          aria-label={`Version ${candidate.number}: ${candidate.name}`}
-        >
-          {Number(candidate.number)}
-        </Link>
-      ))}
+      {versions
+        .toSorted((a, b) => a.number.localeCompare(b.number))
+        .map((candidate) => (
+          <Link
+            key={candidate.id}
+            to={slug === "" ? `/${candidate.id}` : `/${candidate.id}/${slug}`}
+            aria-current={candidate.id === version ? "true" : undefined}
+            aria-label={`Version ${candidate.number}: ${candidate.name}`}
+          >
+            {Number(candidate.number)}
+          </Link>
+        ))}
     </nav>
   );
 }

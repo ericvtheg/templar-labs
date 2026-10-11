@@ -1,7 +1,9 @@
 import "@fontsource-variable/montserrat/wght.css";
+import "@fontsource/fahkwang/latin-400.css";
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import "@fontsource/nothing-you-could-do/latin-400.css";
+import "@fontsource/libre-caslon-text/latin-400.css";
 import "@fontsource/lustria/latin-400.css";
 import "./shared/base.css";
 

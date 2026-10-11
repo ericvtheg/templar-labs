@@ -1,0 +1,14 @@
+{
+  "name": "weddingv2",
+  "displayName": "Emma & Eric · Wedding site design exploration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter weddingv2-web build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "dev": "pnpm --filter weddingv2-web dev",
+    "lint": "pnpm --filter weddingv2-web lint",
+    "test": "pnpm --filter weddingv2-web test",
+    "typecheck": "pnpm --filter weddingv2-web typecheck"
+  }
+}

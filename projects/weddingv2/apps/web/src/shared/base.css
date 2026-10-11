@@ -1,0 +1,244 @@
+/* Tokens and reset shared by every version. */
+
+:root {
+  /* Sampled from Emma's Canva design. */
+  --cream: #f6ede6;
+  --paper: #fffdf8;
+  --coral: #ea6a4c;
+  --coral-rule: #e6b0a3;
+  --pink: #e8b4ac;
+  --lime: #9dbf3e;
+  --ochre: #d9b36a;
+
+  /* Coral on cream is 2.7:1, which is too faint for reading text. So text has
+     three steps. To match the Canva palette exactly, set all three to var(--coral).
+       display: 40px and up. Emma's coral, unchanged.
+       title:   24px to 40px. 3.5:1, passes WCAG AA for large text.
+       text:    below 24px. 4.6:1, passes WCAG AA. */
+  --coral-display: var(--coral);
+  --coral-title: #dc4f35;
+  --coral-text: #bc412a;
+
+  --font-names: "Montserrat Variable", "Montserrat", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Instrument Serif", "Times New Roman", serif;
+  --font-script: "Nothing You Could Do", "Bradley Hand", cursive;
+  --font-body: "Lustria", Georgia, serif;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--coral-text);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+  padding: 0;
+  font-weight: 400;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--coral-text);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+main:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Photo slot. Shows the image, or a designed placeholder until one is set. */
+
+.photo {
+  position: relative;
+  overflow: hidden;
+  background: #f1dcd2;
+}
+
+.photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo__placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.2em;
+  padding: 8%;
+  text-align: center;
+  background: linear-gradient(155deg, #f6e1d8 0%, #eecbbd 100%);
+  container-type: inline-size;
+}
+
+.photo[data-tone="ochre"] .photo__placeholder {
+  background: linear-gradient(155deg, #f5e8cf 0%, #ead6ab 100%);
+}
+
+.photo[data-tone="sage"] .photo__placeholder {
+  background: linear-gradient(155deg, #eaedd3 0%, #d6dfb1 100%);
+}
+
+.photo__sprig {
+  width: auto;
+  height: 60cqw;
+  max-height: 170px;
+  opacity: 0.8;
+  mix-blend-mode: multiply;
+}
+
+/* The placeholder tints are darker than the page, so their labels are too. */
+.photo__label {
+  font-family: var(--font-script);
+  font-size: clamp(13px, 9cqw, 22px);
+  line-height: 1.2;
+  color: #9c341f;
+}
+
+@container (max-width: 150px) {
+  .photo__hint {
+    display: none;
+  }
+}
+
+.photo__hint {
+  font-family: var(--font-serif);
+  font-size: clamp(11px, 5.5cqw, 14px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9c341f;
+}
+
+/* Reviewer chrome: jump between the three versions of the same page. Not part of any design. */
+
+.switcher {
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(60 45 40 / 0.78);
+  backdrop-filter: blur(6px);
+  font:
+    500 12px / 1 ui-sans-serif,
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.02em;
+  color: #fff;
+  opacity: 0.5;
+  transition: opacity 160ms ease;
+}
+
+.switcher:hover,
+.switcher:focus-within {
+  opacity: 1;
+}
+
+.switcher a {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: #fff;
+}
+
+.switcher a:hover {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.switcher a[aria-current="true"] {
+  background: #fff;
+  color: #3c2d28;
+}
+
+.switcher a:focus-visible {
+  outline-color: #fff;
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every animation */
+    animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat smooth scrolling */
+    scroll-behavior: auto !important;
+  }
+}

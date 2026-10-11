@@ -18,7 +18,8 @@
       "!**/dist-ssr",
       "!**/.output",
       "!**/.vinxi",
-      "!**/routeTree.gen.ts"
+      "!**/routeTree.gen.ts",
+      "!!**/scratch"
     ]
   },
   "formatter": {

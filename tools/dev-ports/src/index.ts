@@ -17,6 +17,7 @@ export const devPorts = {
   "utils-web": 5179,
   "web-daw-web": 5183,
   "web-visualizer-web": 5184,
+  "weddingv2-web": 5191,
   "your-shopper-web": 5182,
 } as const;
 

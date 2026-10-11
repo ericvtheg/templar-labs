@@ -1,6 +1,6 @@
 # weddingv2 plan
 
-A design exploration of the landing page and information guide for Emma and Eric's wedding. Three versions share one content module. Nothing is deployed.
+A design exploration of the landing page and information guide for Emma and Eric's wedding. Three versions share one content module. It is deployed as a static site at `weddingv2.ericventor.com`.
 
 ## Stack
 
@@ -9,7 +9,7 @@ A design exploration of the landing page and information guide for Emma and Eric
 - `motion` for page transitions and shared-layout animation
 - Fonts self-hosted through Fontsource: Montserrat (variable, set at weight 350), Instrument Serif, Nothing You Could Do, Lustria. Side by side with the Canva panel, Montserrat 300 was too thin for the names
 - Plain CSS, one stylesheet per version, scoped under `.v1`, `.v2` and `.v3`
-- Static only. No backend, database or analytics
+- Static only. No backend, database or analytics. `alchemy.run.ts` deploys the built files to Cloudflare
 
 ## Routes
 

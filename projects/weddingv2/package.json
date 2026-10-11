@@ -6,9 +6,19 @@
   "scripts": {
     "build": "pnpm --filter weddingv2-web build",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
     "dev": "pnpm --filter weddingv2-web dev",
     "lint": "pnpm --filter weddingv2-web lint",
     "test": "pnpm --filter weddingv2-web test",
-    "typecheck": "pnpm --filter weddingv2-web typecheck"
+    "typecheck": "tsc --noEmit && pnpm --filter weddingv2-web typecheck"
+  },
+  "dependencies": {
+    "@templar/deploy": "workspace:*"
+  },
+  "devDependencies": {
+    "@templar/tsconfig": "workspace:*",
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3"
   }
 }

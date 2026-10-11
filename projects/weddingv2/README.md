@@ -1,6 +1,8 @@
 # weddingv2
 
-A design exploration for Emma and Eric's wedding website (September 25, 2027, Wichita, Kansas). It covers the landing page and the information guide in three versions. It is not deployed and has no RSVP.
+A design exploration for Emma and Eric's wedding website (September 25, 2027, Wichita, Kansas). It covers the landing page and the information guide in three versions. It has no RSVP.
+
+Live at <https://weddingv2.ericventor.com>. The pages ask search engines not to index them.
 
 ## Run it
 
@@ -17,6 +19,10 @@ Open <http://127.0.0.1:5191>. The root page links to the three versions.
 | `/v3` | **Super riffed.** The invitation suite, opened on a garden-party table |
 
 Every page has its own URL in every version: `schedule`, `travel`, `stay`, `things-to-do` and `faq`. The small pill in the bottom-right corner opens the same page in another version. It is reviewer chrome, not part of the designs.
+
+## Deploy it
+
+A push to `main` deploys it through the repo's Deploy workflow. `alchemy.run.ts` publishes the built site to Cloudflare as static assets, with a fallback to the app shell so deep links work. To take it down, run `pnpm --filter weddingv2 run destroy` with the `templar-labs` Alchemy profile. (The Destroy project workflow in GitHub only lists some projects, and this is not one of them.)
 
 ## Change the content
 
@@ -75,6 +81,7 @@ The screenshot and audit tools need the dev server running. Screenshots go to `s
 
 ```txt
 projects/weddingv2/
+  alchemy.run.ts   deployment (static assets on Cloudflare)
   PLAN.md          design plan for the three versions
   reference/       Emma's Canva screenshots (the source of truth for v1 and for all text)
   tools/           illustration pipeline

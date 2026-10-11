@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
-    "deploy": "echo 'weddingv2 is a design exploration and is not deployed.'",
+    "deploy": "pnpm --dir ../.. deploy",
     "dev": "vite --host 127.0.0.1",
     "lint": "echo 'Linting is handled by the root lint pipeline.'",
     "serve": "vite preview --host 127.0.0.1",

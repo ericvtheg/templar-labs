@@ -22,6 +22,8 @@ export type Variant = {
   className?: string;
   /** The order of the navigation links. */
   nav?: readonly PageId[];
+  /** Keeps the Menu button in the corner of the screen while a phone scrolls. */
+  pinnedMenu?: boolean;
 };
 
 const VariantContext = createContext<Variant | null>(null);
@@ -112,7 +114,10 @@ export function V4Layout({ variant }: { variant: Variant }) {
 
   return (
     <VariantContext.Provider value={variant}>
-      <div className={variant.className ? `v4 ${variant.className}` : "v4"}>
+      <div
+        className={variant.className ? `v4 ${variant.className}` : "v4"}
+        data-pinned-menu={variant.pinnedMenu ? "true" : undefined}
+      >
         <Nav />
         <div ref={stageRef} tabIndex={-1} className="v4-stage">
           <main>

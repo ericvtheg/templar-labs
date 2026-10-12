@@ -389,6 +389,28 @@
     font-size: 19px;
   }
 
+  /* Pinned menu: the button stays in the top-right corner while the page scrolls,
+     so the menu is always one tap away. It gets an outline and a paper background
+     so it reads over whatever is under it. The nav keeps its height, so the page
+     starts exactly where it did before. */
+  .v4[data-pinned-menu] .v4-nav {
+    min-height: 52px;
+    padding: 0;
+  }
+
+  .v4[data-pinned-menu] .v4-nav__toggle {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 40;
+    min-width: 76px;
+    padding: 0 16px;
+    border: 1px solid var(--ink);
+    border-radius: 999px;
+    background: rgb(246 237 230 / 0.92);
+    backdrop-filter: blur(6px);
+  }
+
   .v4-menu {
     position: fixed;
     inset: 0;

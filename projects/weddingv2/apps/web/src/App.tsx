@@ -26,6 +26,7 @@ const exact: Variant = {
   sheet: v6Sheet,
   className: "v6",
   nav: roundThreeNav,
+  pinnedMenu: true,
 };
 const recommended: Variant = { ...exact, id: "v7", className: "v7" };
 

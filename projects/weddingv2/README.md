@@ -40,6 +40,7 @@ Her third export is in `reference/round-3`. What changed from round two, and is 
 - Flight and Getting around are two columns with new wording. The hotels follow
 - The FAQ has a new illustration, drops the question about gifts, and adds two questions
 - The FAQ comes before Things to Do in the menu
+- On a phone, the Menu button stays pinned to the top-right corner while the page scrolls (`pinnedMenu` in `src/App.tsx`)
 - The flower beside the open FAQ question is a cosmos (`src/assets/round-3/cosmos.svg`)
 
 Their words are in `src/content/site.ts`. Versions 1 to 5 keep the text they were designed around, in `site-round-2.ts`.

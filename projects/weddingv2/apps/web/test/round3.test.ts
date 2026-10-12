@@ -103,9 +103,9 @@ test("the homepage photo is the one from her design", () => {
   assert.ok(heroPhoto.alt.length > 20);
 });
 
-test("the round-three versions are listed first", () => {
+test("versions 6 and 7 are round three", () => {
   assert.deepEqual(
-    versions.slice(0, 2).map((version) => version.id),
+    versions.filter((version) => version.round === 3).map((version) => version.id),
     ["v6", "v7"],
   );
 });

@@ -8,10 +8,11 @@
 import { chromium } from "@playwright/test";
 
 const base = "http://127.0.0.1:5191";
-const versions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
-// v4 to v7 use Emma's coral for every word, as she designed it. Their contrast is
+const versions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9"];
+// v4 to v9 use Emma's coral for every word, as she designed it. Their contrast is
 // counted and reported, but it is her decision, so it does not fail the audit.
-const emmasPalette = (url) => ["/v4", "/v5", "/v6", "/v7"].some((prefix) => url.startsWith(prefix));
+const emmasPalette = (url) =>
+  ["/v4", "/v5", "/v6", "/v7", "/v8", "/v9"].some((prefix) => url.startsWith(prefix));
 let emmasCoral = 0;
 const slugs = ["", "schedule", "travel", "stay", "things-to-do", "faq"];
 const urls = ["/", ...versions.flatMap((v) => slugs.map((s) => (s ? `/${v}/${s}` : `/${v}`)))];
@@ -148,6 +149,6 @@ console.log(
   Object.fromEntries(display),
 );
 console.log(
-  `Text in v4 to v7 that keeps Emma's coral below the contrast guideline: ${emmasCoral} pieces.`,
+  `Text in v4 to v9 that keeps Emma's coral below the contrast guideline: ${emmasCoral} pieces.`,
 );
 process.exitCode = failures > 0 ? 1 : 0;

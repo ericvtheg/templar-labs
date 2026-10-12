@@ -1,0 +1,315 @@
+// v8 and v9: the recommended layout (v7) with Emma's round-four changes.
+//
+//   - Every straight rule is a squiggly line that draws itself and keeps flowing
+//   - The flower drawings sway, and "Meet us in Kansas?" writes itself
+//   - A line separates Getting around from the hotels
+//   - The FAQ has her new illustration, and each thing to do has a photo
+//
+// v8 leaves out the photos that show Emma and Eric. v9 includes them.
+// The layout styles are v7's (v7/v7.css). v8.css adds the rest.
+
+import "../v7/v7.css";
+import "./v8.css";
+
+import { useEffect, useRef } from "react";
+import bouquet from "../assets/round-3/bouquet.webp";
+import dayFriday from "../assets/round-3/day-friday.webp";
+import daySaturday from "../assets/round-3/day-saturday.webp";
+import letter from "../assets/round-3/letter.webp";
+import lily from "../assets/round-3/lily.webp";
+import tagline from "../assets/round-3/tagline.webp";
+import faqFlowers from "../assets/round-4/faq-flowers.webp";
+import { FaqAccordion } from "../canva/FaqAccordion.tsx";
+import { pageById } from "../content/pages.ts";
+import { heroPhoto } from "../content/photos.ts";
+import {
+  type Activity,
+  couple,
+  faq,
+  guestEvents,
+  home,
+  type ScheduleEvent,
+  schedule,
+  stay,
+  thingsToDo,
+  travel,
+} from "../content/site.ts";
+import { BookButton, useCurrentPage } from "../shared/chrome.tsx";
+import { usePageTitle } from "../shared/hooks.ts";
+import { photoUrl } from "../shared/photoFiles.ts";
+import { useVariant } from "../v4/V4Layout.tsx";
+import { Squiggle, Swaying, Written } from "./motion.tsx";
+import { activityPhoto } from "./photos.ts";
+
+/** Emma's handwritten day lines, by event. */
+const dayLettering: Record<string, string> = {
+  "welcome-party": dayFriday,
+  wedding: daySaturday,
+};
+
+/** One of Emma's handwritten phrases. The words stay in the page for screen readers. */
+function Handwriting({ src, text, className }: { src: string; text: string; className: string }) {
+  return (
+    <p className={className}>
+      <img src={src} alt="" />
+      <span className="sr-only">{text}</span>
+    </p>
+  );
+}
+
+/** Where a photo of Emma and Eric goes, until its file is added. */
+function PhotoToCome() {
+  return (
+    <p className="v7-photo__empty">
+      A photo of {couple.first} &amp; {couple.second} goes here
+    </p>
+  );
+}
+
+/* ---------- Home ---------- */
+
+function Event({ event }: { event: ScheduleEvent }) {
+  const day = dayLettering[event.id];
+
+  return (
+    <article className="v7-event">
+      {day ? (
+        <Handwriting src={day} text={event.day} className="v7-day" />
+      ) : (
+        <p className="v7-event__line">{event.day}</p>
+      )}
+      <h3 className="v7-event__line">{event.name}</h3>
+      {event.time && <p className="v7-event__line">{event.time}</p>}
+      {event.notes.map((note) => (
+        <p key={note} className="v7-event__note">
+          {note}
+        </p>
+      ))}
+      {event.details && <p className="v7-event__details">{event.details}</p>}
+      {event.venueAnnounced && (
+        <p className="v7-event__venue">
+          <span className="v7-event__line">{event.venue.name}</span>
+          <a className="v7-event__line" href={event.venue.mapUrl} target="_blank" rel="noreferrer">
+            {event.venue.address}
+          </a>
+          {event.venueNote && <span className="v7-event__note">{event.venueNote}</span>}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function ScheduleSection({ headingAs: Heading }: { headingAs: "h1" | "h2" }) {
+  return (
+    <section className="v7-section">
+      <Heading className="v7-heading">{schedule.title}</Heading>
+      <div className="v7-events">
+        {guestEvents.map((event) => (
+          <Event key={event.id} event={event} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function Home() {
+  usePageTitle(pageById("home").title);
+  const { photo: withUs } = useVariant();
+  const letterText = [home.letter.greeting, ...home.letter.paragraphs].join(" ");
+  const photo = photoUrl(heroPhoto);
+
+  return (
+    <div className="v7-page">
+      <section className="v7-hero">
+        <div className="v7-hero__text">
+          <h1 className="v7-names">
+            <span>{couple.first}</span> <span>&amp;</span> <span>{couple.second}</span>
+          </h1>
+          <div>
+            <Written src={tagline} text={home.tagline} className="v7-tagline" />
+            <p className="v7-date">{couple.date}</p>
+          </div>
+        </div>
+        <Swaying src={bouquet} className="v7-hero__art v8-bloom" amount={0.7} seconds={8} />
+      </section>
+
+      {withUs ? (
+        <section className="v7-letter">
+          <figure className="v7-photo">
+            {photo === null ? (
+              <PhotoToCome />
+            ) : (
+              <img src={photo} alt={heroPhoto.alt} style={{ objectPosition: heroPhoto.focal }} />
+            )}
+          </figure>
+          <Handwriting src={letter} text={letterText} className="v7-letter__text" />
+        </section>
+      ) : (
+        <section className="v7-letter v8-letter--alone">
+          <Handwriting src={letter} text={letterText} className="v7-letter__text" />
+        </section>
+      )}
+
+      <ScheduleSection headingAs="h2" />
+    </div>
+  );
+}
+
+export function Schedule() {
+  usePageTitle(pageById("schedule").title);
+
+  return (
+    <div className="v7-page">
+      <ScheduleSection headingAs="h1" />
+    </div>
+  );
+}
+
+/* ---------- Travel ---------- */
+
+export function Travel() {
+  const { page } = useCurrentPage();
+  const stayRef = useRef<HTMLElement>(null);
+  usePageTitle(pageById(page === "stay" ? "stay" : "travel").title);
+  const [flight, around] = travel.sections;
+
+  // /stay is the hotels half of this page.
+  useEffect(() => {
+    if (page === "stay") {
+      stayRef.current?.scrollIntoView({ block: "start" });
+    }
+  }, [page]);
+
+  return (
+    <div className="v7-page">
+      <section className="v7-section">
+        <h1 className="v7-heading">{travel.title}</h1>
+        <div className="v7-columns v8-columns">
+          {flight && (
+            <section className="v7-column">
+              <h2 className="v7-label">{flight.label}</h2>
+              {flight.paragraphs.map((text) => (
+                <p key={text}>{text}</p>
+              ))}
+            </section>
+          )}
+          {/* Upright between the columns on a wide screen, level between them on a phone. */}
+          <Squiggle vertical className="v8-columns__upright" />
+          <Squiggle className="v8-columns__level" />
+          {around && (
+            <section className="v7-column">
+              <h2 className="v7-label">{around.label}</h2>
+              {around.paragraphs.map((text) => (
+                <p key={text}>{text}</p>
+              ))}
+            </section>
+          )}
+        </div>
+      </section>
+
+      {/* The line Emma asked for, between Getting around and the hotels. */}
+      <Squiggle className="v8-divider" />
+
+      <section ref={stayRef} className="v7-section v7-stay v8-stay">
+        <p className="v7-stay__intro">
+          {stay.intro.map((line) => (
+            <span key={line}>{line} </span>
+          ))}
+        </p>
+        <ul className="v7-hotels">
+          {stay.hotels.map((hotel, index) => (
+            <li key={hotel.id} className="v7-hotel">
+              {index > 0 && <Squiggle className="v8-hotel__rule" />}
+              <h2>
+                {hotel.name.map((line) => (
+                  <span key={line}>{line} </span>
+                ))}
+              </h2>
+              <a className="v7-hotel__address" href={hotel.mapUrl} target="_blank" rel="noreferrer">
+                {hotel.address}
+              </a>
+              <ul>
+                {hotel.notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+              <div className="v7-hotel__book">
+                <BookButton hotel={hotel} className="v7-button" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+/* ---------- FAQ ---------- */
+
+export function Faq() {
+  usePageTitle(pageById("faq").title);
+
+  return (
+    <div className="v7-page">
+      <section className="v7-section v7-split">
+        <h1 className="v7-heading">{faq.title}</h1>
+        <Swaying src={faqFlowers} className="v7-split__art v8-grow" sways={0.68} seconds={7.5} />
+        <div className="v7-split__list">
+          <FaqAccordion items={faq.items} prefix="v7" divider={<Squiggle />} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ---------- Things to Do ---------- */
+
+function Thing({ activity, withUs }: { activity: Activity; withUs: boolean }) {
+  const wanted = withUs || !activity.photo.ofUs;
+  const photo = wanted ? activityPhoto(activity) : null;
+
+  return (
+    <section className="v8-thing">
+      <div className="v8-thing__text">
+        <h2>{activity.title}</h2>
+        <p>{activity.text}</p>
+      </div>
+      <Squiggle />
+      {wanted && (
+        <figure className="v8-thing__photo">
+          {photo === null ? (
+            <PhotoToCome />
+          ) : (
+            <img src={photo} alt={activity.photo.alt} loading="lazy" />
+          )}
+        </figure>
+      )}
+    </section>
+  );
+}
+
+export function ThingsToDo() {
+  usePageTitle(pageById("things-to-do").title);
+  const { photo: withUs } = useVariant();
+
+  return (
+    <div className="v7-page">
+      <section className="v7-section v7-split v8-things">
+        <h1 className="v7-heading">{thingsToDo.title}</h1>
+        <Swaying src={lily} className="v7-split__art v8-grow" sways={0.74} seconds={6.5} />
+        <div className="v7-split__list">
+          {thingsToDo.activities.map((activity) => (
+            <Thing key={activity.id} activity={activity} withUs={withUs} />
+          ))}
+          <ul className="v7-food">
+            {thingsToDo.food.map((group) => (
+              <li key={group.id}>
+                {group.label}: {group.places.join(", ")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </div>
+  );
+}

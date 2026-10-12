@@ -145,7 +145,12 @@ const roundThree = [
   {
     url: "/v6/things-to-do",
     panels: { things: { file: "round-3/things.png", index: 0 } },
-    blocks: roundTwo[2].blocks,
+    blocks: {
+      ...roundTwo[2].blocks,
+      // Round four changed two words here ("Our" to "Emma's"), so the lines are no
+      // longer the width of the round-three export. Only the position is checked.
+      "things.i1.text": { ...roundTwo[2].blocks["things.i1.text"], positionOnly: true },
+    },
   },
   {
     url: "/v6/faq",

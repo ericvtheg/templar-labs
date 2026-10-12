@@ -1,7 +1,9 @@
 scratch/
 __pycache__/
 
-# Personal photos. This repository is public, so these stay local until Eric
-# and Emma decide to publish them. See "Add the photos" in README.md.
+# Personal photos. This repository is public, so photos that show Emma and Eric
+# (and Emma's Canva exports that contain them) stay local until they decide to
+# publish them. See "Add the photos" in README.md.
 apps/web/src/assets/photos/
 reference/round-3/home.png
+reference/round-4/things.png

@@ -1,10 +1,15 @@
-// Every word on the current site lives here. Versions 6 and 7 read from this file.
+// Every word on the current site lives here. Versions 6 to 9 read from this file.
 //
-// Source of truth: Emma's third Canva export (projects/weddingv2/reference/round-3).
+// Source of truth: Emma's third and fourth Canva exports
+// (projects/weddingv2/reference/round-3 and round-4).
 // The text is transcribed exactly, except for these typo fixes:
 //   - Letter: "accomadation" -> "accommodation"
 //   - Things to Do: "where you can find grab a coffee" -> "where you can grab a coffee"
 //   - FAQ: "options everyday" -> "options every day"
+//
+// Round four gave each thing to do a photo. Her page for the Cowtown photo
+// repeats the Watermark Books title and text, so that photo is used with the
+// Cowtown entry here.
 //
 // Versions 1 to 5 are earlier rounds. They keep the text they were designed
 // around, in site-round-2.ts.
@@ -201,22 +206,43 @@ export const thingsToDo = {
     {
       id: "dead-center-vintage",
       title: "Shop at Dead Center Vintage",
-      text: "Thrifting in the Midwest is the best! Our matron of honor, Kenzie, and our officiant, Laz, have owned this store for seven years. Stop by and check out their amazing collection!",
+      text: "Thrifting in the Midwest is the best! Emma’s matron of honor, Kenzie, and our officiant, Laz, have owned this store for seven years. Stop by and check out their amazing collection!",
+      photo: {
+        file: "dead-center-vintage.jpg",
+        alt: "Racks of colorful vintage clothes inside Dead Center Vintage.",
+        ofUs: false,
+      },
     },
     {
       id: "chisholm-creek-park",
       title: "Go for a walk at Chisholm Creek Park",
       text: "Explore the trails, enjoy some Kansas nature, and keep an eye out for the local wildlife. You might even spot a few deer!",
+      photo: {
+        file: "chisholm-creek-park.jpg",
+        alt: "A pink sunset over a wide green field at Chisholm Creek Park.",
+        ofUs: false,
+      },
     },
     {
       id: "watermark-books",
       title: "Shop at Watermark Books",
       text: "A cozy independent bookstore where you can grab a coffee, and wander around for a bit.",
+      photo: {
+        file: "watermark-books.jpg",
+        alt: "The green storefront of Watermark Books & Café, with tables outside.",
+        ofUs: false,
+      },
     },
     {
       id: "cowtown",
       title: "Visit Cowtown",
       text: "Experience what life was like in Wichita during the 1800s at this living history museum.",
+      photo: {
+        file: "cowtown.jpg",
+        alt: "Emma and Eric at Cowtown at night, smiling beside people dressed in 1800s costume.",
+        // Emma and Eric are in this one. It shows only in versions with photos of them.
+        ofUs: true,
+      },
     },
   ],
   food: [

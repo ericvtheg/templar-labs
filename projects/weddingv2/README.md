@@ -2,7 +2,7 @@
 
 A design exploration for Emma and Eric's wedding website (September 25, 2027, Wichita, Kansas). It covers the landing page and the information guide. It has no RSVP.
 
-Emma designed the site in Canva. The first round (versions 1 to 3) reinterpreted her design, and she did not want that. Versions 4 and 5 reproduce her Canva exactly and add only what she asked for. She liked version 4, then updated her Canva design. Versions 6 and 7 are that update: 6 is exactly what she laid out, and 7 is the same design with sizes and spacing tuned for computers and phones.
+Emma designed the site in Canva. The first round (versions 1 to 3) reinterpreted her design, and she did not want that. Versions 4 and 5 reproduce her Canva exactly and add only what she asked for. She liked version 4, then updated her Canva design. Versions 6 and 7 are that update: 6 is exactly what she laid out, and 7 is the same design with sizes and spacing tuned for computers and phones. Versions 8 and 9 add animation and her newest changes to version 7.
 
 Live at <https://weddingv2.ericventor.com>. The pages ask search engines not to index them.
 
@@ -16,6 +16,8 @@ Open <http://127.0.0.1:5191>. The root page links to the three versions.
 
 | Path | Version |
 | --- | --- |
+| `/v8` | **Animated, no photos of you.** Version 7 with squiggly lines, swaying flowers, a tagline that writes itself, and photos of places |
+| `/v9` | **Animated, with your photos.** The same, with the homepage photo and the one at Cowtown |
 | `/v6` | **Exactly Emma's update.** Her third Canva export, panel for panel: new wording, her photo, the serif names |
 | `/v7` | **Recommended.** The same design with one type scale and a responsive layout. See below |
 | `/v4` | **As Emma made it.** Her Canva, panel for panel, with her scroll. One spot for a photo on the homepage |
@@ -29,6 +31,31 @@ Every page has its own URL in every version: `schedule`, `travel`, `stay`, `thin
 ## Deploy it
 
 A push to `main` deploys it through the repo's Deploy workflow. `alchemy.run.ts` publishes the built site to Cloudflare as static assets, with a fallback to the app shell so deep links work. To take it down, run `pnpm --filter weddingv2 run destroy` with the `templar-labs` Alchemy profile. (The Destroy project workflow in GitHub only lists some projects, and this is not one of them.)
+
+## Versions 8 and 9: animation and round four
+
+Emma's notes after versions 6 and 7, and her fourth export (`reference/round-4`), are in both:
+
+| Her note | What versions 8 and 9 do |
+| --- | --- |
+| Make any of the straight lines an animated squiggly line | Every rule is a hand-drawn wavy line (`Squiggle` in `src/v8/motion.tsx`). It draws itself when it scrolls into view, then drifts slowly |
+| Animate the flowers | The bouquet opens when the page loads. All three drawings then sway a few pixels, as if in a breeze. A planter box or log at the bottom of a drawing stays still |
+| Or animate and write "Meet us in Kansas?" | It writes itself, word by word, when the homepage opens |
+| A line after Getting around, before the hotels | Added, as a squiggle |
+| Her new FAQ illustration | In place |
+| A photo for each thing to do | Each one has its photo under its text. The lily stays in view beside the list while it scrolls |
+
+They are built on version 7, because her note about the line before the hotels describes that layout. `src/v8` holds only what is new. The layout is still `src/v7/v7.css`.
+
+**The difference between the two** is the photos that show Emma and Eric: the one on the homepage and the one at Cowtown. Version 8 leaves both out, so its letter stands alone and Cowtown has no photo. Version 9 has both. Photos of places are in both.
+
+Things to know:
+
+- All motion stops for people whose device asks for reduced motion
+- Her page for the Cowtown photo repeats the Watermark Books title and text. The site uses the photo with the Cowtown entry
+- The food list is kept under the last thing to do. Her pages with photos do not show it
+- The photos are cut out of her 1366-pixel export, so they are about 430 pixels wide and look soft on a sharp screen. Replace the files in `src/assets/round-4/places` and `src/assets/photos` with the originals, keeping the names
+- `tools/round4.py` cuts the new illustration and the photos out of the export
 
 ## Versions 6 and 7: Emma's updated design
 
@@ -115,7 +142,12 @@ v4, v6 and v7 use only the first slot (`heroPhoto`). v5 uses none.
 
 The photo there now (`src/assets/photos/emma-eric.jpg`) is cut out of Emma's Canva export, so it is only 645 by 468 pixels and looks soft on a sharp screen. Replace the file with the original photo, keeping the name.
 
-**The photo is not in git yet.** This repository is public, so `.gitignore` keeps `src/assets/photos/` and `reference/round-3/home.png` (her export of the homepage, which contains the photo) on this machine only. Until they are committed, the deployed site shows a placeholder where the photo goes, and `tools/round3.py` and `fit-canva.mjs --round 3` need a local copy of `home.png`. To publish the photo, delete those two lines from `.gitignore` and commit the files.
+**Photos of Emma and Eric are not in git yet.** This repository is public, so `.gitignore` keeps these on this machine only:
+
+- `src/assets/photos/`: the homepage photo and the one at Cowtown
+- `reference/round-3/home.png` and `reference/round-4/things.png`: her exports that contain them
+
+Until they are committed, the deployed site shows a placeholder where each of those photos goes, and `tools/round3.py`, `tools/round4.py` and `fit-canva.mjs --round 3` need local copies of the exports. To publish the photos, delete those three lines from `.gitignore` and commit the files. Photos of places have no people in them and are committed.
 
 ### Things still to decide
 
@@ -175,6 +207,7 @@ projects/weddingv2/
     src/v4/           v4 and v5: her second export, with positions in spec.json
     src/v6/           v6: her third export, exactly
     src/v7/           v7: her third export, recommended layout
+    src/v8/           v8 and v9: v7 with animation and her fourth export
     test/          content tests
     tools/         screenshot, audit and animation-frame tools
 ```

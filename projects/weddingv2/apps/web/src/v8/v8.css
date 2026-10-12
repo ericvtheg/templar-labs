@@ -1,0 +1,315 @@
+/* v8 and v9: v7's layout with Emma's round-four changes.
+ *
+ * Motion here is slow and small on purpose, so the pages stay easy to read:
+ *   - squiggly lines draw in once, then drift
+ *   - flower drawings lean a few pixels in a breeze
+ *   - "Meet us in Kansas?" writes itself once, when the page opens
+ * Everything stops under prefers-reduced-motion (see the end of the file). */
+
+/* How much of "Meet us in Kansas?" has been written. Fully written by default. */
+@property --written {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 110%;
+}
+
+/* How far the bouquet has opened. Fully open by default. */
+@property --bloomed {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 150%;
+}
+
+.v8 {
+  /* A little stronger than the old hairline, so the wave reads. */
+  --squiggle: #ee9a86;
+}
+
+/* Squiggly lines, in place of every straight rule */
+
+.v8-squiggle {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.v8-squiggle[data-in] {
+  clip-path: inset(0);
+}
+
+/* The line is one period longer than its box, and slides back by one period. */
+.v8-squiggle span {
+  position: absolute;
+  inset: 0 -96px 0 0;
+  background: var(--squiggle);
+  mask: url("../assets/round-4/squiggle.svg") 0 50% / 96px 10px repeat-x;
+  animation: v8-flow 7s linear infinite;
+}
+
+.v8-squiggle[data-vertical] {
+  width: 10px;
+  height: auto;
+  clip-path: inset(0 0 100% 0);
+}
+
+.v8-squiggle[data-vertical][data-in] {
+  clip-path: inset(0);
+}
+
+.v8-squiggle[data-vertical] span {
+  inset: 0 0 -96px 0;
+  mask: url("../assets/round-4/squiggle-vertical.svg") 50% 0 / 10px 96px repeat-y;
+  animation-name: v8-flow-down;
+}
+
+@keyframes v8-flow {
+  to {
+    transform: translateX(-96px);
+  }
+}
+
+@keyframes v8-flow-down {
+  to {
+    transform: translateY(-96px);
+  }
+}
+
+/* The straight rule under each question, which a squiggle replaces */
+
+.v8 .v7-faq__item {
+  border: 0;
+}
+
+/* Flowers that sway */
+
+.v8-sway {
+  position: relative;
+}
+
+.v8-sway img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* The still copy shows the base. The moving copy shows the flowers above it.
+   They overlap at the line where the flowers bend, so no seam shows. */
+.v8-sway__still {
+  mask-image: linear-gradient(transparent calc(var(--sways) - 5%), #000 var(--sways));
+}
+
+.v8-sway__moving {
+  position: absolute;
+  inset: 0;
+  mask-image: linear-gradient(#000 var(--sways), transparent calc(var(--sways) + 5%));
+  transform-origin: 50% var(--sways);
+  animation: v8-sway var(--sway-time, 7s) ease-in-out infinite alternate;
+}
+
+@keyframes v8-sway {
+  from {
+    transform: skewX(calc(var(--lean, 1) * -1.25deg));
+  }
+  to {
+    transform: skewX(calc(var(--lean, 1) * 1.25deg));
+  }
+}
+
+/* The bouquet opens from its middle when the page loads. */
+.v8-bloom {
+  mask-image: radial-gradient(
+    circle at 50% 58%,
+    #000 calc(var(--bloomed) - 30%),
+    transparent var(--bloomed)
+  );
+  animation: v8-bloom 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+@keyframes v8-bloom {
+  from {
+    --bloomed: 0%;
+  }
+  to {
+    --bloomed: 150%;
+  }
+}
+
+/* The other drawings grow up from the ground. */
+.v8-grow {
+  animation: v8-grow 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+@keyframes v8-grow {
+  from {
+    clip-path: inset(100% -16px 0 -16px);
+  }
+  to {
+    clip-path: inset(-4% -16px 0 -16px);
+  }
+}
+
+/* "Meet us in Kansas?" writes itself, pausing between the words */
+
+.v8-written img {
+  mask-image: linear-gradient(100deg, #000 calc(var(--written) - 5%), transparent var(--written));
+  animation: v8-write 2.7s linear 0.6s both;
+}
+
+@keyframes v8-write {
+  0% {
+    --written: 0%;
+  }
+  21% {
+    --written: 30%; /* Meet */
+  }
+  26% {
+    --written: 32%;
+  }
+  36% {
+    --written: 43%; /* us */
+  }
+  41% {
+    --written: 48%;
+  }
+  50% {
+    --written: 57%; /* in */
+  }
+  56% {
+    --written: 62%;
+  }
+  100% {
+    --written: 110%; /* Kansas? */
+  }
+}
+
+/* Home without the photo: the letter stands alone */
+
+.v8-letter--alone {
+  display: block;
+}
+
+.v8-letter--alone .v7-letter__text {
+  width: min(100%, 560px);
+  margin-inline: auto;
+}
+
+/* Travel: an upright squiggle between the columns, a level one before the hotels */
+
+.v8-columns {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.v8-columns__level,
+.v8-hotel__rule {
+  display: none;
+}
+
+.v8-divider {
+  margin-top: calc(var(--space) * 0.62);
+}
+
+.v8-stay.v7-stay {
+  padding-top: calc(var(--space) * 0.55);
+}
+
+/* Things to Do: text, a squiggle, then the photo */
+
+.v8-thing + .v8-thing {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
+.v8-thing__text {
+  padding: 0 0 clamp(18px, 2vw, 26px) 46px;
+}
+
+.v8-thing__text h2 {
+  font-size: var(--lead);
+  line-height: 1.25;
+}
+
+.v8-thing__text p {
+  max-width: 39em;
+  margin-top: 8px;
+  font-size: var(--body);
+  line-height: 1.5;
+}
+
+.v8-thing__photo {
+  width: min(100%, 432px);
+  margin: clamp(22px, 2.6vw, 32px) auto 0;
+  background: #f1e3da;
+}
+
+.v8-thing__photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.v8-thing__photo .v7-photo__empty {
+  aspect-ratio: 462 / 365;
+  height: auto;
+}
+
+.v8-things .v7-food {
+  margin-top: clamp(40px, 5vw, 64px);
+}
+
+/* The lily stays in view while the list scrolls past, as it does on her pages. */
+.v8-things .v7-split__art {
+  position: sticky;
+  top: 20px;
+}
+
+/* Phone and small tablet */
+
+@media (max-width: 860px) {
+  .v8-columns__upright {
+    display: none;
+  }
+
+  .v8-columns__level {
+    display: block;
+    margin-top: 38px;
+  }
+
+  .v8 .v7-hotel + .v7-hotel {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .v8-hotel__rule {
+    display: block;
+    align-self: stretch;
+    margin-bottom: 32px;
+  }
+
+  .v8-thing__text {
+    padding-left: 0;
+  }
+
+  .v8-things .v7-split__art {
+    position: relative;
+    top: auto;
+  }
+}
+
+/* No motion for people who ask for less of it */
+
+@media (prefers-reduced-motion: reduce) {
+  .v8-squiggle,
+  .v8-squiggle[data-vertical] {
+    clip-path: none;
+    transition: none;
+  }
+
+  .v8-squiggle span,
+  .v8-sway__moving,
+  .v8-bloom,
+  .v8-grow,
+  .v8-written img {
+    animation: none;
+  }
+}

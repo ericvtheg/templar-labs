@@ -14,9 +14,12 @@ const stems: Record<VersionId, string> = {
   v5: art.stemSprig,
   v6: art.stemBuds,
   v7: art.growLily,
+  v8: art.stemCosmos,
+  v9: art.growCosmos,
 };
 
 const rounds = [
+  { round: 4, label: "With animation" },
   { round: 3, label: "Emma’s updated design" },
   { round: 2, label: "After Emma’s notes" },
   { round: 1, label: "First round" },

@@ -33,7 +33,7 @@ export const lineEnds: Record<string, readonly string[]> = {
   "around.p1": ["But, depending", "weekend without a"],
   "around.p2": ["there are fewer", "in Los Angeles.", "the wedding, we", "ahead of time and"],
   "around.p3": ["there are plenty of"],
-  "things.i1.text": ["our officiant,", "their amazing"],
+  "things.i1.text": ["and our", "check out their"],
   "things.i2.text": ["You might"],
   "faq.heading": ["Asked"],
   "faq.a.indoor-or-outdoors.0": ["will be held", "The ceremony"],

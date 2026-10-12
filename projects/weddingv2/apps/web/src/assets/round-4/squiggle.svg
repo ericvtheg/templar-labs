@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="10" viewBox="0 0 96 10" fill="none">
+  <!-- One period of a hand-drawn wavy line. It tiles left to right. Used as a mask. -->
+  <path d="M0 5Q6 .8 12 5Q18 9.4 24 5Q30 1.4 36 5Q42 8.6 48 5Q54 .6 60 5Q66 9.2 72 5Q78 1.2 84 5Q90 8.8 96 5" stroke="#000" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

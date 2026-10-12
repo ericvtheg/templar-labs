@@ -1,7 +1,7 @@
 // Pages and design versions. Every page has its own URL in every version.
 
 export type PageId = "home" | "schedule" | "travel" | "stay" | "things-to-do" | "faq";
-export type VersionId = "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7";
+export type VersionId = "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v8" | "v9";
 
 export type Page = {
   id: PageId;
@@ -33,10 +33,25 @@ export type Version = {
   name: string;
   blurb: string;
   /** 1 is the first exploration. 2 follows Emma's feedback on it. */
-  round: 1 | 2 | 3;
+  round: 1 | 2 | 3 | 4;
 };
 
 export const versions: readonly Version[] = [
+  {
+    id: "v8",
+    number: "08",
+    name: "Animated, no photos of you",
+    blurb:
+      "Squiggly lines, swaying flowers and a tagline that writes itself. Photos of places only.",
+    round: 4,
+  },
+  {
+    id: "v9",
+    number: "09",
+    name: "Animated, with your photos",
+    blurb: "The same, with your photo on the homepage and the one at Cowtown.",
+    round: 4,
+  },
   {
     id: "v6",
     number: "06",

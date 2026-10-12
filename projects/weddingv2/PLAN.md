@@ -32,6 +32,17 @@ Travel is two pages because the Canva design has two "Travel" panels and neither
 - `src/content/pages.ts` lists the pages, slugs and nav labels
 - Each event carries its own venue, so a venue change is a one-line edit. The welcome party venue (Elderslie) is stored but not shown, because the Canva copy says the details come later. Set `announced: true` to show it. The rehearsal dinner is stored with `guestFacing: false`
 
+## Round four: versions 8 and 9
+
+Emma asked for animated squiggly lines in place of straight ones, animated flowers or a tagline that writes itself, and a line between Getting around and the hotels. Her fourth export (`reference/round-4`) also has a new FAQ illustration and a photo for each thing to do. She wanted one version without the photos of her and Eric and one with.
+
+- Both are version 7 plus `src/v8` (motion components, the pages and `v8.css`)
+- **Squiggles** are a tiled wave used as a mask, so they keep one wavelength at any width. A clip reveals them left to right when they enter the view, and the wave then slides by one period on a loop
+- **Swaying** shows a drawing twice: a still copy for its base and a moving copy for the flowers, skewed from the line where the two meet. That keeps a planter box or log still while the stems lean
+- **Writing** moves a soft-edged mask across the handwriting, with pauses between the words. It is a wipe, not a stroke-by-stroke trace, because the lettering is an image
+- Motion is slow and small on purpose, and stops under `prefers-reduced-motion`
+- Photos that show Emma and Eric are optional files that are not in git (the repository is public). Version 8 never uses them. Version 9 shows a placeholder when they are absent
+
 ## Round three: versions 6 and 7
 
 Emma liked version 4 and sent an updated Canva export (`reference/round-3`) with new wording, a photo and some layout changes. She asked for one version that follows it exactly and one that is my recommendation for type sizes and layout.

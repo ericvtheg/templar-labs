@@ -11,6 +11,7 @@ import { V4Layout, type Variant } from "./v4/V4Layout.tsx";
 import * as v6 from "./v6/pages.tsx";
 import { sheet as v6Sheet } from "./v6/spec.ts";
 import * as v7 from "./v7/pages.tsx";
+import * as v8 from "./v8/pages.tsx";
 
 // v4 and v5 are one design. v5 leaves the photo off the homepage.
 const variants: readonly Variant[] = [
@@ -29,6 +30,13 @@ const exact: Variant = {
   pinnedMenu: true,
 };
 const recommended: Variant = { ...exact, id: "v7", className: "v7" };
+
+// Round four: the recommended layout, animated. v8 leaves out the photos that
+// show Emma and Eric. v9 includes them.
+const animated: readonly Variant[] = [
+  { ...recommended, id: "v8", className: "v7 v8", photo: false },
+  { ...recommended, id: "v9", className: "v7 v8", photo: true },
+];
 
 export function App() {
   return (
@@ -91,6 +99,17 @@ export function App() {
         <Route path="things-to-do" element={<v7.ThingsToDo />} />
         <Route path="faq" element={<v7.Faq />} />
       </Route>
+
+      {animated.map((variant) => (
+        <Route key={variant.id} path={`/${variant.id}`} element={<V4Layout variant={variant} />}>
+          <Route index element={<v8.Home />} />
+          <Route path="schedule" element={<v8.Schedule />} />
+          <Route path="travel" element={<v8.Travel />} />
+          <Route path="stay" element={<v8.Travel />} />
+          <Route path="things-to-do" element={<v8.ThingsToDo />} />
+          <Route path="faq" element={<v8.Faq />} />
+        </Route>
+      ))}
 
       <Route path="*" element={<NotFound />} />
     </Routes>

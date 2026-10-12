@@ -9,13 +9,15 @@ type FaqAccordionProps = {
   prefix: string;
   /** Renders one paragraph of an answer. Defaults to the plain text. */
   paragraph?: (itemId: string, index: number, text: string) => ReactNode;
+  /** Drawn under each question, for versions that replace the straight rule. */
+  divider?: ReactNode;
 };
 
 /**
  * The FAQ: click a question to see its answer. One answer is open at a time,
  * and a small cosmos flower blooms beside the open question.
  */
-export function FaqAccordion({ items, prefix, paragraph }: FaqAccordionProps) {
+export function FaqAccordion({ items, prefix, paragraph, divider }: FaqAccordionProps) {
   const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
   const base = useId();
 
@@ -60,6 +62,7 @@ export function FaqAccordion({ items, prefix, paragraph }: FaqAccordionProps) {
                 </motion.div>
               )}
             </AnimatePresence>
+            {divider}
           </section>
         );
       })}

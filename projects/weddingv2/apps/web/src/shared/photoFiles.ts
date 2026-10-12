@@ -10,10 +10,12 @@ const files = import.meta.glob<string>("../assets/photos/*", {
   import: "default",
 });
 
+/** The URL of a file in src/assets/photos, or null when it is absent. */
+export function photoFile(name: string): string | null {
+  return files[`../assets/photos/${name}`] ?? null;
+}
+
 /** The URL of a slot's picture, or null when the slot is empty or its file is absent. */
 export function photoUrl(slot: PhotoSlot): string | null {
-  if (slot.src === null) {
-    return null;
-  }
-  return files[`../assets/photos/${slot.src}`] ?? null;
+  return slot.src === null ? null : photoFile(slot.src);
 }

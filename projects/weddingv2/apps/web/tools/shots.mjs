@@ -26,7 +26,7 @@ const sizes = {
   laptop: { width: 1366, height: 768 },
   mobile: { width: 390, height: 844 },
 };
-const versions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
+const versions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9"];
 const slugs = {
   home: "",
   schedule: "schedule",
@@ -85,10 +85,25 @@ for (const [sizeName, viewport] of Object.entries(sizes)) {
       await page.addStyleTag({ content: ".switcher { display: none !important; }" });
     }
     await page.waitForTimeout(reduced ? 300 : 1800);
+    // v8 and v9 draw their lines as they scroll into view and write the tagline
+    // on load. Scroll through the page and let that finish before the shot.
+    if (["v8", "v9"].some((version) => target.name.startsWith(version)) && !reduced) {
+      await page.evaluate(async () => {
+        const step = Math.round(window.innerHeight * 0.7);
+        for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+          window.scrollTo(0, y);
+          await new Promise((resolve) => setTimeout(resolve, 90));
+        }
+        window.scrollTo(0, 0);
+      });
+      await page.waitForTimeout(2200);
+    }
     const suffix = `${reduced ? "-reduced" : ""}${intro ? "-intro" : ""}`;
     const file = path.join(out, `${target.name}-${sizeName}${suffix}.png`);
     // v4 and v5 scroll by design, so their shots are always the full page.
-    const scrolls = ["v4", "v5", "v6", "v7"].some((version) => target.name.startsWith(version));
+    const scrolls = ["v4", "v5", "v6", "v7", "v8", "v9"].some((version) =>
+      target.name.startsWith(version),
+    );
     await page.screenshot({ path: file, fullPage: sizeName === "mobile" || scrolls });
     const overflow = await page.evaluate(() => ({
       x: document.documentElement.scrollWidth - window.innerWidth,

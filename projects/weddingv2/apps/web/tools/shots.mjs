@@ -26,7 +26,7 @@ const sizes = {
   laptop: { width: 1366, height: 768 },
   mobile: { width: 390, height: 844 },
 };
-const versions = ["v1", "v2", "v3", "v4", "v5"];
+const versions = ["v1", "v2", "v3", "v4", "v5", "v6", "v7"];
 const slugs = {
   home: "",
   schedule: "schedule",
@@ -88,7 +88,7 @@ for (const [sizeName, viewport] of Object.entries(sizes)) {
     const suffix = `${reduced ? "-reduced" : ""}${intro ? "-intro" : ""}`;
     const file = path.join(out, `${target.name}-${sizeName}${suffix}.png`);
     // v4 and v5 scroll by design, so their shots are always the full page.
-    const scrolls = target.name.startsWith("v4") || target.name.startsWith("v5");
+    const scrolls = ["v4", "v5", "v6", "v7"].some((version) => target.name.startsWith(version));
     await page.screenshot({ path: file, fullPage: sizeName === "mobile" || scrolls });
     const overflow = await page.evaluate(() => ({
       x: document.documentElement.scrollWidth - window.innerWidth,

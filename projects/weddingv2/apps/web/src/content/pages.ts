@@ -1,7 +1,7 @@
 // Pages and design versions. Every page has its own URL in every version.
 
 export type PageId = "home" | "schedule" | "travel" | "stay" | "things-to-do" | "faq";
-export type VersionId = "v1" | "v2" | "v3" | "v4" | "v5";
+export type VersionId = "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7";
 
 export type Page = {
   id: PageId;
@@ -33,10 +33,24 @@ export type Version = {
   name: string;
   blurb: string;
   /** 1 is the first exploration. 2 follows Emma's feedback on it. */
-  round: 1 | 2;
+  round: 1 | 2 | 3;
 };
 
 export const versions: readonly Version[] = [
+  {
+    id: "v6",
+    number: "06",
+    name: "Exactly Emma’s update",
+    blurb: "Her new Canva pages as she laid them out: new wording, the photo, the serif names.",
+    round: 3,
+  },
+  {
+    id: "v7",
+    number: "07",
+    name: "Recommended",
+    blurb: "The same pages with type sizes and spacing tuned for computers and phones.",
+    round: 3,
+  },
   {
     id: "v4",
     number: "04",

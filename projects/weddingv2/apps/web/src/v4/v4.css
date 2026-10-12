@@ -307,16 +307,14 @@
   text-align: left;
 }
 
-/* The little flower from version two. It blooms next to the open question. */
+/* The little flower from version two, now a cosmos. It blooms next to the open question. */
 .v4-faq__flower {
   position: absolute;
   top: 50%;
-  left: calc(22 * var(--u));
-  width: calc(24 * var(--u));
-  height: calc(24 * var(--u));
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F16E50' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M12 12c-1.6-4-1.4-7 0-9 1.4 2 1.6 5 0 9zM12 12c3.4-2.6 6.2-3.2 8.6-2.4-1 2.2-3.4 3.4-8.6 2.4zM12 12c4 1.4 6 3.4 6.6 6-2.4.4-5-1-6.6-6zM12 12c-4 1.4-6 3.4-6.6 6 2.4.4 5-1 6.6-6zM12 12C8.6 9.4 5.8 8.8 3.4 9.6c1 2.2 3.4 3.4 8.6 2.4z'/%3E%3Ccircle cx='12' cy='12' r='1.6' fill='%23D9B36A' stroke='none'/%3E%3C/svg%3E")
-    center / contain no-repeat;
+  left: calc(19 * var(--u));
+  width: calc(29 * var(--u));
+  height: calc(29 * var(--u));
+  background: url("../assets/round-3/cosmos.svg") center / contain no-repeat;
   opacity: 0;
   translate: 0 -50%;
   scale: 0.3;
@@ -677,9 +675,9 @@
   }
 
   .v4-faq__flower {
-    left: 0;
-    width: 22px;
-    height: 22px;
+    left: -2px;
+    width: 27px;
+    height: 27px;
   }
 
   .v4-faq__answer p {

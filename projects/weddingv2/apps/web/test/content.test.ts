@@ -12,7 +12,7 @@ import {
   stay,
   thingsToDo,
   travel,
-} from "../src/content/site.ts";
+} from "../src/content/site-round-2.ts";
 import { cardSpots, panel, polaroidSpots, sectionOrder } from "../src/v3/layout.ts";
 
 function allText(): string {
@@ -100,7 +100,8 @@ test("the landing page has one hero photo and at least two more", () => {
   assert.equal(new Set(allPhotos.map((slot) => slot.id)).size, allPhotos.length);
   for (const slot of allPhotos) {
     assert.ok(slot.alt.length > 0, `${slot.id} needs alt text`);
-    assert.ok(slot.src === null || slot.src.startsWith("/photos/"), `${slot.id} has a bad src`);
+    const src: string | null = slot.src;
+    assert.ok(src === null || /^[\w.-]+\.(jpe?g|png|webp)$/.test(src), `${slot.id} has a bad src`);
   }
 });
 

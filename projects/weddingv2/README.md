@@ -2,7 +2,7 @@
 
 A design exploration for Emma and Eric's wedding website (September 25, 2027, Wichita, Kansas). It covers the landing page and the information guide. It has no RSVP.
 
-Emma designed the site in Canva. The first round (versions 1 to 3) reinterpreted her design, and she did not want that. Versions 4 and 5 reproduce her Canva exactly and add only what she asked for.
+Emma designed the site in Canva. The first round (versions 1 to 3) reinterpreted her design, and she did not want that. Versions 4 and 5 reproduce her Canva exactly and add only what she asked for. She liked version 4, then updated her Canva design. Versions 6 and 7 are that update: 6 is exactly what she laid out, and 7 is the same design with sizes and spacing tuned for computers and phones.
 
 Live at <https://weddingv2.ericventor.com>. The pages ask search engines not to index them.
 
@@ -16,6 +16,8 @@ Open <http://127.0.0.1:5191>. The root page links to the three versions.
 
 | Path | Version |
 | --- | --- |
+| `/v6` | **Exactly Emma's update.** Her third Canva export, panel for panel: new wording, her photo, the serif names |
+| `/v7` | **Recommended.** The same design with one type scale and a responsive layout. See below |
 | `/v4` | **As Emma made it.** Her Canva, panel for panel, with her scroll. One spot for a photo on the homepage |
 | `/v5` | **The same, no photo.** Exactly v4 with nothing added to her homepage |
 | `/v1` | **As is.** Emma's Canva design, split into pages |
@@ -27,6 +29,40 @@ Every page has its own URL in every version: `schedule`, `travel`, `stay`, `thin
 ## Deploy it
 
 A push to `main` deploys it through the repo's Deploy workflow. `alchemy.run.ts` publishes the built site to Cloudflare as static assets, with a fallback to the app shell so deep links work. To take it down, run `pnpm --filter weddingv2 run destroy` with the `templar-labs` Alchemy profile. (The Destroy project workflow in GitHub only lists some projects, and this is not one of them.)
+
+## Versions 6 and 7: Emma's updated design
+
+Her third export is in `reference/round-3`. What changed from round two, and is now in both versions:
+
+- The names are in her serif (Instrument Serif), and "Meet us in Kansas?" sits above the date
+- Her photo is on the homepage beside a longer letter
+- The schedule is in date order: the welcome party, then the wedding. The welcome party text has a new sentence
+- Flight and Getting around are two columns with new wording. The hotels follow
+- The FAQ has a new illustration, drops the question about gifts, and adds two questions
+- The FAQ comes before Things to Do in the menu
+- The flower beside the open FAQ question is a cosmos (`src/assets/round-3/cosmos.svg`)
+
+Their words are in `src/content/site.ts`. Versions 1 to 5 keep the text they were designed around, in `site-round-2.ts`.
+
+**What version 7 changes from version 6**
+
+| | Version 6 (exact) | Version 7 (recommended) |
+| --- | --- | --- |
+| Sizing | Everything scales with the window, like a Canva site. Small on a small laptop, large on a big monitor | One type scale. Each size has a floor and a ceiling |
+| Small text | Answers, descriptions and hotel notes are about 16px at 1366 wide | 18px to 21px |
+| Flight and Getting around | Two columns at different sizes (28px and 25px) that start at different heights | Two matching columns, same size, aligned at the top, with a hairline between |
+| Hotels | Names, addresses and notes start at different heights | Rows line up across the three hotels, and the buttons sit on one line |
+| Hotel intro | Libre Caslon Text, the only text in that font | Instrument Serif, like the rest of the page |
+| Spacing | Each Canva page is a full screen, so there are large gaps | Sections sit closer together, so there is less scrolling |
+| Headings | Slightly different letter-spacing on each page | The same on every page |
+| Page headings | "Travel" appears twice on the Travel page | Once |
+
+Two things differ from her file in both versions, on purpose:
+
+- **The hotels come after the flight text.** In her file the hotels page is first, but her new wording says "the hotels below". To swap them, reorder the two panels in `Travel` in `src/v6/pages.tsx` and `src/v7/pages.tsx`.
+- **"accomadation" is spelled "accommodation"** in the letter. It is respelled from her own handwritten letters by `tools/round3.py`.
+
+`tools/round3.py` cuts her art, handwriting and photo out of the export. `node tools/fit-canva.mjs --round 3` fits version 6 to her screenshots.
 
 ## Versions 4 and 5: what follows Emma's notes
 
@@ -45,7 +81,9 @@ Text is also back in her coral everywhere. See Colors below.
 
 | Use | Font | How sure |
 | --- | --- | --- |
-| Names | Fahkwang 400 | Sure. It overlaps her lettering 94%. The next best of 1,700 candidates overlaps 70% |
+| Names (round two) | Fahkwang 400 | Sure. It overlaps her lettering 94%. The next best of 1,700 candidates overlaps 70% |
+| Names (round three) | Instrument Serif | Sure. 91% overlap. The next best overlaps 52% |
+| Flight and Getting around (round three) | Instrument Serif | Sure |
 | Date, headings, schedule, lists | Instrument Serif | Sure |
 | Travel paragraphs | Libre Caslon Text | Fairly sure. All four of her paragraphs fit it at one size, to within a quarter of a pixel |
 | Handwriting ("Meet us in Kansas?", the letter, the day lines, "If you're in town...") | Not found | It is not a Google font. These five phrases are images of her own lettering, so they are exact, but changing their words means a new export from Canva |
@@ -66,13 +104,17 @@ All three versions read the same files in `apps/web/src/content/`.
 
 ### Add the photos
 
-1. Put the images in `apps/web/public/photos/`.
-2. In `photos.ts`, set each slot's `src` (for example `"/photos/hero.jpg"`) and write real `alt` text.
+1. Put the images in `apps/web/src/assets/photos/`.
+2. In `photos.ts`, set each slot's `src` to the file name (for example `"hero.jpg"`) and write real `alt` text.
 3. If a crop is off, change `focal`. It is a CSS `object-position`.
 
-A slot with `src: null` shows a designed placeholder.
+A slot with `src: null`, or whose file is missing, shows a designed placeholder.
 
-v4 uses only the first slot (`heroPhoto`), and shows the picture whole, in its own shape. v5 uses none.
+v4, v6 and v7 use only the first slot (`heroPhoto`). v5 uses none.
+
+The photo there now (`src/assets/photos/emma-eric.jpg`) is cut out of Emma's Canva export, so it is only 645 by 468 pixels and looks soft on a sharp screen. Replace the file with the original photo, keeping the name.
+
+**The photo is not in git yet.** This repository is public, so `.gitignore` keeps `src/assets/photos/` and `reference/round-3/home.png` (her export of the homepage, which contains the photo) on this machine only. Until they are committed, the deployed site shows a placeholder where the photo goes, and `tools/round3.py` and `fit-canva.mjs --round 3` need a local copy of `home.png`. To publish the photo, delete those two lines from `.gitignore` and commit the files.
 
 ### Things still to decide
 
@@ -108,11 +150,13 @@ pnpm --filter weddingv2-web check   # typecheck, lint and content tests
 pnpm --filter weddingv2-web shots   # screenshots of every page at 1440x900, 1366x768 and 390x844
 node apps/web/tools/audit.mjs       # text contrast and tap-target audit (run from this folder)
 node apps/web/tools/frames.mjs      # the v3 envelope and card animations as stills
-node apps/web/tools/fit-canva.mjs --check   # how far each piece of v4 text is from Emma's Canva, in pixels
-node apps/web/tools/compare-canva.mjs       # v5 and her Canva, panel by panel, as images
+node apps/web/tools/fit-canva.mjs --check   # how far each piece of v6 text is from Emma's Canva, in pixels
+node apps/web/tools/compare-canva.mjs       # v6 and her Canva, panel by panel, as images
 ```
 
-The screenshot and audit tools need the dev server running. Screenshots go to `scratch/shots/`.
+The last two take `--round 2` to check versions 4 and 5 against her earlier export.
+
+The screenshot and audit tools need the dev server running. From `apps/web`, `node tools/with-server.mjs` followed by a command starts one for the length of that command. Screenshots go to `scratch/shots/`.
 
 ## Layout
 
@@ -126,7 +170,10 @@ projects/weddingv2/
     src/content/   shared content
     src/shared/    tokens, photo slot, illustration list
     src/v1/ v2/ v3/   the first round
-    src/v4/           v4 and v5: her Canva, with positions in spec.json
+    src/canva/        shared parts for the versions that follow her Canva
+    src/v4/           v4 and v5: her second export, with positions in spec.json
+    src/v6/           v6: her third export, exactly
+    src/v7/           v7: her third export, recommended layout
     test/          content tests
     tools/         screenshot, audit and animation-frame tools
 ```

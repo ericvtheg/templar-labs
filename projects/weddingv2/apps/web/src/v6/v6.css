@@ -1,0 +1,122 @@
+/* v6: Emma's third Canva export. Everything it shares with v4 is in v4/v4.css.
+ * This file adds what is new in round three. */
+
+/* The names are now her serif, in capitals with wide tracking. */
+
+.v6-names {
+  font-family: var(--font-serif);
+  text-transform: uppercase;
+}
+
+.v6-names span {
+  display: block;
+}
+
+/* The photo beside the letter */
+
+.v6-photo {
+  position: absolute;
+  top: calc(var(--y) * var(--u));
+  left: calc(var(--x) * var(--u));
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--bh) * var(--u));
+  margin: 0;
+  overflow: hidden;
+  background: #f1e3da;
+}
+
+.v6-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.v6-photo__empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  padding: 0 1em;
+  font-family: var(--font-serif);
+  font-size: max(16px, calc(22 * var(--u)));
+  text-align: center;
+}
+
+/* Flight and Getting around: two columns of centered text */
+
+.v6-travel {
+  display: contents;
+}
+
+/* An answer can have more than one paragraph. */
+
+.v4-faq__answer .v4-faq__body {
+  padding: 0 calc(33 * var(--u)) calc(29 * var(--u)) calc(63 * var(--u));
+}
+
+.v4-faq__answer .v4-faq__body p {
+  padding: 0;
+}
+
+.v4-faq__answer .v4-faq__body p + p {
+  margin-top: calc(22 * var(--u));
+}
+
+/* Phone and small tablet */
+
+@media (max-width: 960px) {
+  .v6-names {
+    font-size: clamp(54px, 17.5vw, 88px);
+    line-height: 1.04;
+  }
+
+  .v6-tagline {
+    align-self: flex-start;
+    width: min(88%, 340px);
+    margin-top: 30px;
+  }
+
+  .v6 [data-panel="home"] .v4-display {
+    margin-top: 8px;
+  }
+
+  .v6-photo {
+    position: static;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 645 / 468;
+  }
+
+  .v6-letter {
+    width: min(100%, 420px);
+    margin-top: 34px;
+  }
+
+  .v6-travel {
+    display: block;
+    width: 100%;
+    margin-top: 40px;
+  }
+
+  .v6-travel + .v6-travel {
+    padding-top: 36px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .v6-travel .v4-serif {
+    font-size: 20px;
+    line-height: 1.5;
+  }
+
+  .v6-travel .v4-text + .v4-text {
+    margin-top: 16px;
+  }
+
+  .v4-faq__answer .v4-faq__body {
+    padding: 0 20px 20px 34px;
+  }
+
+  .v4-faq__answer .v4-faq__body p + p {
+    margin-top: 14px;
+  }
+}

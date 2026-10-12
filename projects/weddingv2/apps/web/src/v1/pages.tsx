@@ -13,7 +13,7 @@ import {
   stay,
   thingsToDo,
   travel,
-} from "../content/site.ts";
+} from "../content/site-round-2.ts";
 import { art } from "../shared/art.ts";
 import { BookButton } from "../shared/chrome.tsx";
 import { usePageTitle } from "../shared/hooks.ts";

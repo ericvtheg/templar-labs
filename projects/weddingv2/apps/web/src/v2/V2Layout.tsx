@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Link, useLocation, useOutlet } from "react-router";
 import { type PageId, pageById, pagePath } from "../content/pages.ts";
-import { couple } from "../content/site.ts";
+import { couple } from "../content/site-round-2.ts";
 import { art } from "../shared/art.ts";
 import { useCurrentPage, VersionSwitcher } from "../shared/chrome.tsx";
 import { useEscape, usePageFocus } from "../shared/hooks.ts";

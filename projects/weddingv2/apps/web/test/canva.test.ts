@@ -4,7 +4,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { versions } from "../src/content/pages.ts";
-import { faq, guestEvents, schedule, stay, thingsToDo, travel } from "../src/content/site.ts";
+import {
+  faq,
+  guestEvents,
+  schedule,
+  stay,
+  thingsToDo,
+  travel,
+} from "../src/content/site-round-2.ts";
 import { lineEnds, linesFor, place } from "../src/v4/spec.ts";
 
 /** The text that each set of line breaks belongs to. */
@@ -75,13 +82,9 @@ test("times use the plain hyphen Emma typed", () => {
   assert.ok(!JSON.stringify({ schedule, travel, faq }).includes("–"), "an en dash crept in");
 });
 
-test("the two versions made after Emma's notes come first", () => {
+test("versions 4 and 5 are the round made after Emma's first notes", () => {
   assert.deepEqual(
     versions.filter((version) => version.round === 2).map((version) => version.id),
-    ["v4", "v5"],
-  );
-  assert.deepEqual(
-    versions.slice(0, 2).map((version) => version.id),
     ["v4", "v5"],
   );
 });

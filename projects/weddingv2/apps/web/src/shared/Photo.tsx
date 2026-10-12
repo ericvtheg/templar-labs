@@ -1,5 +1,6 @@
 import type { PhotoSlot } from "../content/photos.ts";
 import { art } from "./art.ts";
+import { photoUrl } from "./photoFiles.ts";
 
 type PhotoProps = {
   slot: PhotoSlot;
@@ -11,12 +12,13 @@ type PhotoProps = {
 /** A photo slot. Renders the image, or a designed placeholder until `src` is set. */
 export function Photo({ slot, className, eager = false }: PhotoProps) {
   const classes = className ? `photo ${className}` : "photo";
+  const url = photoUrl(slot);
 
-  if (slot.src !== null) {
+  if (url !== null) {
     return (
       <div className={classes}>
         <img
-          src={slot.src}
+          src={url}
           alt={slot.alt}
           style={{ objectPosition: slot.focal }}
           loading={eager ? "eager" : "lazy"}

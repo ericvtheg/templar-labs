@@ -27,11 +27,11 @@
 
 .index__names {
   margin-top: 14px;
-  font-family: "Fahkwang", var(--font-names);
-  font-size: clamp(38px, 5.8vw, 80px);
+  font-family: var(--font-serif);
+  font-size: clamp(40px, 5.8vw, 80px);
   font-weight: 400;
   line-height: 1.05;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.077em;
   text-transform: uppercase;
   color: var(--coral-display);
 }

@@ -13,7 +13,7 @@ import {
 import { Link, useNavigate } from "react-router";
 import { pageById, pagePath } from "../content/pages.ts";
 import { allPhotos, type PhotoSlot } from "../content/photos.ts";
-import { couple, faq, home, schedule, thingsToDo, travel } from "../content/site.ts";
+import { couple, faq, home, schedule, thingsToDo, travel } from "../content/site-round-2.ts";
 import { type ArtName, art } from "../shared/art.ts";
 import { useCurrentPage, VersionSwitcher } from "../shared/chrome.tsx";
 import { useEscape, useMediaQuery, usePageTitle, useViewport } from "../shared/hooks.ts";

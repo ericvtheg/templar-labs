@@ -1,10 +1,10 @@
 // The one file to edit when the engagement photos arrive.
 //
-// 1. Put the image in apps/web/public/photos/ (for example hero.jpg).
-// 2. Set `src` to its path (for example "/photos/hero.jpg").
+// 1. Put the image in apps/web/src/assets/photos/ (for example hero.jpg).
+// 2. Set `src` to its file name (for example "hero.jpg").
 // 3. Write real `alt` text and, if the crop is off, move the focal point.
 //
-// A slot with `src: null` shows a designed placeholder. Every version crops with
+// A slot with `src: null`, or whose file is missing, shows a designed placeholder. Every version crops with
 // object-fit: cover, so any aspect ratio works. `focal` is a CSS object-position.
 
 export type PhotoTone = "blush" | "ochre" | "sage";
@@ -22,11 +22,13 @@ export type PhotoSlot = {
   caption: string;
 };
 
+// The photo Emma placed in her Canva design. It is cut from her 1366-pixel export,
+// so it is small (645 x 468). Replace the file with the original for a sharp picture.
 export const heroPhoto: PhotoSlot = {
   id: "hero",
-  src: null,
-  alt: "Emma and Eric",
-  focal: "50% 30%",
+  src: "emma-eric.jpg",
+  alt: "Emma and Eric smiling in front of the ocean. Emma’s hand, with her engagement ring, rests on Eric’s chest.",
+  focal: "50% 35%",
   hint: "Hero · portrait",
   tone: "blush",
   caption: "Meet us in Kansas?",

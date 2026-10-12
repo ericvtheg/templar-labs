@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- A cosmos: eight petals with toothed tips around a small golden center. -->
+  <defs>
+    <path id="petal" d="M24 21.2C20.9 17.3 19.7 11.1 20.8 6l1.6 1.8L24 4.8l1.6 3L27.2 6c1.1 5.1-.1 11.3-3.2 15.2z"/>
+    <path id="vein" d="M24 18.4v-7.6"/>
+  </defs>
+  <g fill="#FADCD3" stroke="#F16E50" stroke-width="1.3" stroke-linejoin="round">
+    <use href="#petal"/>
+    <use href="#petal" transform="rotate(45 24 24)"/>
+    <use href="#petal" transform="rotate(90 24 24)"/>
+    <use href="#petal" transform="rotate(135 24 24)"/>
+    <use href="#petal" transform="rotate(180 24 24)"/>
+    <use href="#petal" transform="rotate(225 24 24)"/>
+    <use href="#petal" transform="rotate(270 24 24)"/>
+    <use href="#petal" transform="rotate(315 24 24)"/>
+  </g>
+  <g stroke="#F16E50" stroke-width=".7" stroke-linecap="round" opacity=".5">
+    <use href="#vein"/>
+    <use href="#vein" transform="rotate(45 24 24)"/>
+    <use href="#vein" transform="rotate(90 24 24)"/>
+    <use href="#vein" transform="rotate(135 24 24)"/>
+    <use href="#vein" transform="rotate(180 24 24)"/>
+    <use href="#vein" transform="rotate(225 24 24)"/>
+    <use href="#vein" transform="rotate(270 24 24)"/>
+    <use href="#vein" transform="rotate(315 24 24)"/>
+  </g>
+  <circle cx="24" cy="24" r="3.9" fill="#DDB25F"/>
+</svg>

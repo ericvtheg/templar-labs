@@ -20,7 +20,7 @@ import {
   stay,
   thingsToDo,
   travel,
-} from "../content/site.ts";
+} from "../content/site-round-2.ts";
 import { art, artFor } from "../shared/art.ts";
 import { BookButton } from "../shared/chrome.tsx";
 import { useMediaQuery, usePageTitle } from "../shared/hooks.ts";

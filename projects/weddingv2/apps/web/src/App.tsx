@@ -6,13 +6,28 @@ import * as v2 from "./v2/pages.tsx";
 import { V2Layout } from "./v2/V2Layout.tsx";
 import { V3App } from "./v3/V3App.tsx";
 import * as v4 from "./v4/pages.tsx";
+import { sheet as v4Sheet } from "./v4/spec.ts";
 import { V4Layout, type Variant } from "./v4/V4Layout.tsx";
+import * as v6 from "./v6/pages.tsx";
+import { sheet as v6Sheet } from "./v6/spec.ts";
+import * as v7 from "./v7/pages.tsx";
 
 // v4 and v5 are one design. v5 leaves the photo off the homepage.
 const variants: readonly Variant[] = [
-  { id: "v4", photo: true },
-  { id: "v5", photo: false },
+  { id: "v4", photo: true, sheet: v4Sheet },
+  { id: "v5", photo: false, sheet: v4Sheet },
 ];
+
+// Round three. Emma asked for the FAQ before Things to Do.
+const roundThreeNav = ["home", "schedule", "travel", "faq", "things-to-do"] as const;
+const exact: Variant = {
+  id: "v6",
+  photo: true,
+  sheet: v6Sheet,
+  className: "v6",
+  nav: roundThreeNav,
+};
+const recommended: Variant = { ...exact, id: "v7", className: "v7" };
 
 export function App() {
   return (
@@ -57,6 +72,24 @@ export function App() {
           <Route path="faq" element={<v4.Faq />} />
         </Route>
       ))}
+
+      <Route path="/v6" element={<V4Layout variant={exact} />}>
+        <Route index element={<v6.Home />} />
+        <Route path="schedule" element={<v6.Schedule />} />
+        <Route path="travel" element={<v6.Travel />} />
+        <Route path="stay" element={<v6.Travel />} />
+        <Route path="things-to-do" element={<v6.ThingsToDo />} />
+        <Route path="faq" element={<v6.Faq />} />
+      </Route>
+
+      <Route path="/v7" element={<V4Layout variant={recommended} />}>
+        <Route index element={<v7.Home />} />
+        <Route path="schedule" element={<v7.Schedule />} />
+        <Route path="travel" element={<v7.Travel />} />
+        <Route path="stay" element={<v7.Travel />} />
+        <Route path="things-to-do" element={<v7.ThingsToDo />} />
+        <Route path="faq" element={<v7.Faq />} />
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>

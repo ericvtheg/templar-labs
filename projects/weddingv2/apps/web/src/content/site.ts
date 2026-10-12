@@ -1,11 +1,13 @@
-// Every word on the site lives here. All three design versions read from this file.
+// Every word on the current site lives here. Versions 6 and 7 read from this file.
 //
-// Source of truth: Emma's Canva design (projects/weddingv2/reference). The text is
-// transcribed exactly, except for these typo fixes:
-//   - Letter: "Wichita, Kansas on to celebrate" -> "Wichita, Kansas to celebrate"
-//   - Travel: "plently of options" -> "plenty of options"
+// Source of truth: Emma's third Canva export (projects/weddingv2/reference/round-3).
+// The text is transcribed exactly, except for these typo fixes:
+//   - Letter: "accomadation" -> "accommodation"
 //   - Things to Do: "where you can find grab a coffee" -> "where you can grab a coffee"
 //   - FAQ: "options everyday" -> "options every day"
+//
+// Versions 1 to 5 are earlier rounds. They keep the text they were designed
+// around, in site-round-2.ts.
 
 export type Venue = {
   name: string;
@@ -15,13 +17,9 @@ export type Venue = {
 
 export type ScheduleEvent = {
   id: string;
-  /** Script line above an event, for example "If you’re in town...". */
-  lead?: string;
   day: string;
   name: string;
   time?: string;
-  /** The same times as single moments, for versions that draw a timeline. */
-  moments?: readonly { id: string; time: string }[];
   /** Short lines shown under the time. */
   notes: readonly string[];
   /** A longer paragraph, used when the details are not final. */
@@ -61,9 +59,9 @@ export const home = {
   tagline: "Meet us in Kansas?",
   letter: {
     greeting: "Dear family and friends,",
-    lines: [
-      "We would be delighted for you to join us in",
-      "Wichita, Kansas to celebrate our marriage together.",
+    paragraphs: [
+      "We would be delighted for you to join us in Wichita, Kansas to celebrate our marriage together.",
+      "Here you can find travel and accommodation information but reach out to us if you have any questions about getting to Kansas!",
     ],
   },
 } as const;
@@ -84,31 +82,15 @@ const elderslie: Venue = {
 
 export const schedule = {
   title: "The Schedule",
+  // In date order, as Emma's design now has them.
   events: [
     {
-      id: "wedding",
-      day: "Saturday, September 25",
-      name: "The Wedding",
-      time: "5:00 PM - 10:30 PM",
-      moments: [
-        { id: "seated", time: "4:45 PM" },
-        { id: "start", time: "5:00 PM" },
-        { id: "end", time: "10:30 PM" },
-      ],
-      notes: ["Please plan to arrive and be seated by 4:45 PM."],
-      venue: botanica,
-      venueAnnounced: true,
-      venueNote: "If you choose to drive, there is a large parking lot",
-      guestFacing: true,
-    },
-    {
       id: "welcome-party",
-      lead: "If you’re in town...",
       day: "Friday, September 24",
       name: "Welcome Party",
       notes: [],
       details:
-        "We’ll have more information about where and when closer to the date but if you are in town Friday evening, we’ll be planning a welcome party to say hi before the big day!",
+        "We’ll have more information about where and when closer to the date. No pressure to attend but if you are in town Friday evening, we’ll be planning a welcome party to say hi before the big day!",
       venue: elderslie,
       venueAnnounced: false,
       guestFacing: true,
@@ -122,10 +104,21 @@ export const schedule = {
       venueAnnounced: false,
       guestFacing: false,
     },
+    {
+      id: "wedding",
+      day: "Saturday, September 25",
+      name: "The Wedding",
+      time: "5:00 PM - 10:30 PM",
+      notes: ["Please plan to arrive and be seated by 4:45 PM."],
+      venue: botanica,
+      venueAnnounced: true,
+      venueNote: "If you choose to drive, there is a large parking lot",
+      guestFacing: true,
+    },
   ],
 } as const satisfies { title: string; events: readonly ScheduleEvent[] };
 
-/** The events guests see, in the order the Canva design lists them. */
+/** The events guests see, in date order. */
 export const guestEvents: readonly ScheduleEvent[] = schedule.events.filter(
   (event) => event.guestFacing,
 );
@@ -134,28 +127,20 @@ export const travel = {
   title: "Travel",
   sections: [
     {
+      id: "flight",
       label: "Flight",
-      lines: [
+      paragraphs: [
         "Fly into Wichita Dwight D. Eisenhower National Airport - ICT.",
         "The airport is just 10 minutes away from Downtown Wichita. There are no direct flights from California but plenty of options daily with layovers.",
       ],
     },
     {
+      id: "getting-around",
       label: "Getting around",
-      lines: [
+      paragraphs: [
         "Wichita is easiest to get around with a car. But, depending on where you stay, it is possible to do the weekend without a rental car.",
-      ],
-    },
-    {
-      label: null,
-      lines: [
         "Uber and Lyft are available, although there are fewer drivers than you may be used to in Los Angeles. If you plan to use rideshare for the wedding, we recommend scheduling your ride ahead of time and allowing extra time.",
-      ],
-    },
-    {
-      label: null,
-      lines: [
-        "If you stay in a hotel downtown, there are plenty of food, coffee shops & bars within walking distance. Some hotels even offer a free airport shuttle if you contact them ahead of time.",
+        "If you stay at any of the hotels below, there are plenty of food, coffee shops & bars within walking distance.",
       ],
     },
   ],
@@ -252,53 +237,69 @@ export const thingsToDo = {
 export const faq = {
   title: "Frequently Asked Questions",
   shortTitle: "FAQ",
+  // Each answer is a list of paragraphs.
   items: [
     {
       id: "indoor-or-outdoors",
       question: "Is the wedding indoor or outdoors?",
-      answer:
+      answer: [
         "The ceremony, cocktail hour, and dancing will be outdoors, while dinner will be held indoors. In the event of bad weather, we’ll move everything indoors. The ceremony will be on grass so plan your shoes accordingly!",
+      ],
     },
     {
       id: "weather",
       question: "What is the weather like in Kansas?",
-      answer:
+      answer: [
         "Late September in Wichita is usually lovely, with daytime highs around 80°F (27°C) and evening temperatures dropping to around 65°F (18°C). We recommend bringing a light jacket if you get cold at night. Kansas weather can be very unpredictable, so make sure to check the forecast that weekend!",
+      ],
     },
     {
       id: "dress-code",
       question: "What is the dress code?",
-      answer:
+      answer: [
         "Cocktail/Semi-Formal. Dresses, midi, maxi or mini, jumpsuits, suits, dress pants, button-downs, and dress shoes are all great options. Please no jeans!",
+      ],
     },
     {
       id: "kids",
       question: "Are kids allowed?",
-      answer:
+      answer: [
         "No! We are only allowing immediate family to bring their children in order to accommodate the size of the venue.",
+      ],
     },
     {
       id: "plus-ones",
       question: "Are plus ones allowed?",
-      answer:
+      answer: [
         "If you have a plus one, they will be listed on your invitation or you’ll have the option to fill in their name.",
+      ],
     },
     {
       id: "open-bar",
       question: "Is there an open bar?",
-      answer: "Hell yeah! There will be an open bar with beer, wine and cocktail options.",
-    },
-    {
-      id: "gifts",
-      question: "Who should I address gifts to?",
-      answer:
-        "Emma will not be changing her last name so you can address any gifts to Emma Starks & Eric Ventor, thank you!",
+      answer: ["Hell yeah! There will be an open bar with beer, wine and cocktail options."],
     },
     {
       id: "getting-to-wichita",
       question: "How do I get to Wichita, Kansas?",
-      answer:
+      answer: [
         "Wichita has its own airport - Wichita Dwight D. Eisenhower National Airport - ICT. The airport is just 10 minutes away from Downtown Wichita. There are no direct flights from California to Wichita but plenty of options every day that have layovers.",
+      ],
+    },
+    {
+      id: "what-is-wichita-like",
+      question: "What is Wichita like? Is this going to be in the middle of nowhere?",
+      answer: [
+        "No you little freak! Wichita has its own downtown, restaurants, coffee shops, breweries, museums, shopping, parks and nightlife. You definitely won’t be in the middle of nowhere but you’ll still get the chance to see the beautiful Great Plains if you drive around town.",
+      ],
+    },
+    {
+      id: "rental-car",
+      question: "Do I need a rental car in Wichita?",
+      answer: [
+        "It’s up to you! You can definitely navigate Wichita without a car but allow extra time for requesting Ubers or Lyfts. There are Ubers in Wichita but definitely not as many as a city like Los Angeles. So if you plan to Uber to the wedding venue, just make sure you arrive extra early.",
+        "Some downtown hotels offer a free airport shuttle if you contact them ahead of time. And if you stay downtown, although the streets aren’t bustling, there are walkable food and coffee options in the area.",
+      ],
     },
   ],
 } as const;

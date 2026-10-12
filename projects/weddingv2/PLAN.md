@@ -32,6 +32,15 @@ Travel is two pages because the Canva design has two "Travel" panels and neither
 - `src/content/pages.ts` lists the pages, slugs and nav labels
 - Each event carries its own venue, so a venue change is a one-line edit. The welcome party venue (Elderslie) is stored but not shown, because the Canva copy says the details come later. Set `announced: true` to show it. The rehearsal dinner is stored with `guestFacing: false`
 
+## Round three: versions 6 and 7
+
+Emma liked version 4 and sent an updated Canva export (`reference/round-3`) with new wording, a photo and some layout changes. She asked for one version that follows it exactly and one that is my recommendation for type sizes and layout.
+
+- **Version 6** is built like version 4: her pages as panels, every block at a measured position (`src/v6/spec.json`), 38 of 40 blocks within one pixel. The two exceptions are the line with the fixed typo and a two-line intro that is 1.5 pixels short
+- **Version 7** uses the same content, fonts, color and art in a normal responsive layout (`src/v7/v7.css`). It has one type scale with a floor and ceiling on every size, two matching columns for Flight and Getting around, hotel rows that line up, and tighter spacing. It does not change her structure or wording
+- Both share the FAQ accordion (`src/canva/FaqAccordion.tsx`) and the cosmos marker
+- Content is versioned: `site.ts` is round three, `site-round-2.ts` is what versions 1 to 5 were designed around
+
 ## Round two: versions 4 and 5
 
 Emma reviewed the first round and wanted her own design back: her scroll, her fonts, no photo placeholders, sharper flowers. Versions 4 and 5 are that. They are one implementation (`src/v4`), and v5 only leaves the photo off the homepage.

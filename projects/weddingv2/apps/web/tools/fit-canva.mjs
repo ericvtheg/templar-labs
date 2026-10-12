@@ -6,27 +6,31 @@
 // line pitch and letter-spacing in src/v4/spec.json. It repeats until the two
 // agree. Start the dev server first.
 //
-// usage: node tools/fit-canva.mjs [--rounds 5] [--check]
-//        --check only reports the remaining differences and changes nothing.
+// usage: node tools/fit-canva.mjs [--round 3] [--rounds 5] [--check]
+//        --round  which Canva export to fit: 2 (versions 4 and 5) or 3 (version 6). Default 3.
+//        --rounds how many correction passes to run.
+//        --check  only reports the remaining differences and changes nothing.
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const specPath = path.resolve(here, "../src/v4/spec.json");
 const reference = path.resolve(here, "../../../reference");
 const base = "http://127.0.0.1:5191";
 const SCALE = 4;
 const args = process.argv.slice(2);
 const check = args.includes("--check");
-const rounds = check ? 1 : Number(args[args.indexOf("--rounds") + 1] || 5);
+const option = (name, fallback) =>
+  args.includes(name) ? Number(args[args.indexOf(name) + 1]) : fallback;
+const rounds = check ? 1 : option("--rounds", 5);
+const canvaRound = option("--round", 3);
 
 // Where each block's ink is on Emma's screenshot: [left, top, right, bottom] in
 // panel pixels, read off the 1x image. The tool re-measures inside this window at
 // sub-pixel precision. `lines` is how many lines the block has. Display type also
 // has `gaps`: the number of spaces between letters on its widest line.
-const pages = [
+const roundTwo = [
   {
     url: "/v5",
     panels: {
@@ -94,6 +98,73 @@ const pages = [
   },
 ];
 
+const startingWith = (blocks, prefix) =>
+  Object.fromEntries(Object.entries(blocks).filter(([id]) => id.startsWith(prefix)));
+
+// Round three. The hotels and the things to do did not move, so their windows are reused.
+const roundThree = [
+  {
+    url: "/v6",
+    panels: {
+      home: { file: "round-3/home.png", index: 0 },
+      schedule: { file: "round-3/home.png", index: 2 },
+      wedding: { file: "round-3/home.png", index: 3 },
+    },
+    blocks: {
+      "home.names": { panel: "home", ink: [78, 95, 313, 361], lines: 3, gaps: 3 },
+      "home.date": { panel: "home", ink: [79, 619, 598, 684], gaps: 17 },
+      "sched.heading": { panel: "schedule", ink: [130, 84, 419, 124], gaps: 11 },
+      "welcome.name": { panel: "schedule", ink: [591, 256, 775, 291] },
+      "welcome.details": { panel: "schedule", ink: [367, 367, 999, 571], lines: 4 },
+      "sched.name": { panel: "wedding", ink: [602, 237, 764, 272] },
+      "sched.time": { panel: "wedding", ink: [562, 293, 803, 321] },
+      "sched.note": { panel: "wedding", ink: [448, 347, 912, 375] },
+      "sched.venue": { panel: "wedding", ink: [495, 451, 871, 484] },
+      "sched.address": { panel: "wedding", ink: [479, 507, 886, 540] },
+      "sched.parking": { panel: "wedding", ink: [440, 561, 927, 590] },
+    },
+  },
+  {
+    url: "/v6/travel",
+    panels: {
+      stay: { file: "round-3/travel.png", index: 0 },
+      travel: { file: "round-3/travel.png", index: 1 },
+    },
+    blocks: {
+      "travel.heading": { panel: "stay", ink: [97, 53, 243, 93], gaps: 5 },
+      ...startingWith(roundTwo[1].blocks, "stay."),
+      "flight.label": { panel: "travel", ink: [310, 248, 382, 270] },
+      "flight.p1": { panel: "travel", ink: [166, 287, 527, 353], lines: 2 },
+      "flight.p2": { panel: "travel", ink: [130, 404, 563, 548], lines: 4 },
+      "around.label": { panel: "travel", ink: [897, 190, 1059, 210] },
+      "around.p1": { panel: "travel", ink: [722, 226, 1234, 317], lines: 3 },
+      "around.p2": { panel: "travel", ink: [753, 368, 1204, 534], lines: 5 },
+      "around.p3": { panel: "travel", ink: [740, 580, 1217, 641], lines: 2 },
+    },
+  },
+  {
+    url: "/v6/things-to-do",
+    panels: { things: { file: "round-3/things.png", index: 0 } },
+    blocks: roundTwo[2].blocks,
+  },
+  {
+    url: "/v6/faq",
+    panels: { faq: { file: "round-3/faq.png", index: 0 } },
+    blocks: roundTwo[3].blocks,
+  },
+];
+
+const jobs = {
+  2: { spec: "../src/v4/spec.json", pages: roundTwo },
+  3: { spec: "../src/v6/spec.json", pages: roundThree },
+};
+if (!jobs[canvaRound]) {
+  console.error("--round must be 2 or 3");
+  process.exit(1);
+}
+const specPath = path.resolve(here, jobs[canvaRound].spec);
+const pages = jobs[canvaRound].pages;
+
 /** Runs in the helper page: the ink box of an image, in image pixels. */
 async function inkBox({ url, crop, scale }) {
   const image = new Image();
@@ -157,8 +228,10 @@ const context = await browser.newContext({
 });
 await context.addInitScript(() => window.sessionStorage.setItem("weddingv2:envelope-opened", "1"));
 const page = await context.newPage();
-const dataUrl = (file) =>
-  `data:image/jpeg;base64,${readFileSync(path.join(reference, file)).toString("base64")}`;
+const dataUrl = (file) => {
+  const mime = file.endsWith(".png") ? "image/png" : "image/jpeg";
+  return `data:${mime};base64,${readFileSync(path.join(reference, file)).toString("base64")}`;
+};
 
 /** Emma's ink box for a block, measured at sub-pixel precision inside its 1x window. */
 async function targetBox(panel, ink) {
@@ -199,7 +272,7 @@ for (let round = 1; round <= rounds; round += 1) {
         ({ blockId, panelId }) => {
           const panelElement = document.querySelector(`[data-panel="${panelId}"]`);
           for (const element of panelElement.querySelectorAll(
-            "[data-block], img, hr, .v4-book, .v4-faq, .v4-photo",
+            "[data-block], img, hr, figure, .v4-book, .v4-faq, .v4-photo",
           )) {
             element.style.visibility = element.dataset.block === blockId ? "visible" : "hidden";
           }

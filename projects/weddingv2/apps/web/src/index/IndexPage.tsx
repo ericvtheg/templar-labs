@@ -12,9 +12,12 @@ const stems: Record<VersionId, string> = {
   v3: art.stemSunflower,
   v4: art.stemRose,
   v5: art.stemSprig,
+  v6: art.stemBuds,
+  v7: art.growLily,
 };
 
 const rounds = [
+  { round: 3, label: "Emma’s updated design" },
   { round: 2, label: "After Emma’s notes" },
   { round: 1, label: "First round" },
 ] as const;

@@ -12,8 +12,10 @@ import { chromium } from "@playwright/test";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const reference = path.resolve(here, "../../../reference");
-const image = (file) =>
-  `data:image/jpeg;base64,${readFileSync(path.join(reference, file)).toString("base64")}`;
+const image = (file) => {
+  const mime = file.endsWith(".png") ? "image/png" : "image/jpeg";
+  return `data:${mime};base64,${readFileSync(path.join(reference, file)).toString("base64")}`;
+};
 
 const weights = (family, list) => list.map((weight) => ({ family, weight }));
 
@@ -249,6 +251,35 @@ const jobs = {
         fitSpacing: false,
       },
       { name: "ERIC", text: "ERIC", image: "home", crop: { x: 66, y: 266, w: 270, h: 88 } },
+    ],
+  },
+  // Round 3: Emma set the names in a serif.
+  names3: {
+    fonts: serif,
+    images: { home: "round-3/home.png" },
+    lines: [
+      { name: "EMMA", text: "EMMA", image: "home", crop: { x: 66, y: 84, w: 260, h: 90 } },
+      {
+        name: "amp",
+        text: "&",
+        image: "home",
+        crop: { x: 66, y: 182, w: 80, h: 90 },
+        fitSpacing: false,
+      },
+      { name: "ERIC", text: "ERIC", image: "home", crop: { x: 66, y: 281, w: 204, h: 90 } },
+    ],
+  },
+  // Round 3: the Flight and Getting around text.
+  travel3: {
+    fonts: serif,
+    images: { travel: "round-3/travel.png" },
+    lines: [
+      {
+        name: "line",
+        text: "Downtown Wichita. There are no direct flights",
+        image: "travel",
+        crop: { x: 120, y: 768 + 436, w: 452, h: 40 },
+      },
     ],
   },
   date: {

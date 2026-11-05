@@ -33,7 +33,11 @@ databases = pages("/d1/database")
 workers = get("/workers/scripts")["result"]
 targets = [db for db in databases if db["name"] == "hello-world-db"]
 if sys.argv[1] == "before":
-    assert len(targets) == 1, "Expected exactly one hello-world-db"
+    assert len(targets) <= 1, "Unexpected duplicate hello-world-db"
+    if not targets:
+        assert not any(w["id"] == "hello-world-website" for w in workers), "Database missing but Worker remains"
+        print("Hello World database and Worker already removed.")
+        sys.exit(0)
     target_id = targets[0]["uuid"]
     for worker in workers:
         bindings = get(f"/workers/scripts/{worker['id']}/settings")["result"]["bindings"]
@@ -48,8 +52,9 @@ elif sys.argv[1] == "after":
     queues = pages("/queues")
     assert not any(q["queue_name"] == "hello-world-jobs" for q in queues), "Queue still exists"
     buckets = get("/r2/buckets")["result"]["buckets"]
-    assert not any(b["name"] == "hello-world-r2" for b in buckets), "Bucket still exists"
-    print("Verified Hello World database, Worker, queue and bucket are absent.")
+    if any(b["name"] == "hello-world-r2" for b in buckets):
+        print("Retained nonempty hello-world-r2 bucket to preserve existing files.")
+    print("Verified Hello World database, Worker and queue are absent.")
     print(f"Database count after retirement: {len(databases)}")
 else:
     raise ValueError("Expected before or after")

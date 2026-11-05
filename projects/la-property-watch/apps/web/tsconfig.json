@@ -1,0 +1,9 @@
+{
+  "extends": "@templar/tsconfig/tanstack-start-app",
+  "include": ["**/*.ts", "**/*.tsx"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noUncheckedSideEffectImports": true,
+    "types": ["vite/client", "@cloudflare/workers-types", "node"]
+  }
+}

@@ -14,6 +14,7 @@ on:
         options:
           - all
           - emma-eric-wedding
+          - la-property-watch
 
 concurrency:
   group: deploy-main
@@ -43,6 +44,8 @@ jobs:
         run: |
           if [ "${{ inputs.project }}" = "emma-eric-wedding" ]; then
             pnpm db:migrate:prod emma-eric-wedding
+          elif [ "${{ inputs.project }}" = "la-property-watch" ]; then
+            pnpm db:migrate:prod la-property-watch
           else
             pnpm db:migrate:ci
           fi
@@ -68,6 +71,8 @@ jobs:
         run: |
           if [ "${{ inputs.project }}" = "emma-eric-wedding" ]; then
             pnpm --filter emma-eric-wedding run deploy
+          elif [ "${{ inputs.project }}" = "la-property-watch" ]; then
+            pnpm --filter la-property-watch run deploy
           elif [ "${{ github.event_name }}" = "push" ]; then
             pnpm run deploy -- --changed-since "${{ github.event.before }}"
           else
@@ -104,7 +109,7 @@ jobs:
           PY
 
       - name: Upload prepared China audio
-        if: inputs.project != 'emma-eric-wedding'
+        if: inputs.project != 'emma-eric-wedding' && inputs.project != 'la-property-watch'
         timeout-minutes: 20
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -115,3 +120,10 @@ jobs:
             exit 0
           fi
           pnpm --filter china audio:upload
+
+      - name: Verify LA Property Watch production
+        if: inputs.project == 'la-property-watch'
+        timeout-minutes: 15
+        env:
+          TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+        run: pnpm --filter la-property-watch verify:production

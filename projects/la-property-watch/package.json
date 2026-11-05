@@ -1,0 +1,27 @@
+{
+  "name": "la-property-watch",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../../scripts/project-build.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "deploy": "alchemy deploy alchemy.run.ts --stage prod --profile templar-labs",
+    "destroy": "alchemy destroy alchemy.run.ts --stage prod --profile templar-labs",
+    "dev": "pnpm --filter la-property-watch-web dev",
+    "ingest:live": "pnpm --filter la-property-watch-web ingest:live",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "pnpm --filter la-property-watch-web test",
+    "typecheck": "tsc --noEmit",
+    "verify:production": "node --experimental-strip-types scripts/verify-production.ts"
+  },
+  "dependencies": {
+    "@templar/deploy": "workspace:*",
+    "@templar/scheduler": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "alchemy": "^0.93.7",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "6.0.3"
+  }
+}

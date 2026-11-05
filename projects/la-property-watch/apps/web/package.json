@@ -1,0 +1,46 @@
+{
+  "name": "la-property-watch-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "db:local": "wrangler d1 migrations apply la-property-watch-local --local",
+    "deploy": "pnpm --dir ../.. deploy",
+    "dev": "pnpm db:local && vite --host 0.0.0.0",
+    "e2e:built": "pnpm db:local && node test/e2e/seed.mjs && pnpm build && wrangler dev --config dist/server/wrangler.json --persist-to .wrangler/state --ip 0.0.0.0 --port 5192",
+    "e2e:dev": "pnpm db:local && node test/e2e/seed.mjs && vite --host 0.0.0.0",
+    "ingest:live": "node --experimental-strip-types scripts/ingest-live.ts",
+    "lint": "echo 'Linting is handled by the root lint pipeline.'",
+    "test": "node --test test/*.test.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.0.6",
+    "@tanstack/react-router": "^1.132.0",
+    "@tanstack/react-start": "^1.132.0",
+    "@templar/auth": "workspace:*",
+    "@templar/dev-ports": "workspace:*",
+    "@templar/queue": "workspace:*",
+    "@templar/scheduler": "workspace:*",
+    "effect": "^3.21.2",
+    "lucide-react": "^1.14.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "unpdf": "^2.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.11.6",
+    "@cloudflare/workers-types": "4.20260511.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.12.4",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "alchemy": "^0.93.7",
+    "typescript": "6.0.3",
+    "vite": "^7.1.9",
+    "wrangler": "^4.90.1"
+  }
+}

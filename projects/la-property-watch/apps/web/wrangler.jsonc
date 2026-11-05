@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "la-property-watch-local",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-05-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "TEMPLAR_AUTH_ISSUER": "https://auth.breli.app",
+    "AUTH_SECRET": "la-property-watch-local-development-only-not-for-production"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "la-property-watch-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../db/migrations"
+    }
+  ],
+  "queues": {
+    "producers": [{ "binding": "JOBS", "queue": "la-property-watch-local-jobs" }],
+    "consumers": [
+      {
+        "queue": "la-property-watch-local-jobs",
+        "max_batch_size": 1,
+        "max_concurrency": 1,
+        "max_retries": 2
+      }
+    ]
+  }
+}

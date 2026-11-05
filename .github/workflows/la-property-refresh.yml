@@ -1,0 +1,25 @@
+name: LA Property Refresh
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+concurrency:
+  group: la-property-ingestion
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Process durable refresh requests
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            node --experimental-strip-types projects/la-property-watch/scripts/ingest-production.ts --queued-only
+          else
+            node --experimental-strip-types projects/la-property-watch/scripts/ingest-production.ts
+          fi

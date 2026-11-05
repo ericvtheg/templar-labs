@@ -121,6 +121,21 @@ describe("private research API", () => {
     }
   });
 
+  it("persists external-runner requests without sending CPU-heavy work to a Worker", async () => {
+    const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
+    const response = await handleResearch(
+      new Request(`${origin}/api/research/refresh`, {
+        method: "POST",
+        headers: { cookie, origin },
+      }),
+      { ...env, INGESTION_RUNNER: "external" } as Bindings,
+    );
+    assert.equal(response.status, 202);
+    assert.equal(sent.length, 0);
+    const payload = (await response.json()) as { job: { status: string } };
+    assert.equal(payload.job.status, "queued");
+  });
+
   it("requires same-origin bodyless writes and queues bounded background work", async () => {
     const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
     const crossOrigin = await handleResearch(

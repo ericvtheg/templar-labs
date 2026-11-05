@@ -157,12 +157,15 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       if (!response.ok || !body.job) {
         throw new Error(body.error ?? "Refresh could not be queued.");
       }
+      setNotice(
+        "Refresh queued. The import runner checks about every 15 minutes; scheduling delays are possible.",
+      );
       setRefreshState("running");
       const completed = await pollRefresh(body.job.id, setData);
       setNotice(
         completed
           ? "Source refresh finished. The workspace now reflects the latest successful observations."
-          : "Refresh is still running in the background. Source status will update on the next load.",
+          : "Refresh is queued or running in the background. The import runner checks about every 15 minutes; reload to see its progress.",
       );
     } catch (cause) {
       setNotice(cause instanceof Error ? cause.message : "Refresh could not be queued.");

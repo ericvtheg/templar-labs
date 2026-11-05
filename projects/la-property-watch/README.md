@@ -15,23 +15,23 @@ presents a published date as confirmation that a sale is still available.
 - Mutating requests require the application origin. Private responses are
   `no-store` and vary on the session cookie.
 - The browser tests use ordinary encrypted development sessions signed with the
-  documented local-only secret. Production verification signs five-minute
+  documented local-only secret. Production verification signs fifteen-minute
   ordinary sessions with the CI secret; it does not add a server bypass.
 
 ## Data pipeline
 
 ### Tax-default sales
 
-The queued worker reads the official LA County Treasurer and Tax Collector
+The Node ingestion runner reads the official LA County Treasurer and Tax Collector
 auction schedule, follows its current auction-book PDF, extracts text with
-`unpdf`'s Cloudflare Worker build, and parses item number, AIN, minimum bid,
+`unpdf`, and parses item number, AIN, minimum bid,
 published legal text, and the explicitly published auction start date.
 
 Source: <https://ttc.lacounty.gov/schedule-of-upcoming-auctions/>
 
 ### Mortgage trustee sales
 
-The worker makes one bounded request to CNPA's permitted category RSS endpoint:
+The runner makes one bounded request to CNPA's permitted category RSS endpoint:
 
 `https://www.capublicnotice.com/category/legals/notice-of-trustee-sale/rss.xml?county=Los%20Angeles&size=100`
 
@@ -58,7 +58,14 @@ source cooldown, and stale leases expire after 30 minutes. Sources run
 independently and expose success, partial, or failed status with bounded error
 text. The daily scheduled trigger enqueues the same pipeline.
 
-## Verified live result
+Production sets `INGESTION_RUNNER=external`: GitHub Actions processes D1 jobs
+about every 15 minutes (schedule delays are possible), with manual workflow dispatch
+available. PDF parsing exceeded Cloudflare Worker resources in production, so the
+Node runner handles fetching, PDF extraction and enrichment using the same parsers
+and repository code through a D1 REST adapter. Worker mode remains for local tests.
+No API write endpoint or new public access is introduced.
+
+## Local built-Worker live-source result
 
 On 2026-11-05 UTC, the full adapters and the exact built Cloudflare Worker were
 run against the live sources:
@@ -104,7 +111,10 @@ The parent deployment owner should push the reviewed commit, then run the
 2. scopes the database migration command to this project (the Alchemy D1
    resource also applies `db/migrations` during deployment);
 3. deploys only `la-property-watch` and skips unrelated China audio;
-4. runs `verify:production` with the CI `TEMPLAR_AUTH_SECRET`.
+4. bootstraps real sources with `scripts/ingest-production.ts` and the existing
+   Cloudflare credentials;
+5. runs `verify:production` with the CI `TEMPLAR_AUTH_SECRET`, then desktop/mobile
+   browser checks for both approved accounts.
 
 Required existing GitHub secrets are the Cloudflare/Alchemy credentials and
 `TEMPLAR_AUTH_SECRET`. No source API key is required.
@@ -119,8 +129,9 @@ The verifier never prints the secret or cookies. It confirms unauthenticated,
 forged, wrong-email, and unverified requests are rejected; confirms the sign-in
 chain uses central Templar auth and Google; queues a real ingestion; waits for
 both persisted source types; reads them back; and verifies the protected CSV.
-The refresh is the production bootstrap commandthere are no fictional seed
-records.
+The Node runner is the production bootstrap command; there are no fictional seed
+records. Pass Cloudflare credentials to the verifier to process queued requests
+immediately rather than waiting for the scheduled runner.
 
 ## Boundaries
 
@@ -133,6 +144,6 @@ records.
   evidence is required and rejected-item counts remain visible.
 - Scanned future TTC PDFs without a text layer will fail visibly; no OCR or
   access-control bypass is attempted.
-- Production deployment and interactive Google login verification remain with
-  the parent deployment owner; this worktree intentionally does not push or
-  deploy.
+- Automated verification uses signed ordinary sessions and checks the Google
+  sign-in redirect. Completing Google login with a real account remains a user
+  action; the tests do not enter account passwords.

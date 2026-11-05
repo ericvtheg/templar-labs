@@ -31,6 +31,11 @@ export default {
     await Effect.runPromise(scheduler.handle(controller));
   },
   async queue(batch: MessageBatch<string>, env: Bindings) {
+    if (env.INGESTION_RUNNER === "external") {
+      // D1 is the durable job queue; the scheduled Node runner does the heavy work.
+      batch.ackAll();
+      return;
+    }
     const queue = makeQueue<RefreshQueueJob>(env.JOBS);
     await Effect.runPromise(
       queue.consume(batch.messages, (message) =>

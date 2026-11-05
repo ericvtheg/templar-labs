@@ -23,6 +23,7 @@ export const website = await templarApp("website", {
     binding: jobs,
     settings: { batchSize: 1, maxConcurrency: 1, maxRetries: 2 },
   },
+  bindings: { INGESTION_RUNNER: "external" },
   services: { auth: true },
 });
 

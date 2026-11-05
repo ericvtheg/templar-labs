@@ -1,4 +1,6 @@
+import { spawn } from "node:child_process";
 import { createHash, randomBytes, randomUUID, webcrypto } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 function environment(name: string): string | undefined {
   return process.env[name];
@@ -115,7 +117,18 @@ check(cookieName && iv && ciphertext, "Could not construct the verification sess
 const forgedCiphertext = `${ciphertext.startsWith("a") ? "b" : "a"}${ciphertext.slice(1)}`;
 const forged = `${cookieName}=${iv}.${forgedCiphertext}`;
 
-await expectStatus("/api/research/data", 401);
+// New custom domains may take a short time to resolve after deployment.
+for (let attempt = 0; ; attempt += 1) {
+  try {
+    await expectStatus("/api/research/data", 401);
+    break;
+  } catch (cause) {
+    if (attempt >= 11) {
+      throw cause;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+}
 await expectStatus("/api/research/data", 401, forged);
 await expectStatus("/api/research/data", 403, wrongEmail);
 await expectStatus("/api/research/data", 403, unverified);
@@ -133,6 +146,28 @@ check(refresh.status === 200 || refresh.status === 202, `Refresh returned ${refr
 const refreshBody = (await refresh.json()) as { job?: { id?: string } };
 const jobId = refreshBody.job?.id;
 check(jobId, "Refresh did not return a job ID.");
+
+if (environment("CLOUDFLARE_API_TOKEN")) {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      [
+        "--experimental-strip-types",
+        fileURLToPath(new URL("./ingest-production.ts", import.meta.url).href),
+        "--queued-only",
+      ],
+      { stdio: "inherit", timeout: 10 * 60_000 },
+    );
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Production ingestion runner exited ${code}.`));
+      }
+    });
+  });
+}
 
 const deadline = Date.now() + 12 * 60_000;
 let dashboard:

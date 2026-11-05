@@ -11,7 +11,7 @@ export type RefreshQueueJob = {
 
 export async function enqueueRefresh(bindings: Bindings, trigger: IngestionTrigger) {
   const requested = await requestRefreshJob(bindings.DB, trigger);
-  if (!requested.created) {
+  if (!requested.created || bindings.INGESTION_RUNNER === "external") {
     return requested;
   }
   try {

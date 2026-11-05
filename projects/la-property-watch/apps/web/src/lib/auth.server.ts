@@ -6,6 +6,7 @@ export type Bindings = {
   readonly TEMPLAR_AUTH_ISSUER: string;
   readonly DB: D1Database;
   readonly JOBS: Queue<string>;
+  readonly INGESTION_RUNNER?: string;
 };
 
 export async function getBindings(): Promise<Bindings> {

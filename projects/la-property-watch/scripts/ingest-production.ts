@@ -59,7 +59,9 @@ export class CloudflareD1 {
               Authorization: `Bearer ${this.options.apiToken}`,
               "Content-Type": "application/json",
             },
-            ...(queries === undefined ? {} : { body: JSON.stringify(queries) }),
+            ...(queries === undefined
+              ? {}
+              : { body: JSON.stringify(Array.isArray(queries) ? { batch: queries } : queries) }),
             signal: AbortSignal.timeout(this.options.timeoutMs ?? 30_000),
           },
         );

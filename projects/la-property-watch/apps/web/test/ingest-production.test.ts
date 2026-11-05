@@ -57,8 +57,12 @@ test("REST adapter discovers exact name across pages and implements binding/quer
         },
       };
     }
+    if (Array.isArray(body)) {
+      return { status: 400, body: { success: false } };
+    }
+    const batch = (body as { batch?: unknown[] }).batch;
     return {
-      body: { success: true, result: Array.isArray(body) ? body.map(() => result) : [result] },
+      body: { success: true, result: batch ? batch.map(() => result) : [result] },
     };
   });
   try {
@@ -69,10 +73,12 @@ test("REST adapter discovers exact name across pages and implements binding/quer
     assert.deepEqual((await statement.all()).results, [{ value: 42 }]);
     assert.equal((await mock.api.batch([statement, statement])).length, 2);
     assert.ok(mock.requests.at(-1)?.url.endsWith("/database/query"));
-    assert.deepEqual(mock.requests.at(-1)?.body, [
-      { sql: "SELECT ? AS value", params: [42] },
-      { sql: "SELECT ? AS value", params: [42] },
-    ]);
+    assert.deepEqual(mock.requests.at(-1)?.body, {
+      batch: [
+        { sql: "SELECT ? AS value", params: [42] },
+        { sql: "SELECT ? AS value", params: [42] },
+      ],
+    });
   } finally {
     await mock.close();
   }

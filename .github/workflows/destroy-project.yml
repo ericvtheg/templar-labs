@@ -40,6 +40,13 @@ jobs:
       - name: Setup Node + pnpm
         uses: ./.github/actions/setup-node-pnpm
 
+      - name: Check Hello World database isolation
+        if: inputs.project == 'hello-world'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 scripts/verify-hello-world-retirement.py before
+
       - name: Destroy project
         env:
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
@@ -51,3 +58,10 @@ jobs:
           OPENROUTER_API_TOKEN: ${{ secrets.OPENROUTER_API_TOKEN }}
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
         run: pnpm --filter "${{ inputs.project }}" destroy
+
+      - name: Verify Hello World resources removed
+        if: inputs.project == 'hello-world'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 scripts/verify-hello-world-retirement.py after

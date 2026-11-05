@@ -259,11 +259,11 @@ export function assessorAddress(attributes: Record<string, unknown>): {
   readonly state: string;
   readonly zip: string | null;
 } | null {
-  const address = stringValue(attributes.SAADDR);
+  const address = stringValue(attributes["SAADDR"]);
   if (!address) {
     return null;
   }
-  const second = stringValue(attributes.SAADDR2);
+  const second = stringValue(attributes["SAADDR2"]);
   const match = second?.match(/^(.+?)\s+CA\s+(\d{5})(?:-\d{4})?$/i);
   return {
     address,

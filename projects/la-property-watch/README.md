@@ -10,7 +10,7 @@ presents a published date as confirmation that a sale is still available.
 - Central Templar Google SSO creates the session.
 - Every page loader, data request, refresh action, and CSV export rechecks a
   literal app-local allowlist: the account must be verified and exactly
-  `ericventor97@gmail.com`.
+  `ericventor97@gmail.com` or `Rhwcreative@gmail.com`.
 - There is no admin override, public data route, or production test bypass.
 - Mutating requests require the application origin. Private responses are
   `no-store` and vary on the session cookie.

@@ -1,4 +1,4 @@
-import { allowedEmail } from "./model.ts";
+import { allowedEmails } from "./model.ts";
 
 export type AccessUser = {
   readonly email: string;
@@ -6,7 +6,10 @@ export type AccessUser = {
 };
 
 export function canAccessResearch(user: AccessUser): boolean {
-  return user.emailVerified && user.email.trim().toLowerCase() === allowedEmail;
+  return (
+    user.emailVerified &&
+    allowedEmails.some((email) => email.toLowerCase() === user.email.trim().toLowerCase())
+  );
 }
 
 export function sameOrigin(request: Request): boolean {

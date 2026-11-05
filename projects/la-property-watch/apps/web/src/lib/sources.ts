@@ -160,7 +160,7 @@ async function enrichFromAssessor(
         continue;
       }
       for (const feature of result.value.features ?? []) {
-        const ain = normalizeApn(String(feature.attributes?.AIN ?? ""));
+        const ain = normalizeApn(String(feature.attributes?.["AIN"] ?? ""));
         const address = assessorAddress(feature.attributes ?? {});
         if (ain && address) {
           byApn.set(ain, address);

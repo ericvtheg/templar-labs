@@ -98,9 +98,9 @@ describe("refresh persistence", () => {
     );
     assert.equal(requests.filter((request) => request.created).length, 1);
     assert.equal(new Set(requests.map((request) => request.job.id)).size, 1);
-    const count = database.sqlite
-      .prepare("SELECT count(*) AS count FROM refresh_jobs")
-      .get()?.count;
+    const count = database.sqlite.prepare("SELECT count(*) AS count FROM refresh_jobs").get()?.[
+      "count"
+    ];
     assert.equal(count, 1);
   });
 
@@ -123,7 +123,7 @@ describe("refresh persistence", () => {
     ]);
     const finishedAt = database.sqlite
       .prepare("SELECT finished_at FROM refresh_jobs WHERE id = ?")
-      .get(first.job.id)?.finished_at;
+      .get(first.job.id)?.["finished_at"];
     assert.equal(typeof finishedAt, "string");
     const within = await requestRefreshJob(
       database.binding,

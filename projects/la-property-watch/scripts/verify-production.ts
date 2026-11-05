@@ -49,7 +49,7 @@ async function sessionCookie(input: { email: string; verified: boolean }): Promi
         image: null,
         admin: false,
         createdAt: now,
-        expiresAt: now + 5 * 60_000,
+        expiresAt: now + 15 * 60_000,
       }),
     ),
   );
@@ -65,7 +65,11 @@ async function request(
   if (options.cookie) {
     headers.set("cookie", options.cookie);
   }
-  return fetch(new URL(path, baseUrl), { ...options, headers, redirect: "manual" });
+  return fetch(new URL(path, baseUrl), {
+    ...options,
+    headers,
+    redirect: "manual",
+  });
 }
 
 async function expectStatus(path: string, status: number, cookie?: string) {
@@ -97,8 +101,14 @@ async function verifyGoogleRedirect() {
 }
 
 const authorized = await sessionCookie({ email: allowedEmail, verified: true });
-const wrongEmail = await sessionCookie({ email: "not-eric@example.com", verified: true });
-const unverified = await sessionCookie({ email: allowedEmail, verified: false });
+const wrongEmail = await sessionCookie({
+  email: "not-eric@example.com",
+  verified: true,
+});
+const unverified = await sessionCookie({
+  email: allowedEmail,
+  verified: false,
+});
 const [cookieName, cookieValue] = authorized.split("=");
 const [iv, ciphertext] = cookieValue?.split(".") ?? [];
 check(cookieName && iv && ciphertext, "Could not construct the verification session.");
@@ -129,7 +139,11 @@ let dashboard:
   | {
       records: Array<{ saleType: string }>;
       refreshJobs: Array<{ id: string; status: string }>;
-      sources: Array<{ sourceId: string; status: string; recordsUpserted: number }>;
+      sources: Array<{
+        sourceId: string;
+        status: string;
+        recordsUpserted: number;
+      }>;
     }
   | undefined;
 while (Date.now() < deadline) {

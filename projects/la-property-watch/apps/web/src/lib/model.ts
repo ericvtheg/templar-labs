@@ -1,4 +1,4 @@
-export const allowedEmail = "ericventor97@gmail.com";
+export const allowedEmails: readonly string[] = ["ericventor97@gmail.com", "Rhwcreative@gmail.com"];
 
 export type SaleType = "tax_default" | "trustee";
 export type RecordStatus = "scheduled_as_published" | "past_outcome_unverified" | "date_not_found";

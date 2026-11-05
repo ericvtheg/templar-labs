@@ -105,7 +105,17 @@ describe("date, parcel, and access invariants", () => {
     assert.equal(normalizeApn("4007-017-00x"), null);
   });
 
-  it("allows only the exact verified account without an admin override", () => {
+  it("allows only the two approved verified accounts without an admin override", () => {
+    assert.equal(canAccessResearch({ email: "Rhwcreative@gmail.com", emailVerified: true }), true);
+    assert.equal(canAccessResearch({ email: "rhwcreative@gmail.com", emailVerified: true }), true);
+    assert.equal(
+      canAccessResearch({ email: "Rhwcreative@gmail.com", emailVerified: false }),
+      false,
+    );
+    assert.equal(
+      canAccessResearch({ email: "rhwcreative+other@gmail.com", emailVerified: true }),
+      false,
+    );
     assert.equal(canAccessResearch({ email: "ERICVENTOR97@gmail.com", emailVerified: true }), true);
     assert.equal(
       canAccessResearch({ email: "ericventor97@gmail.com", emailVerified: false }),

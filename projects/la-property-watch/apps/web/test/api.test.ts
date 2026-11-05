@@ -108,6 +108,19 @@ describe("private research API", () => {
     assert.equal(deniedCsv.status, 401);
   });
 
+  it("allows the second approved account only with verified email", async () => {
+    for (const verified of [true, false]) {
+      const cookie = await sessionCookie({ email: "Rhwcreative@gmail.com", verified });
+      for (const path of ["data", "export.csv"]) {
+        const response = await handleResearch(
+          new Request(`${origin}/api/research/${path}`, { headers: { cookie } }),
+          env,
+        );
+        assert.equal(response.status, verified ? 200 : 403);
+      }
+    }
+  });
+
   it("requires same-origin bodyless writes and queues bounded background work", async () => {
     const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
     const crossOrigin = await handleResearch(

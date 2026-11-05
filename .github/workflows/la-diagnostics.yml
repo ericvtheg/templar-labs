@@ -1,0 +1,29 @@
+name: LA Diagnostics
+on:
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Inspect ingestion state
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          base = 'https://api.cloudflare.com/client/v4/accounts/' + os.environ['CLOUDFLARE_ACCOUNT_ID']
+          headers = {'Authorization': 'Bearer ' + os.environ['CLOUDFLARE_API_TOKEN'], 'Content-Type': 'application/json'}
+          def api(path, data=None):
+              req = urllib.request.Request(base + path, headers=headers, data=None if data is None else json.dumps(data).encode())
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  result = json.load(r)
+              assert result.get('success'), result
+              return result['result']
+          databases = api('/d1/database?per_page=100')
+          db = next(d for d in databases if d['name'] == 'la-property-watch-db')
+          for sql in ['SELECT * FROM refresh_jobs ORDER BY requested_at DESC LIMIT 5', 'SELECT * FROM ingestion_runs ORDER BY started_at DESC LIMIT 5', 'SELECT sale_type, COUNT(*) AS count FROM foreclosure_records GROUP BY sale_type']:
+              print(sql)
+              print(json.dumps(api('/d1/database/' + db['uuid'] + '/query', {'sql': sql}), indent=2))
+          print('Queue:', json.dumps(api('/queues'), indent=2))
+          PY

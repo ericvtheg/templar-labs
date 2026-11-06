@@ -172,7 +172,7 @@ if (environment("CLOUDFLARE_API_TOKEN")) {
 const deadline = Date.now() + 12 * 60_000;
 let dashboard:
   | {
-      records: Array<{ saleType: string }>;
+      records: Array<{ saleType: string; signalType: string; jurisdictionId: string }>;
       refreshJobs: Array<{ id: string; status: string }>;
       sources: Array<{
         sourceId: string;
@@ -200,12 +200,36 @@ check(
   "Refresh did not finish before the verification deadline.",
 );
 check(
-  dashboard.records.some((record) => record.saleType === "tax_default"),
+  dashboard.records.some(
+    (record) => record.signalType === "tax_delinquency" && record.jurisdictionId === "oc-ca",
+  ),
+  "No Orange County three-year delinquency records were persisted.",
+);
+check(
+  dashboard.records.some(
+    (record) => record.signalType === "power_to_sell" && record.jurisdictionId === "oc-ca",
+  ),
+  "No Orange County power-to-sell records were persisted.",
+);
+check(
+  dashboard.records.some((record) => record.signalType === "scheduled_tax_sale"),
   "No official tax-auction records were persisted.",
 );
 check(
   dashboard.records.some((record) => record.saleType === "trustee"),
   "No trustee-notice records were persisted.",
+);
+check(
+  dashboard.sources.some(
+    (source) => source.sourceId === "oc-three-year-tax-delinquency" && source.recordsUpserted > 0,
+  ),
+  "Orange County three-year source status did not report persisted records.",
+);
+check(
+  dashboard.sources.some(
+    (source) => source.sourceId === "oc-impending-power-to-sell" && source.recordsUpserted > 0,
+  ),
+  "Orange County power-to-sell source status did not report persisted records.",
 );
 check(
   dashboard.sources.some(
@@ -235,8 +259,20 @@ console.log(
       interactiveAuthRedirect: "central Templar auth -> Google",
       refreshJobId: jobId,
       records: dashboard.records.length,
-      taxRecords: dashboard.records.filter((record) => record.saleType === "tax_default").length,
-      trusteeRecords: dashboard.records.filter((record) => record.saleType === "trustee").length,
+      signalCounts: Object.fromEntries(
+        [...new Set(dashboard.records.map((record) => record.signalType))].map((signalType) => [
+          signalType,
+          dashboard.records.filter((record) => record.signalType === signalType).length,
+        ]),
+      ),
+      jurisdictionCounts: Object.fromEntries(
+        [...new Set(dashboard.records.map((record) => record.jurisdictionId))].map(
+          (jurisdictionId) => [
+            jurisdictionId,
+            dashboard.records.filter((record) => record.jurisdictionId === jurisdictionId).length,
+          ],
+        ),
+      ),
       sources: dashboard.sources.map((source) => ({
         sourceId: source.sourceId,
         status: source.status,

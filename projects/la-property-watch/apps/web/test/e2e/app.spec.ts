@@ -5,7 +5,7 @@ const allowedEmail = "ericventor97@gmail.com";
 
 test("signed-out visitors see only the central sign-in gate", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "LA Property Watch" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Property Watch" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Continue with Google/ })).toHaveAttribute(
     "href",
     "/api/auth/sign-in?returnTo=/",
@@ -21,12 +21,13 @@ test("authorized research workflow filters records and opens provenance details"
   await signInLocally(page.context(), { email: allowedEmail });
   await page.goto("/");
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Foreclosure research/ })).toBeVisible();
-  await expect(page.getByText("11", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("LA County Treasurer and Tax Collector")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Find distress earlier/ })).toBeVisible();
+  await expect(page.getByText("184", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Three-Year Delinquency/).first()).toBeVisible();
+  await expect(page.getByText(/Impending Power to Sell/).first()).toBeVisible();
   await expect(page.getByText("CNPA Public Notices")).toBeVisible();
 
-  await page.getByPlaceholder("Search address, APN, sale number…").fill("4007-017-003");
+  await page.getByLabel("Search records").fill("4007-017-003");
   await expect(page.getByRole("button", { name: /6410 7th Avenue/ })).toBeVisible();
   await page.getByRole("button", { name: /6410 7th Avenue/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -38,9 +39,12 @@ test("authorized research workflow filters records and opens provenance details"
   );
   await page.getByRole("button", { name: "Close details" }).click();
 
-  await page.getByPlaceholder("Search address, APN, sale number…").fill("");
-  await page.locator("select").nth(0).selectOption("tax_default");
-  await expect(page.getByText("8 shown")).toBeVisible();
+  await page.getByLabel("Search records").fill("");
+  await page.getByLabel("Signal stage").selectOption("tax_delinquency");
+  await expect(page.getByText("4 shown")).toBeVisible();
+  await page.getByLabel("Signal stage").selectOption("all");
+  await page.getByLabel("Market jurisdiction").selectOption("oc-ca");
+  await expect(page.getByText("188 shown")).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Past · outcome unverified/ }).first(),
   ).toBeVisible();
@@ -60,7 +64,7 @@ test("wrong-email, unverified, and admin sessions cannot enter", async ({ browse
     await signInLocally(context, identity);
     const page = await context.newPage();
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /one-account allowlist/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /restricted account allowlist/ })).toBeVisible();
     expect((await page.request.get("/api/research/data")).status()).toBe(403);
     await context.close();
   }

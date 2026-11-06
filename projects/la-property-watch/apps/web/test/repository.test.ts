@@ -2,8 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ResearchRecord } from "../src/lib/model.ts";
-import { parseCnpaRss } from "../src/lib/parsers.ts";
-import { loadDashboard, requestRefreshJob, runRefreshJob } from "../src/lib/repository.ts";
+import {
+  parseCnpaRss,
+  parseOrangeCountyPowerToSellText,
+  parseOrangeCountyThreeYearDelinquencyText,
+} from "../src/lib/parsers.ts";
+import {
+  dashboardCsv,
+  loadDashboard,
+  requestRefreshJob,
+  runRefreshJob,
+} from "../src/lib/repository.ts";
 import { testDatabase } from "./support/d1.ts";
 
 const observedAt = "2026-11-05T12:00:00.000Z";
@@ -54,7 +63,7 @@ describe("refresh persistence", () => {
     const secondJob = await requestRefreshJob(
       database.binding,
       "manual",
-      new Date("2026-11-06T12:00:00.000Z"),
+      new Date("2026-11-07T12:00:00.000Z"),
     );
     await runRefreshJob(database.binding, secondJob.job.id, "manual", [
       {
@@ -76,6 +85,62 @@ describe("refresh persistence", () => {
     assert.equal(dashboard.records[0]?.lastSeenAt, later.lastSeenAt);
     assert.equal(dashboard.records[0]?.unpaidBalanceCents, 123);
     assert.equal(dashboard.refreshJobs[0]?.status, "success");
+  });
+
+  it("persists and exports jurisdiction-scoped early signals without inventing a sale date", async () => {
+    const text = await readFile(
+      new URL("./fixtures/orange-county-three-year-delinquency-2026.txt", import.meta.url),
+      "utf8",
+    );
+    const threeYear = parseOrangeCountyThreeYearDelinquencyText(text, {
+      documentUrl:
+        "https://www.octreasurer.gov/sites/ttc/files/2026-09/Property%20TaxDefault%20List%202026.pdf",
+      observedAt,
+      sourceAsOfDate: "2026-09-30",
+      publicationDate: "2026-09-07",
+    });
+    const powerText = await readFile(
+      new URL("./fixtures/orange-county-power-to-sell-2026.txt", import.meta.url),
+      "utf8",
+    );
+    const powerToSell = parseOrangeCountyPowerToSellText(powerText, {
+      documentUrl:
+        "https://www.octreasurer.gov/sites/ttc/files/2026-09/PTS-List-Published-June2026.pdf",
+      observedAt,
+    });
+    const records = [...threeYear, ...powerToSell];
+    const job = await requestRefreshJob(database.binding, "bootstrap", new Date(observedAt));
+    await runRefreshJob(database.binding, job.job.id, "bootstrap", [
+      {
+        id: "oc-three-year-tax-delinquency",
+        name: "Orange County Treasurer-Tax Collector",
+        url: "https://www.octreasurer.gov/PublishedNotices",
+        load: async () => ({
+          sourceId: "oc-three-year-tax-delinquency",
+          sourceName: "Orange County Treasurer-Tax Collector",
+          sourceUrl: "https://www.octreasurer.gov/PublishedNotices",
+          records,
+          warnings: [],
+        }),
+      },
+    ]);
+    const dashboard = await loadDashboard(database.binding);
+    assert.equal(dashboard.records.length, 188);
+    assert.equal(dashboard.records[0]?.jurisdictionId, "oc-ca");
+    assert.equal(
+      dashboard.records.filter((record) => record.signalType === "tax_delinquency").length,
+      4,
+    );
+    assert.equal(
+      dashboard.records.filter((record) => record.signalType === "power_to_sell").length,
+      184,
+    );
+    assert.equal(dashboard.records[0]?.scheduledDate, null);
+    const csv = dashboardCsv(dashboard);
+    assert.match(csv, /^"signal_type","jurisdiction_id","jurisdiction_name"/);
+    assert.match(csv, /"tax_delinquency","oc-ca","Orange County, CA"/);
+    assert.match(csv, /"power_to_sell","oc-ca","Orange County, CA"/);
+    assert.match(csv, /"2026-09-30"/);
   });
 
   it("reuses an active queued job instead of farming concurrent refreshes", async () => {
@@ -190,7 +255,7 @@ describe("refresh persistence", () => {
     const partialJob = await requestRefreshJob(
       database.binding,
       "manual",
-      new Date("2026-11-06T12:00:00.000Z"),
+      new Date("2026-11-07T12:00:00.000Z"),
     );
     await runRefreshJob(database.binding, partialJob.job.id, "manual", [
       {

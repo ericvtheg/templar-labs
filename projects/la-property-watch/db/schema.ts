@@ -5,17 +5,37 @@ export const foreclosureRecords = sqliteTable(
   {
     id: text("id").primaryKey(),
     saleType: text("sale_type", { enum: ["tax_default", "trustee"] }).notNull(),
+    signalType: text("signal_type", {
+      enum: [
+        "tax_delinquency",
+        "power_to_sell",
+        "recorded_lien",
+        "notice_of_default",
+        "scheduled_trustee_sale",
+        "scheduled_tax_sale",
+      ],
+    }).notNull(),
+    jurisdictionId: text("jurisdiction_id").notNull(),
+    jurisdictionName: text("jurisdiction_name").notNull(),
+    sourceRecordId: text("source_record_id").notNull(),
     sourceKey: text("source_key").notNull(),
     sourceId: text("source_id").notNull(),
     sourceName: text("source_name").notNull(),
     sourceUrl: text("source_url").notNull(),
     sourceDocumentUrl: text("source_document_url"),
     sourcePublishedAt: text("source_published_at"),
+    sourceAsOfDate: text("source_as_of_date"),
     observedAt: text("observed_at").notNull(),
+    eventDate: text("event_date"),
     scheduledDate: text("scheduled_date"),
     scheduledTime: text("scheduled_time"),
     status: text("status", {
-      enum: ["scheduled_as_published", "past_outcome_unverified", "date_not_found"],
+      enum: [
+        "signal_status_unverified",
+        "scheduled_as_published",
+        "past_outcome_unverified",
+        "date_not_found",
+      ],
     }).notNull(),
     apn: text("apn"),
     address: text("address"),
@@ -30,6 +50,7 @@ export const foreclosureRecords = sqliteTable(
     assessorSourceUrl: text("assessor_source_url"),
     itemNumber: text("item_number"),
     minimumBidCents: integer("minimum_bid_cents"),
+    delinquentAmountCents: integer("delinquent_amount_cents"),
     unpaidBalanceCents: integer("unpaid_balance_cents"),
     trusteeSaleNumber: text("trustee_sale_number"),
     trusteeName: text("trustee_name"),
@@ -44,8 +65,11 @@ export const foreclosureRecords = sqliteTable(
   (table) => [
     uniqueIndex("foreclosure_source_record_unique").on(table.sourceId, table.sourceKey),
     index("foreclosure_sale_type_idx").on(table.saleType),
+    index("foreclosure_signal_type_idx").on(table.signalType),
+    index("foreclosure_jurisdiction_idx").on(table.jurisdictionId),
     index("foreclosure_scheduled_date_idx").on(table.scheduledDate),
     index("foreclosure_apn_idx").on(table.apn),
+    index("foreclosure_jurisdiction_apn_idx").on(table.jurisdictionId, table.apn),
   ],
 );
 

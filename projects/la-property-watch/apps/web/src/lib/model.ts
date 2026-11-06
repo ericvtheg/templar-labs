@@ -1,7 +1,19 @@
 export const allowedEmails: readonly string[] = ["ericventor97@gmail.com", "Rhwcreative@gmail.com"];
 
+// saleType remains for backwards compatibility with existing records and clients.
 export type SaleType = "tax_default" | "trustee";
-export type RecordStatus = "scheduled_as_published" | "past_outcome_unverified" | "date_not_found";
+export type SignalType =
+  | "tax_delinquency"
+  | "power_to_sell"
+  | "recorded_lien"
+  | "notice_of_default"
+  | "scheduled_trustee_sale"
+  | "scheduled_tax_sale";
+export type RecordStatus =
+  | "signal_status_unverified"
+  | "scheduled_as_published"
+  | "past_outcome_unverified"
+  | "date_not_found";
 export type IngestionTrigger = "manual" | "scheduled" | "bootstrap";
 export type RunStatus = "running" | "success" | "partial" | "failed";
 export type RefreshJobStatus = "queued" | RunStatus;
@@ -9,13 +21,19 @@ export type RefreshJobStatus = "queued" | RunStatus;
 export type ResearchRecord = {
   readonly id: string;
   readonly saleType: SaleType;
+  readonly signalType: SignalType;
+  readonly jurisdictionId: string;
+  readonly jurisdictionName: string;
+  readonly sourceRecordId: string;
   readonly sourceKey: string;
   readonly sourceId: string;
   readonly sourceName: string;
   readonly sourceUrl: string;
   readonly sourceDocumentUrl: string | null;
   readonly sourcePublishedAt: string | null;
+  readonly sourceAsOfDate: string | null;
   readonly observedAt: string;
+  readonly eventDate: string | null;
   readonly scheduledDate: string | null;
   readonly scheduledTime: string | null;
   readonly status: RecordStatus;
@@ -32,6 +50,7 @@ export type ResearchRecord = {
   readonly assessorSourceUrl: string | null;
   readonly itemNumber: string | null;
   readonly minimumBidCents: number | null;
+  readonly delinquentAmountCents: number | null;
   readonly unpaidBalanceCents: number | null;
   readonly trusteeSaleNumber: string | null;
   readonly trusteeName: string | null;
@@ -81,7 +100,24 @@ export type LoaderData =
   | { readonly mode: "forbidden"; readonly email: string }
   | ({ readonly mode: "ready"; readonly viewerName: string } & DashboardData);
 
-export function statusFor(scheduledDate: string | null, observedAt: string): RecordStatus {
+export function statusFor(
+  scheduledDate: string | null,
+  observedAt: string,
+  signalType: SignalType = "scheduled_tax_sale",
+  eventDate: string | null = null,
+): RecordStatus {
+  if (
+    signalType === "tax_delinquency" ||
+    signalType === "recorded_lien" ||
+    signalType === "notice_of_default"
+  ) {
+    return "signal_status_unverified";
+  }
+  if (signalType === "power_to_sell") {
+    return eventDate && isCalendarDate(eventDate) && eventDate < dateInLosAngeles(observedAt)
+      ? "past_outcome_unverified"
+      : "signal_status_unverified";
+  }
   if (scheduledDate === null || !isCalendarDate(scheduledDate)) {
     return "date_not_found";
   }
@@ -109,11 +145,42 @@ export function normalizeApn(value: string | null | undefined): string | null {
   return match ? `${match[1]}${match[2]}${match[3]}` : null;
 }
 
+export function normalizeParcelId(
+  value: string | null | undefined,
+  jurisdictionId: string,
+): string | null {
+  if (!value) {
+    return null;
+  }
+  if (jurisdictionId === "la-county-ca") {
+    return normalizeApn(value);
+  }
+  if (jurisdictionId === "oc-ca") {
+    const standard = value.match(/^(\d{3})-(\d{3})-(\d{2})$/);
+    if (standard) {
+      return `${standard[1]}${standard[2]}${standard[3]}`;
+    }
+    const extended = value.match(/^(\d{3})-(\d{3})-(\d{2})\.(\d{2})$/);
+    return extended ? `${extended[1]}${extended[2]}${extended[3]}${extended[4]}` : null;
+  }
+  return null;
+}
+
 export function formatApn(value: string | null): string {
   if (value?.length === 10) {
     return `${value.slice(0, 4)}-${value.slice(4, 7)}-${value.slice(7)}`;
   }
   return value ?? "—";
+}
+
+export function formatParcelId(value: string | null, jurisdictionId: string): string {
+  if (jurisdictionId === "oc-ca" && value?.length === 8) {
+    return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6)}`;
+  }
+  if (jurisdictionId === "oc-ca" && value?.length === 10) {
+    return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6, 8)}.${value.slice(8)}`;
+  }
+  return formatApn(value);
 }
 
 export function dateInLosAngeles(value: string | Date): string {

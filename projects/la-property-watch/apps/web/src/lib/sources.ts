@@ -4,7 +4,11 @@ import {
   assessorAddress,
   cnpaRssUrl,
   cnpaSourceUrl,
+  orangeCountyPublishedNoticesUrl,
   parseCnpaRss,
+  parseOrangeCountyPowerToSellText,
+  parseOrangeCountyPublishedNotices,
+  parseOrangeCountyThreeYearDelinquencyText,
   parseTaxAuctionText,
   parseTtcSchedule,
   ttcScheduleUrl,
@@ -87,6 +91,68 @@ export async function fetchTrusteeNotices(
   };
 }
 
+export async function fetchOrangeCountyThreeYearDelinquencies(
+  fetchImpl: typeof fetch = fetch,
+  now: Date = new Date(),
+): Promise<SourceResult> {
+  const noticeHtml = await fetchText(fetchImpl, orangeCountyPublishedNoticesUrl, textBodyLimit);
+  const notice = parseOrangeCountyPublishedNotices(noticeHtml).threeYearDelinquency;
+  if (!notice) {
+    throw new Error("The Orange County notice page did not expose a three-year delinquency PDF.");
+  }
+  const observedAt = now.toISOString();
+  const pdfBytes = await fetchBytes(fetchImpl, notice.documentUrl, pdfBodyLimit);
+  const records = parseOrangeCountyThreeYearDelinquencyText(await extractPdfText(pdfBytes), {
+    documentUrl: notice.documentUrl,
+    observedAt,
+  });
+  if (records.length === 0) {
+    throw new Error("The Orange County three-year delinquency PDF had no recognized parcel rows.");
+  }
+  const malformed = records.filter((record) => record.apn === null).length;
+  return {
+    sourceId: "oc-three-year-tax-delinquency",
+    sourceName: "Orange County Treasurer-Tax Collector · Three-Year Delinquency",
+    sourceUrl: orangeCountyPublishedNoticesUrl,
+    records,
+    warnings: [
+      `Historical county snapshot limited to parcels whose latest reminder was returned undeliverable; ${malformed} source parcel ID(s) were preserved but not normalized. Current payment status is not verified.`,
+    ],
+  };
+}
+
+export async function fetchOrangeCountyPowerToSell(
+  fetchImpl: typeof fetch = fetch,
+  now: Date = new Date(),
+): Promise<SourceResult> {
+  const noticeHtml = await fetchText(fetchImpl, orangeCountyPublishedNoticesUrl, textBodyLimit);
+  const notice = parseOrangeCountyPublishedNotices(noticeHtml).powerToSell;
+  if (!notice) {
+    throw new Error("The Orange County notice page did not expose an impending power-to-sell PDF.");
+  }
+  const observedAt = now.toISOString();
+  const pdfBytes = await fetchBytes(fetchImpl, notice.documentUrl, pdfBodyLimit);
+  const records = parseOrangeCountyPowerToSellText(await extractPdfText(pdfBytes), {
+    documentUrl: notice.documentUrl,
+    observedAt,
+  });
+  if (records.length === 0) {
+    throw new Error("The Orange County power-to-sell PDF had no recognized parcel rows.");
+  }
+  if (new Set(records.map((record) => record.sourceRecordId)).size !== records.length) {
+    throw new Error("The Orange County power-to-sell PDF produced duplicate parcel identifiers.");
+  }
+  return {
+    sourceId: "oc-impending-power-to-sell",
+    sourceName: "Orange County Treasurer-Tax Collector · Impending Power to Sell",
+    sourceUrl: orangeCountyPublishedNoticesUrl,
+    records,
+    warnings: [
+      "Historical county snapshot only. Power to sell is not an auction date, and current redemption or sale status is not verified.",
+    ],
+  };
+}
+
 export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   const document = await getDocumentProxy(new Uint8Array(buffer), {
     enableXfa: false,
@@ -95,7 +161,7 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<string> {
   });
   try {
     if (document.numPages > 150) {
-      throw new Error("The TTC auction book exceeds the 150-page safety limit.");
+      throw new Error("The source PDF exceeds the 150-page safety limit.");
     }
     const pages: string[] = [];
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {

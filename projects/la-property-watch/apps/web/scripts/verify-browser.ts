@@ -90,20 +90,25 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       assert.equal(response.status(), 200);
       const data = (await response.json()) as {
         records: Array<{
-          saleType: string;
-          apn: string | null;
+          signalType: string;
+          sourceRecordId: string;
           sourceUrl: string;
         }>;
       };
       const record = data.records.find(
-        (candidate) => candidate.saleType === "trustee" && candidate.apn?.length === 10,
+        (candidate) => candidate.signalType === "power_to_sell" && candidate.sourceRecordId,
       );
-      assert(record?.apn, "Need a persisted real trustee record for production UI verification");
-      const apn = `${record.apn.slice(0, 4)}-${record.apn.slice(4, 7)}-${record.apn.slice(7)}`;
-      await page.getByLabel("Search records").fill(apn);
-      await page.getByRole("button").filter({ hasText: apn }).first().click();
+      assert(
+        record?.sourceRecordId,
+        "Need a persisted real power-to-sell record for UI verification",
+      );
+      await page.getByLabel("Search records").fill(record.sourceRecordId);
+      await page.getByRole("button").filter({ hasText: record.sourceRecordId }).first().click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
+      await expect(
+        dialog.getByText("No auction date is represented by this signal."),
+      ).toBeVisible();
       await expect(dialog.getByRole("link", { name: "Open source", exact: true })).toHaveAttribute(
         "href",
         record.sourceUrl,

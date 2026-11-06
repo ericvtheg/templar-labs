@@ -508,7 +508,7 @@ select:focus-visible {
 }
 .filters {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto auto;
+  grid-template-columns: minmax(260px, 1fr) repeat(3, auto);
   gap: 9px;
   margin-bottom: 18px;
 }
@@ -580,11 +580,24 @@ select:focus-visible {
     monospace;
   letter-spacing: 0.05em;
 }
-.sale-badge.tax_default {
+.sale-badge.tax_delinquency {
+  color: #75470f;
+  background: #f2dfbf;
+}
+.sale-badge.power_to_sell {
+  color: #7d321f;
+  background: #f1d2c8;
+}
+.sale-badge.recorded_lien,
+.sale-badge.notice_of_default {
+  color: #5b4278;
+  background: #e9def2;
+}
+.sale-badge.scheduled_tax_sale {
   color: #6e491c;
   background: #eadfc8;
 }
-.sale-badge.trustee {
+.sale-badge.scheduled_trustee_sale {
   color: var(--green);
   background: var(--green-light);
 }
@@ -626,6 +639,10 @@ select:focus-visible {
   font-size: 9px;
   font-weight: 700;
   white-space: nowrap;
+}
+.status-pill.signal_status_unverified {
+  color: #755219;
+  background: #f2e8cf;
 }
 .status-pill.scheduled_as_published {
   color: var(--green);
@@ -776,6 +793,16 @@ select:focus-visible {
   font-size: 13px;
   line-height: 1.5;
 }
+.signal-note {
+  margin: 0 0 18px;
+  padding: 18px;
+  border: 1px solid #d4b895;
+  background: #f5eadc;
+  color: #65401d;
+}
+.signal-note strong {
+  font-size: 12px;
+}
 .provenance-box {
   display: grid;
   gap: 5px;
@@ -914,14 +941,15 @@ select:focus-visible {
   .records-section {
     padding: 40px 0;
   }
-  .source-grid {
+  .source-grid,
+  .coverage-grid {
     grid-template-columns: 1fr;
   }
   .filters {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
   .search-field {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
   .filters select {
     width: 100%;

@@ -7,7 +7,13 @@ import type {
   SourceRun,
 } from "./model.ts";
 import { statusFor } from "./model.ts";
-import { fetchTaxAuction, fetchTrusteeNotices, type SourceResult } from "./sources.ts";
+import {
+  fetchOrangeCountyPowerToSell,
+  fetchOrangeCountyThreeYearDelinquencies,
+  fetchTaxAuction,
+  fetchTrusteeNotices,
+  type SourceResult,
+} from "./sources.ts";
 
 type SourceDefinition = {
   readonly id: string;
@@ -34,6 +40,18 @@ export function defaultSources(
   now: () => Date = () => new Date(),
 ) {
   return [
+    {
+      id: "oc-three-year-tax-delinquency",
+      name: "Orange County Treasurer-Tax Collector · Three-Year Delinquency",
+      url: "https://www.octreasurer.gov/PublishedNotices",
+      load: () => fetchOrangeCountyThreeYearDelinquencies(fetchImpl, now()),
+    },
+    {
+      id: "oc-impending-power-to-sell",
+      name: "Orange County Treasurer-Tax Collector · Impending Power to Sell",
+      url: "https://www.octreasurer.gov/PublishedNotices",
+      load: () => fetchOrangeCountyPowerToSell(fetchImpl, now()),
+    },
     {
       id: "la-ttc-tax-auction",
       name: "LA County Treasurer and Tax Collector",
@@ -239,19 +257,27 @@ export async function upsertRecords(
   records: readonly ResearchRecord[],
 ): Promise<void> {
   const statement = `INSERT INTO foreclosure_records (
-    id, sale_type, source_key, source_id, source_name, source_url, source_document_url,
-    source_published_at, observed_at, scheduled_date, scheduled_time, status, apn, address,
-    city, state, zip, assessor_address, assessor_city, assessor_state, assessor_zip,
-    assessor_observed_at, assessor_source_url, item_number, minimum_bid_cents,
+    id, sale_type, signal_type, jurisdiction_id, jurisdiction_name, source_record_id,
+    source_key, source_id, source_name, source_url, source_document_url,
+    source_published_at, source_as_of_date, observed_at, event_date, scheduled_date,
+    scheduled_time, status, apn, address, city, state, zip, assessor_address,
+    assessor_city, assessor_state, assessor_zip, assessor_observed_at,
+    assessor_source_url, item_number, minimum_bid_cents, delinquent_amount_cents,
     unpaid_balance_cents, trustee_sale_number, trustee_name, sale_verification_phone,
     sale_place, legal_description, raw_excerpt, first_seen_at, last_seen_at, updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (${Array.from({ length: 42 }, () => "?").join(", ")})
   ON CONFLICT(id) DO UPDATE SET
+    signal_type = excluded.signal_type,
+    jurisdiction_id = excluded.jurisdiction_id,
+    jurisdiction_name = excluded.jurisdiction_name,
+    source_record_id = excluded.source_record_id,
     source_name = excluded.source_name,
     source_url = excluded.source_url,
     source_document_url = excluded.source_document_url,
     source_published_at = excluded.source_published_at,
+    source_as_of_date = excluded.source_as_of_date,
     observed_at = excluded.observed_at,
+    event_date = excluded.event_date,
     scheduled_date = excluded.scheduled_date,
     scheduled_time = excluded.scheduled_time,
     status = excluded.status,
@@ -268,6 +294,7 @@ export async function upsertRecords(
     assessor_source_url = excluded.assessor_source_url,
     item_number = excluded.item_number,
     minimum_bid_cents = excluded.minimum_bid_cents,
+    delinquent_amount_cents = excluded.delinquent_amount_cents,
     unpaid_balance_cents = excluded.unpaid_balance_cents,
     trustee_sale_number = excluded.trustee_sale_number,
     trustee_name = excluded.trustee_name,
@@ -286,13 +313,19 @@ export async function upsertRecords(
           .bind(
             record.id,
             record.saleType,
+            record.signalType,
+            record.jurisdictionId,
+            record.jurisdictionName,
+            record.sourceRecordId,
             record.sourceKey,
             record.sourceId,
             record.sourceName,
             record.sourceUrl,
             record.sourceDocumentUrl,
             record.sourcePublishedAt,
+            record.sourceAsOfDate,
             record.observedAt,
+            record.eventDate,
             record.scheduledDate,
             record.scheduledTime,
             record.status,
@@ -309,6 +342,7 @@ export async function upsertRecords(
             record.assessorSourceUrl,
             record.itemNumber,
             record.minimumBidCents,
+            record.delinquentAmountCents,
             record.unpaidBalanceCents,
             record.trusteeSaleNumber,
             record.trusteeName,
@@ -331,7 +365,17 @@ export async function loadDashboard(db: D1Database): Promise<DashboardData> {
   const [recordRows, runRows, refreshRows] = await Promise.all([
     db
       .prepare(
-        "SELECT * FROM foreclosure_records ORDER BY CASE WHEN scheduled_date IS NULL THEN 1 ELSE 0 END, scheduled_date ASC, address ASC LIMIT 5000",
+        `SELECT * FROM foreclosure_records
+         ORDER BY CASE signal_type
+           WHEN 'tax_delinquency' THEN 0
+           WHEN 'power_to_sell' THEN 1
+           WHEN 'notice_of_default' THEN 2
+           WHEN 'recorded_lien' THEN 3
+           ELSE 4
+         END,
+         COALESCE(event_date, scheduled_date) DESC,
+         address ASC
+         LIMIT 5000`,
       )
       .all<RecordRow>(),
     db.prepare("SELECT * FROM ingestion_runs ORDER BY started_at DESC LIMIT 50").all<RunRow>(),
@@ -348,7 +392,10 @@ export async function loadDashboard(db: D1Database): Promise<DashboardData> {
   return {
     records: recordRows.results.map((row) => {
       const record = mapRecord(row);
-      return { ...record, status: statusFor(record.scheduledDate, generatedAt) };
+      return {
+        ...record,
+        status: statusFor(record.scheduledDate, generatedAt, record.signalType, record.eventDate),
+      };
     }),
     sources: [...latest.values()],
     refreshJobs: refreshRows.results.map(mapRefreshJob),
@@ -358,11 +405,20 @@ export async function loadDashboard(db: D1Database): Promise<DashboardData> {
 
 export function dashboardCsv(data: DashboardData): string {
   const columns: Array<[string, (record: ResearchRecord) => unknown]> = [
-    ["sale_type", (record) => record.saleType],
-    ["status", (record) => statusFor(record.scheduledDate, data.generatedAt)],
-    ["scheduled_date_as_published", (record) => record.scheduledDate],
-    ["scheduled_time_pt_as_published", (record) => record.scheduledTime],
-    ["apn", (record) => record.apn],
+    ["signal_type", (record) => record.signalType],
+    ["jurisdiction_id", (record) => record.jurisdictionId],
+    ["jurisdiction_name", (record) => record.jurisdictionName],
+    ["sale_type_legacy", (record) => record.saleType],
+    [
+      "status",
+      (record) =>
+        statusFor(record.scheduledDate, data.generatedAt, record.signalType, record.eventDate),
+    ],
+    ["source_record_id", (record) => record.sourceRecordId],
+    ["event_date_as_published", (record) => record.eventDate],
+    ["scheduled_sale_date_as_published", (record) => record.scheduledDate],
+    ["scheduled_sale_time_pt_as_published", (record) => record.scheduledTime],
+    ["parcel_id_normalized", (record) => record.apn],
     ["published_address", (record) => record.address],
     ["published_city", (record) => record.city],
     ["published_zip", (record) => record.zip],
@@ -370,13 +426,16 @@ export function dashboardCsv(data: DashboardData): string {
     ["assessor_city", (record) => record.assessorCity],
     ["assessor_zip", (record) => record.assessorZip],
     ["minimum_bid_cents", (record) => record.minimumBidCents],
+    ["delinquent_amount_cents_as_of_source_date", (record) => record.delinquentAmountCents],
     ["unpaid_balance_cents", (record) => record.unpaidBalanceCents],
     ["trustee_sale_number", (record) => record.trusteeSaleNumber],
     ["trustee_name", (record) => record.trusteeName],
     ["sale_verification_phone", (record) => record.saleVerificationPhone],
     ["source_name", (record) => record.sourceName],
     ["source_url", (record) => record.sourceUrl],
+    ["source_document_url", (record) => record.sourceDocumentUrl],
     ["source_published_at", (record) => record.sourcePublishedAt],
+    ["source_as_of_date", (record) => record.sourceAsOfDate],
     ["observed_at", (record) => record.observedAt],
   ];
   return [
@@ -400,13 +459,19 @@ function safeSourceError(cause: unknown): string {
 type RecordRow = {
   id: string;
   sale_type: ResearchRecord["saleType"];
+  signal_type: ResearchRecord["signalType"];
+  jurisdiction_id: string;
+  jurisdiction_name: string;
+  source_record_id: string;
   source_key: string;
   source_id: string;
   source_name: string;
   source_url: string;
   source_document_url: string | null;
   source_published_at: string | null;
+  source_as_of_date: string | null;
   observed_at: string;
+  event_date: string | null;
   scheduled_date: string | null;
   scheduled_time: string | null;
   status: ResearchRecord["status"];
@@ -423,6 +488,7 @@ type RecordRow = {
   assessor_source_url: string | null;
   item_number: string | null;
   minimum_bid_cents: number | null;
+  delinquent_amount_cents: number | null;
   unpaid_balance_cents: number | null;
   trustee_sale_number: string | null;
   trustee_name: string | null;
@@ -464,13 +530,19 @@ function mapRecord(row: RecordRow): ResearchRecord {
   return {
     id: row.id,
     saleType: row.sale_type,
+    signalType: row.signal_type,
+    jurisdictionId: row.jurisdiction_id,
+    jurisdictionName: row.jurisdiction_name,
+    sourceRecordId: row.source_record_id,
     sourceKey: row.source_key,
     sourceId: row.source_id,
     sourceName: row.source_name,
     sourceUrl: row.source_url,
     sourceDocumentUrl: row.source_document_url,
     sourcePublishedAt: row.source_published_at,
+    sourceAsOfDate: row.source_as_of_date,
     observedAt: row.observed_at,
+    eventDate: row.event_date,
     scheduledDate: row.scheduled_date,
     scheduledTime: row.scheduled_time,
     status: row.status,
@@ -487,6 +559,7 @@ function mapRecord(row: RecordRow): ResearchRecord {
     assessorSourceUrl: row.assessor_source_url,
     itemNumber: row.item_number,
     minimumBidCents: row.minimum_bid_cents,
+    delinquentAmountCents: row.delinquent_amount_cents,
     unpaidBalanceCents: row.unpaid_balance_cents,
     trusteeSaleNumber: row.trustee_sale_number,
     trusteeName: row.trustee_name,

@@ -1,9 +1,16 @@
-import { isCalendarDate, normalizeApn, type ResearchRecord, statusFor } from "./model.ts";
+import {
+  isCalendarDate,
+  normalizeApn,
+  normalizeParcelId,
+  type ResearchRecord,
+  statusFor,
+} from "./model.ts";
 
 export const ttcScheduleUrl = "https://ttc.lacounty.gov/schedule-of-upcoming-auctions/";
 export const cnpaSourceUrl =
   "https://www.capublicnotice.com/category/legals/notice-of-trustee-sale";
 export const cnpaRssUrl = `${cnpaSourceUrl}/rss.xml?county=Los%20Angeles&size=100`;
+export const orangeCountyPublishedNoticesUrl = "https://www.octreasurer.gov/PublishedNotices";
 
 const monthNumbers: Readonly<Record<string, string>> = {
   january: "01",
@@ -20,12 +27,82 @@ const monthNumbers: Readonly<Record<string, string>> = {
   december: "12",
 };
 
+const orangeCountyCities = [
+  "RANCHO SANTA MARGARITA",
+  "SAN JUAN CAPISTRANO",
+  "HUNTINGTON BEACH",
+  "FOUNTAIN VALLEY",
+  "FOOTHILL RANCH",
+  "NEWPORT BEACH",
+  "LAGUNA WOODS",
+  "LAGUNA HILLS",
+  "LAGUNA BEACH",
+  "SAN CLEMENTE",
+  "MISSION VIEJO",
+  "GARDEN GROVE",
+  "COSTA MESA",
+  "LAKE FOREST",
+  "BUENA PARK",
+  "YORBA LINDA",
+  "LOS ALAMITOS",
+  "NEWPORT COAST",
+  "SEAL BEACH",
+  "DANA POINT",
+  "ALISO VIEJO",
+  "LADERA RANCH",
+  "COTO DE CAZA",
+  "SANTA ANA",
+  "WESTMINSTER",
+  "FULLERTON",
+  "PLACENTIA",
+  "LA HABRA",
+  "VILLA PARK",
+  "ORANGE",
+  "ANAHEIM",
+  "IRVINE",
+  "CYPRESS",
+  "STANTON",
+  "TUSTIN",
+  "SILVERADO",
+  "BREA",
+].toSorted((left, right) => right.length - left.length);
+
+const emptyRecordFields = {
+  assessorAddress: null,
+  assessorCity: null,
+  assessorState: null,
+  assessorZip: null,
+  assessorObservedAt: null,
+  assessorSourceUrl: null,
+  trusteeSaleNumber: null,
+  trusteeName: null,
+  saleVerificationPhone: null,
+  salePlace: null,
+} as const;
+
 type TaxParseContext = {
   readonly auctionId: string;
   readonly documentUrl: string;
   readonly observedAt: string;
   readonly scheduledDate: string | null;
   readonly scheduledTime: string | null;
+};
+
+type OrangeCountyParseContext = {
+  readonly documentUrl: string;
+  readonly observedAt: string;
+  readonly sourceAsOfDate?: string;
+  readonly publicationDate?: string;
+};
+
+type NoticeDocument = {
+  readonly documentUrl: string;
+  readonly publicationYear: number;
+};
+
+export type OrangeCountyPublishedNotices = {
+  readonly powerToSell: NoticeDocument | null;
+  readonly threeYearDelinquency: NoticeDocument | null;
 };
 
 export type CnpaParseResult = {
@@ -63,34 +140,37 @@ export function parseTaxAuctionText(text: string, context: TaxParseContext): Res
     records.push({
       id: `tax:${sourceKey}`,
       saleType: "tax_default",
+      signalType: "scheduled_tax_sale",
+      jurisdictionId: "la-county-ca",
+      jurisdictionName: "Los Angeles County, CA",
+      sourceRecordId: itemNumber,
       sourceKey,
       sourceId: "la-ttc-tax-auction",
       sourceName: "LA County Treasurer and Tax Collector",
       sourceUrl: ttcScheduleUrl,
       sourceDocumentUrl: context.documentUrl,
       sourcePublishedAt: null,
+      sourceAsOfDate: null,
       observedAt: context.observedAt,
+      eventDate: context.scheduledDate,
       scheduledDate: context.scheduledDate,
       scheduledTime: context.scheduledTime,
-      status: statusFor(context.scheduledDate, context.observedAt),
-      apn: normalizeApn(formattedApn),
+      status: statusFor(
+        context.scheduledDate,
+        context.observedAt,
+        "scheduled_tax_sale",
+        context.scheduledDate,
+      ),
+      apn: normalizeParcelId(formattedApn, "la-county-ca"),
       address: address?.address ?? null,
       city: address?.city ?? null,
       state: address?.state ?? null,
       zip: address?.zip ?? null,
-      assessorAddress: null,
-      assessorCity: null,
-      assessorState: null,
-      assessorZip: null,
-      assessorObservedAt: null,
-      assessorSourceUrl: null,
+      ...emptyRecordFields,
       itemNumber,
       minimumBidCents: Number(minimumBid.replace(/,/g, "")) * 100,
+      delinquentAmountCents: null,
       unpaidBalanceCents: null,
-      trusteeSaleNumber: null,
-      trusteeName: null,
-      saleVerificationPhone: null,
-      salePlace: null,
       legalDescription: body.slice(0, 2_000) || null,
       rawExcerpt: `${itemNumber} ${formattedApn} $${minimumBid} ${body}`.slice(0, 2_500),
       firstSeenAt: context.observedAt,
@@ -203,29 +283,31 @@ export function parseCnpaNoticeText(
   return {
     id: `trustee:${sourceKey}`,
     saleType: "trustee",
+    signalType: "scheduled_trustee_sale",
+    jurisdictionId: "la-county-ca",
+    jurisdictionName: "Los Angeles County, CA",
+    sourceRecordId: sourceKey,
     sourceKey,
     sourceId: "cnpa-trustee-notices",
     sourceName: "CNPA Public Notices",
     sourceUrl,
     sourceDocumentUrl: null,
     sourcePublishedAt,
+    sourceAsOfDate: null,
     observedAt,
+    eventDate: sale.scheduledDate,
     scheduledDate: sale.scheduledDate,
     scheduledTime: sale.scheduledTime,
-    status: statusFor(sale.scheduledDate, observedAt),
+    status: statusFor(sale.scheduledDate, observedAt, "scheduled_trustee_sale", sale.scheduledDate),
     apn,
     address: address?.address ?? null,
     city: address?.city ?? null,
     state: address?.state ?? null,
     zip: address?.zip ?? null,
-    assessorAddress: null,
-    assessorCity: null,
-    assessorState: null,
-    assessorZip: null,
-    assessorObservedAt: null,
-    assessorSourceUrl: null,
+    ...emptyRecordFields,
     itemNumber: null,
     minimumBidCents: null,
+    delinquentAmountCents: null,
     unpaidBalanceCents: amount ? Math.round(Number(amount.replace(/,/g, "")) * 100) : null,
     trusteeSaleNumber: capture(description, /\bT\.?S\.?\s*(?:No\.?)?:?\s*([A-Z0-9-]+)/i) ?? null,
     trusteeName:
@@ -253,6 +335,198 @@ export function parseCnpaNoticeText(
   };
 }
 
+export function parseOrangeCountyPublishedNotices(html: string): OrangeCountyPublishedNotices {
+  let powerToSell: NoticeDocument | null = null;
+  let threeYearDelinquency: NoticeDocument | null = null;
+  const consider = (section: string, href: string, label: string) => {
+    const year = Number(label.match(/\b(20\d{2})\b/)?.[1]);
+    if (!Number.isInteger(year)) {
+      return;
+    }
+    const document = {
+      documentUrl: new URL(decodeHtml(href), orangeCountyPublishedNoticesUrl).href,
+      publicationYear: year,
+    };
+    if (/Notice of Impending Power to Sell/i.test(section)) {
+      if (!powerToSell || year > powerToSell.publicationYear) {
+        powerToSell = document;
+      }
+    } else if (/Three-Year Delinquency/i.test(section)) {
+      if (!threeYearDelinquency || year > threeYearDelinquency.publicationYear) {
+        threeYearDelinquency = document;
+      }
+    }
+  };
+  const rows = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)];
+  for (const row of rows) {
+    const section = stripHtml(row[1] ?? "");
+    for (const anchor of (row[1] ?? "").matchAll(
+      /<a\b[^>]*href=["']([^"']+\.pdf)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    )) {
+      consider(section, anchor[1] ?? "", stripHtml(anchor[2] ?? ""));
+    }
+  }
+  if (rows.length === 0) {
+    let section = "";
+    for (const token of html.matchAll(
+      /<(h[1-6])\b[^>]*>([\s\S]*?)<\/\1>|<a\b[^>]*href=["']([^"']+\.pdf)["'][^>]*>([\s\S]*?)<\/a>/gi,
+    )) {
+      if (token[1]) {
+        section = stripHtml(token[2] ?? "");
+      } else if (token[3]) {
+        consider(section, token[3], stripHtml(token[4] ?? ""));
+      }
+    }
+  }
+  return { powerToSell, threeYearDelinquency };
+}
+
+export function parseOrangeCountyThreeYearDelinquencyText(
+  text: string,
+  context: OrangeCountyParseContext,
+): ResearchRecord[] {
+  const normalized = text
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "")
+    .replace(/\s+/g, " ");
+  const defaultDate = parseDateMatch(
+    normalized.match(/\bon\s+([A-Z][a-z]+\s+\d{1,2},\s+20\d{2}),\s+by operation of law/i)?.[1],
+  );
+  const sourceAsOfDate =
+    context.sourceAsOfDate ??
+    parseDateMatch(normalized.match(/Amount to Redeem by\s+(\d{1,2}\/\d{1,2}\/20\d{2})/i)?.[1]);
+  const publicationDate =
+    context.publicationDate ??
+    parseDateMatch(
+      normalized.match(/Published[^.]{0,120}?on\s+([A-Z][a-z]+\s+\d{1,2})/i)?.[1],
+      documentYear(context.documentUrl),
+    );
+  const publicationYear = publicationDate?.slice(0, 4) ?? documentYear(context.documentUrl);
+  const rowPattern = /(\d{3}\s?-\d{3}\s?-\d{2}\s?\.\d{2})\s+(.+?)\s+\$([\d,]+\.\d{2})(?=\s|$)/g;
+  const records: ResearchRecord[] = [];
+  for (const match of normalized.matchAll(rowPattern)) {
+    const sourceRecordId = match[1];
+    const body = match[2];
+    const amount = match[3];
+    if (!sourceRecordId || !body || !amount) {
+      continue;
+    }
+    const sourceKey = `${publicationYear ?? "unknown"}:${sourceRecordId}`;
+    records.push({
+      id: `oc-three-year:${sourceKey}`,
+      saleType: "tax_default",
+      signalType: "tax_delinquency",
+      jurisdictionId: "oc-ca",
+      jurisdictionName: "Orange County, CA",
+      sourceRecordId,
+      sourceKey,
+      sourceId: "oc-three-year-tax-delinquency",
+      sourceName: "Orange County Treasurer-Tax Collector",
+      sourceUrl: orangeCountyPublishedNoticesUrl,
+      sourceDocumentUrl: context.documentUrl,
+      sourcePublishedAt: publicationDate,
+      sourceAsOfDate,
+      observedAt: context.observedAt,
+      eventDate: defaultDate,
+      scheduledDate: null,
+      scheduledTime: null,
+      status: statusFor(null, context.observedAt, "tax_delinquency", defaultDate),
+      apn: normalizeParcelId(sourceRecordId, "oc-ca"),
+      address: null,
+      city: null,
+      state: "CA",
+      zip: null,
+      ...emptyRecordFields,
+      itemNumber: null,
+      minimumBidCents: null,
+      delinquentAmountCents: moneyToCents(amount),
+      unpaidBalanceCents: null,
+      legalDescription: null,
+      rawExcerpt: `${sourceRecordId} ${body} $${amount}`.slice(0, 2_500),
+      firstSeenAt: context.observedAt,
+      lastSeenAt: context.observedAt,
+      updatedAt: context.observedAt,
+    });
+  }
+  return records;
+}
+
+export function parseOrangeCountyPowerToSellText(
+  text: string,
+  context: OrangeCountyParseContext,
+): ResearchRecord[] {
+  const normalized = text.replace(/\u00a0/g, " ").replace(/\r/g, "");
+  const metadata = normalized.replace(/\s+/g, " ");
+  const eventDate = parseDateMatch(
+    metadata.match(/power to sell on\s+([A-Z][a-z]+\s+\d{1,2},\s+20\d{2})/i)?.[1],
+  );
+  const sourceAsOfDate =
+    context.sourceAsOfDate ??
+    parseDateMatch(
+      metadata.match(/(?:Amount Due:|as of)\s*([A-Z][a-z]+\s+\d{1,2},\s+20\d{2})/i)?.[1],
+    );
+  const publicationDate =
+    context.publicationDate ??
+    parseDateMatch(
+      metadata.match(/Published[^.]{0,120}?on\s+([A-Z][a-z]+\s+\d{1,2})/i)?.[1],
+      documentYear(context.documentUrl),
+    );
+  const publicationYear = publicationDate?.slice(0, 4) ?? documentYear(context.documentUrl);
+  const rowPattern = /NO\.\s*(\d+)\s+(\d{3}-\d{3}-\d{2})\s+([\s\S]*?)\s+\$([\d,]+\.\d{2})(?=\s|$)/g;
+  const records: ResearchRecord[] = [];
+  for (const match of normalized.matchAll(rowPattern)) {
+    const itemNumber = match[1];
+    const sourceRecordId = match[2];
+    const body = match[3]?.trim();
+    const amount = match[4];
+    if (!itemNumber || !sourceRecordId || !body || !amount) {
+      continue;
+    }
+    const location = orangeCountyLocation(body);
+    const sourceKey = `${publicationYear ?? "unknown"}:NO.${itemNumber}`;
+    records.push({
+      id: `oc-power-to-sell:${sourceKey}`,
+      saleType: "tax_default",
+      signalType: "power_to_sell",
+      jurisdictionId: "oc-ca",
+      jurisdictionName: "Orange County, CA",
+      sourceRecordId,
+      sourceKey,
+      sourceId: "oc-impending-power-to-sell",
+      sourceName: "Orange County Treasurer-Tax Collector",
+      sourceUrl: orangeCountyPublishedNoticesUrl,
+      sourceDocumentUrl: context.documentUrl,
+      sourcePublishedAt: publicationDate,
+      sourceAsOfDate,
+      observedAt: context.observedAt,
+      eventDate,
+      scheduledDate: null,
+      scheduledTime: null,
+      status: statusFor(null, context.observedAt, "power_to_sell", eventDate),
+      apn: normalizeParcelId(sourceRecordId, "oc-ca"),
+      address: location?.address ?? null,
+      city: location?.city ?? null,
+      state: "CA",
+      zip: null,
+      ...emptyRecordFields,
+      itemNumber,
+      minimumBidCents: null,
+      delinquentAmountCents: moneyToCents(amount),
+      unpaidBalanceCents: null,
+      legalDescription: null,
+      rawExcerpt:
+        `NO.${itemNumber} ${sourceRecordId} ${body.replace(/\s+/g, " ")} $${amount}`.slice(
+          0,
+          2_500,
+        ),
+      firstSeenAt: context.observedAt,
+      lastSeenAt: context.observedAt,
+      updatedAt: context.observedAt,
+    });
+  }
+  return records;
+}
+
 export function assessorAddress(attributes: Record<string, unknown>): {
   readonly address: string;
   readonly city: string | null;
@@ -273,9 +547,43 @@ export function assessorAddress(attributes: Record<string, unknown>): {
   };
 }
 
+function orangeCountyLocation(body: string): { address: string; city: string } | null {
+  if (/ADDRESS\s+NOT\s+AVAILABLE/i.test(body)) {
+    return null;
+  }
+  const chunks = body
+    .split(/\s{2,}/)
+    .map((chunk) => chunk.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+  const full = chunks.join(" ");
+  const city = orangeCountyCities.find((candidate) => full.endsWith(` ${candidate}`));
+  if (!city) {
+    return null;
+  }
+  const cityPattern = new RegExp(`\\s+${city.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}$`);
+  let fallback: string | null = null;
+  let selected: string | null = null;
+  for (let index = 0; index < chunks.length; index += 1) {
+    if (!/^\d+[A-Z-]*\s/.test(chunks[index] ?? "")) {
+      continue;
+    }
+    const candidate = chunks.slice(index).join(" ");
+    if (!candidate.endsWith(` ${city}`)) {
+      continue;
+    }
+    fallback ??= candidate;
+    if (
+      /\b(?:AV|AVE|BL|BLVD|CI|CIR|CT|DR|HW|HWY|LN|LOOP|PL|RD|ST|TE|TER|TR|WA|WAY)\b/.test(candidate)
+    ) {
+      selected = candidate;
+    }
+  }
+  const location = selected ?? fallback;
+  const address = location?.replace(cityPattern, "").trim();
+  return address ? { address, city } : null;
+}
+
 function taxAddressFromBody(body: string) {
-  // PDF column wrapping can merge the legal description into the address. Only label
-  // vacant land here; the official Assessor query supplies a separate structured address.
   return /\b(?:VACANT LOT|VAC\/VIC)\b/i.test(body)
     ? { address: "Vacant land (published description)", city: null, state: "CA", zip: null }
     : null;
@@ -305,25 +613,8 @@ function parsePublishedDateTime(
   rawDate: string | undefined,
   rawTime: string | undefined,
 ): { readonly scheduledDate: string | null; readonly scheduledTime: string | null } {
-  if (!rawDate) {
-    return { scheduledDate: null, scheduledTime: null };
-  }
-  let year: string | undefined;
-  let month: string | undefined;
-  let day: string | undefined;
-  const numeric = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(20\d{2})$/);
-  const named = rawDate.replace(/,/g, "").match(/^([A-Z][a-z]+)\s+(\d{1,2})\s+(20\d{2})$/i);
-  if (numeric) {
-    month = numeric[1]?.padStart(2, "0");
-    day = numeric[2]?.padStart(2, "0");
-    year = numeric[3];
-  } else if (named) {
-    month = named[1] ? monthNumbers[named[1].toLowerCase()] : undefined;
-    day = named[2]?.padStart(2, "0");
-    year = named[3];
-  }
-  const scheduledDate = year && month && day ? `${year}-${month}-${day}` : null;
-  if (!scheduledDate || !isCalendarDate(scheduledDate)) {
+  const scheduledDate = parseDateMatch(rawDate);
+  if (!scheduledDate) {
     return { scheduledDate: null, scheduledTime: null };
   }
   const time = rawTime?.replace(/\./g, "").match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
@@ -341,6 +632,36 @@ function parsePublishedDateTime(
     }
   }
   return { scheduledDate, scheduledTime };
+}
+
+function parseDateMatch(rawDate: string | undefined, fallbackYear?: string): string | null {
+  if (!rawDate) {
+    return null;
+  }
+  let year: string | undefined;
+  let month: string | undefined;
+  let day: string | undefined;
+  const numeric = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(20\d{2})$/);
+  const named = rawDate.replace(/,/g, "").match(/^([A-Z][a-z]+)\s+(\d{1,2})(?:\s+(20\d{2}))?$/i);
+  if (numeric) {
+    month = numeric[1]?.padStart(2, "0");
+    day = numeric[2]?.padStart(2, "0");
+    year = numeric[3];
+  } else if (named) {
+    month = named[1] ? monthNumbers[named[1].toLowerCase()] : undefined;
+    day = named[2]?.padStart(2, "0");
+    year = named[3] ?? fallbackYear;
+  }
+  const value = year && month && day ? `${year}-${month}-${day}` : null;
+  return value && isCalendarDate(value) ? value : null;
+}
+
+function documentYear(url: string): string | undefined {
+  return url.match(/(?:^|[^\d])(20\d{2})(?:[^\d]|$)/)?.[1];
+}
+
+function moneyToCents(value: string): number {
+  return Math.round(Number(value.replace(/,/g, "")) * 100);
 }
 
 function xmlValue(item: string, tag: string): string | null {

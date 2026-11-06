@@ -103,7 +103,7 @@ describe("private research API", () => {
     );
     assert.equal(csv.status, 200);
     assert.match(csv.headers.get("content-disposition") ?? "", /attachment/);
-    assert.match(await csv.text(), /^"sale_type"/);
+    assert.match(await csv.text(), /^"signal_type","jurisdiction_id","jurisdiction_name"/);
     const deniedCsv = await handleResearch(new Request(`${origin}/api/research/export.csv`), env);
     assert.equal(deniedCsv.status, 401);
   });

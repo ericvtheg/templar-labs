@@ -691,13 +691,13 @@ export async function loadDashboard(
       FROM foreclosure_records r WHERE ${currentEvidence}),'')<'${staleCutoff}'`;
   const inlineFit = fitSql ? inlineFitSql(fitSql) : { mismatch: "0=1", unknown: "0=1" };
   const supportedRecheckBoundarySql = `(
-    EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+    EXISTS (SELECT 1 FROM foreclosure_records r INDEXED BY foreclosure_property_key_idx WHERE ${currentEvidence} AND ${effectiveActiveSql}
       AND r.source_id='norfolk-delinquent-property-tax')
       AND (COALESCE(${sourceFinding("tax", "status")},'')<>'success' OR COALESCE(${sourceFinding("tax", "presence")},'')<>'present')
-    OR EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+    OR EXISTS (SELECT 1 FROM foreclosure_records r INDEXED BY foreclosure_property_key_idx WHERE ${currentEvidence} AND ${effectiveActiveSql}
       AND r.source_id='norfolk-code-violations')
       AND (COALESCE(${sourceFinding("code", "status")},'')<>'success' OR COALESCE(${sourceFinding("code", "presence")},'')<>'present')
-    OR EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+    OR EXISTS (SELECT 1 FROM foreclosure_records r INDEXED BY foreclosure_property_key_idx WHERE ${currentEvidence} AND ${effectiveActiveSql}
       AND (r.signal_type IN ('recorded_lien','notice_of_default','mortgage_foreclosure_initiated','scheduled_trustee_sale','scheduled_tax_sale')
         OR r.source_id NOT IN ('norfolk-delinquent-property-tax','norfolk-code-violations')))
   )`;

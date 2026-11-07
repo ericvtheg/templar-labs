@@ -1,0 +1,40 @@
+name: Property Watch query recovery diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      execute_corrected:
+        description: Execute the five corrected bounded SELECTs after all plans pass
+        type: boolean
+        default: false
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: la-property-ingestion
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Capture sanitized query recovery report
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EXECUTE_CORRECTED: ${{ inputs.execute_corrected }}
+        run: |
+          mkdir -p recovery-package
+          if [[ "$EXECUTE_CORRECTED" == "true" ]]; then
+            node --experimental-strip-types projects/la-property-watch/scripts/diagnose-production-queries.ts --execute-corrected > recovery-package/la-query-recovery-report.json
+          else
+            node --experimental-strip-types projects/la-property-watch/scripts/diagnose-production-queries.ts > recovery-package/la-query-recovery-report.json
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: la-query-recovery-report
+          path: recovery-package/la-query-recovery-report.json
+          if-no-files-found: error
+          retention-days: 7

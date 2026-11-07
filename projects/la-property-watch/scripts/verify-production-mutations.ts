@@ -225,6 +225,32 @@ const target = requestedKey
       apn: string;
     }>()
   : await targetStatement.first<{ propertyKey: string; jurisdictionId: string; apn: string }>();
+if (!target && requestedKey) {
+  const retained = await db
+    .prepare(`SELECT
+    (SELECT COUNT(*) FROM foreclosure_records WHERE property_key=?) evidence,
+    (SELECT COUNT(*) FROM partner_properties WHERE property_key=?) pipeline,
+    (SELECT COUNT(*) FROM property_notes WHERE property_key=?) notes,
+    (SELECT COUNT(*) FROM property_deal_scenarios WHERE property_key=?) scenarios,
+    (SELECT COUNT(*) FROM property_enrichment WHERE property_key=?) enrichment,
+    (SELECT COUNT(*) FROM property_rechecks WHERE property_key=?) rechecks`)
+    .bind(requestedKey, requestedKey, requestedKey, requestedKey, requestedKey, requestedKey)
+    .first();
+  const alerts = await db
+    .prepare(
+      "SELECT id,kind,created_at,available_at,read_at FROM property_alerts WHERE property_key=? ORDER BY id LIMIT 20",
+    )
+    .bind(requestedKey)
+    .all();
+  console.log(
+    JSON.stringify({
+      mode: "blocked_target_read_only",
+      propertyKey: requestedKey,
+      retained,
+      alerts: alerts.results,
+    }),
+  );
+}
 check(
   target,
   requestedKey
@@ -297,6 +323,13 @@ try {
   );
   latestPipelineVersion = researchState.version;
   latestPipelineUpdatedAt = researchState.updatedAt;
+  const initialAlerts = await db
+    .prepare(
+      "SELECT id FROM property_alerts WHERE property_key=? AND kind='due_follow_up' AND created_at=? AND available_at=?",
+    )
+    .bind(propertyKey, researchState.updatedAt, workflowFollowUpAt)
+    .all<{ id: string }>();
+  dueAlertIds = initialAlerts.results.map((alert) => alert.id);
   const note = await jsonRequest<{ id: string }>(
     `/api/research/notes/${encodeURIComponent(propertyKey)}`,
     {

@@ -17,11 +17,22 @@ const MAX_SQL_BYTES = 100_000;
 const MAX_BINDS = 100;
 const PROPERTY_HINT = " INDEXED BY foreclosure_property_key_idx";
 const SYNTHETIC_BUY_BOX_ID = "diagnostic-fixed-fit-boundary";
+const schemaTables = [
+  "property_rechecks",
+  "property_sales",
+  "user_alert_preferences",
+  "property_qualification_overrides",
+  "property_qualification_override_audit",
+  "property_feedback",
+  "property_feedback_audit",
+  "ranking_adjustment_profile",
+  "ranking_adjustment_audit",
+] as const;
 
 export type StatementId =
   | "schema.migrations"
   | "schema.objects"
-  | "schema.columns"
+  | `schema.columns.${(typeof schemaTables)[number]}`
   | "schema.indexes"
   | "schema.aggregates"
   | "schema.source_counts"
@@ -270,7 +281,15 @@ export function validateStatement(spec: QuerySpec) {
   if (bytes > MAX_SQL_BYTES || binds > MAX_BINDS || hasUnquotedSemicolon(spec.sql)) {
     throw new DiagnosticError("request", "statement_contract");
   }
-  if (!/^\s*(?:SELECT|WITH|EXPLAIN QUERY PLAN)\b/i.test(spec.sql)) {
+  const allowedPragma =
+    spec.provenance === "fixed-introspection" &&
+    ((spec.id === "schema.indexes" &&
+      spec.sql === 'PRAGMA index_info("foreclosure_property_key_idx")') ||
+      schemaTables.some(
+        (table) =>
+          spec.id === `schema.columns.${table}` && spec.sql === `PRAGMA table_info("${table}")`,
+      ));
+  if (!allowedPragma && !/^\s*(?:SELECT|WITH|EXPLAIN QUERY PLAN)\b/i.test(spec.sql)) {
     throw new DiagnosticError("request", "statement_contract");
   }
   if (
@@ -342,16 +361,19 @@ const fixedIntrospection: readonly QuerySpec[] = [
     sql: "SELECT type,name FROM sqlite_master WHERE name IN ('foreclosure_records','foreclosure_property_key_idx','watchlist_properties','property_rechecks','property_sales','user_alert_preferences','property_qualification_overrides','property_qualification_override_audit','property_feedback','property_feedback_audit','ranking_adjustment_profile','ranking_adjustment_audit') ORDER BY type,name",
     params: [],
   },
-  {
-    id: "schema.columns",
-    provenance: "fixed-introspection",
-    sql: "SELECT 'property_rechecks' AS table_name,name FROM pragma_table_info('property_rechecks') UNION ALL SELECT 'property_sales',name FROM pragma_table_info('property_sales') UNION ALL SELECT 'user_alert_preferences',name FROM pragma_table_info('user_alert_preferences') UNION ALL SELECT 'property_qualification_overrides',name FROM pragma_table_info('property_qualification_overrides') UNION ALL SELECT 'property_qualification_override_audit',name FROM pragma_table_info('property_qualification_override_audit') UNION ALL SELECT 'property_feedback',name FROM pragma_table_info('property_feedback') UNION ALL SELECT 'property_feedback_audit',name FROM pragma_table_info('property_feedback_audit') UNION ALL SELECT 'ranking_adjustment_profile',name FROM pragma_table_info('ranking_adjustment_profile') UNION ALL SELECT 'ranking_adjustment_audit',name FROM pragma_table_info('ranking_adjustment_audit')",
-    params: [],
-  },
+  // D1 authorizes the documented PRAGMA statements, not pragma_* table-valued functions.
+  ...schemaTables.map(
+    (table): QuerySpec => ({
+      id: `schema.columns.${table}`,
+      provenance: "fixed-introspection",
+      sql: `PRAGMA table_info("${table}")`,
+      params: [],
+    }),
+  ),
   {
     id: "schema.indexes",
     provenance: "fixed-introspection",
-    sql: "SELECT m.name AS index_name,i.name AS column_name,i.seqno FROM sqlite_master m JOIN pragma_index_info(m.name) i WHERE m.type='index' AND m.name='foreclosure_property_key_idx' ORDER BY i.seqno",
+    sql: 'PRAGMA index_info("foreclosure_property_key_idx")',
     params: [],
   },
   {
@@ -385,7 +407,16 @@ export async function buildStatementCatalog(profile: RankingProfile) {
       };
       validateStatement(original);
       validateStatement(corrected);
-      catalog.push(original, corrected);
+      // The three failing original access shapes suffice; omit redundant plans
+      // so native schema introspection plus all corrected executions fit 30 calls.
+      if (
+        (scenario === "default" && kind === "page") ||
+        (scenario === "qualification" && kind === "count") ||
+        (scenario === "buybox" && kind === "page")
+      ) {
+        catalog.push(original);
+      }
+      catalog.push(corrected);
     }
   }
   for (const key of [
@@ -705,8 +736,10 @@ export function validateSchema(results: Map<string, QueryResult>) {
     }
   }
   const columns = new Set(
-    (results.get("schema.columns")?.results ?? []).map(
-      (row) => `${String(row.table_name)}.${String(row.name)}`,
+    schemaTables.flatMap((table) =>
+      (results.get(`schema.columns.${table}`)?.results ?? []).map(
+        (row) => `${table}.${String(row.name)}`,
+      ),
     ),
   );
   for (const [table, names] of requiredColumns) {
@@ -717,12 +750,7 @@ export function validateSchema(results: Map<string, QueryResult>) {
     }
   }
   const index = results.get("schema.indexes")?.results ?? [];
-  if (
-    index.length !== 1 ||
-    index[0]?.index_name !== "foreclosure_property_key_idx" ||
-    index[0]?.column_name !== "property_key" ||
-    Number(index[0]?.seqno) !== 0
-  ) {
+  if (index.length !== 1 || index[0]?.name !== "property_key" || Number(index[0]?.seqno) !== 0) {
     throw new DiagnosticError("schema", "schema");
   }
   const aggregate = results.get("schema.aggregates")?.results[0];

@@ -57,6 +57,9 @@ function providerHarness(hook?: Hook) {
       if (Object.keys(body).toSorted().join(",") !== "params,sql") {
         throw new Error("Unexpected query envelope in test harness");
       }
+      if (/pragma_(?:table|index)_info/i.test(body.sql)) {
+        throw new Error("D1 rejects table-valued pragma functions");
+      }
       queries.push(body);
       const rows = database.sqlite.prepare(body.sql).all(...body.params) as Record<
         string,
@@ -94,13 +97,13 @@ test("plans-only orchestration uses real generated SQL and never executes dashbo
   try {
     const report = await runDiagnostic([], credentials, harness.fetcher);
     assert.equal(report["status"], "ok", JSON.stringify(report["failure"]));
-    assert.equal(harness.queries.length, 19);
+    assert.equal(harness.queries.length, 24);
     assert.equal(
       harness.queries.filter((query) => query.sql.startsWith("EXPLAIN QUERY PLAN ")).length,
-      12,
+      9,
     );
     assert.equal(harness.queries.filter((query) => isExecution(query.sql)).length, 0);
-    assert.equal(reportArray(report, "plans").length, 12);
+    assert.equal(reportArray(report, "plans").length, 9);
     assert.equal(reportArray(report, "executions").length, 0);
     assert.equal(harness.maxInFlight(), 1);
     assert.equal(
@@ -125,7 +128,7 @@ test("explicit execution follows every plan, once each, and never emits property
   try {
     const report = await runDiagnostic(["--execute-corrected"], credentials, harness.fetcher);
     assert.equal(report["status"], "ok", JSON.stringify(report["failure"]));
-    assert.equal(harness.queries.length, 24);
+    assert.equal(harness.queries.length, 29);
     const executions = reportArray(report, "executions");
     assert.deepEqual(
       executions.map((row) => row["id"]),
@@ -137,7 +140,7 @@ test("explicit execution follows every plan, once each, and never emits property
         "corrected.buybox.page.select",
       ],
     );
-    assert.ok(harness.queries.slice(19).every((query) => isExecution(query.sql)));
+    assert.ok(harness.queries.slice(24).every((query) => isExecution(query.sql)));
     assert.ok(
       harness.queries
         .filter((query) => isExecution(query.sql) && query.sql.includes("qualification_status"))
@@ -166,7 +169,7 @@ test("bad corrected plan or missing 0006 column blocks every dashboard execution
           },
         ];
       }
-      if (fault === "schema" && query.sql.includes("pragma_table_info")) {
+      if (fault === "schema" && query.sql.startsWith("PRAGMA table_info")) {
         return rows.filter((row) => row["name"] !== "findings_json");
       }
       return rows;
@@ -235,7 +238,7 @@ test("aggregate corrected execution deadline stops further queries at sixty seco
     assert.equal(report["status"], "failed");
     assert.equal(harness.queries.filter((query) => isExecution(query.sql)).length, 2);
     assert.equal((report["failure"] as Record<string, unknown>)["category"], "execution_deadline");
-    assert.equal((report["budget"] as Record<string, unknown>)["sqlRequests"], 21);
+    assert.equal((report["budget"] as Record<string, unknown>)["sqlRequests"], 26);
   } finally {
     harness.database.close();
   }

@@ -34,7 +34,7 @@ const queryResponse = (results: Record<string, unknown>[] = []) =>
 test("generated catalog uses only EXPLAIN for originals and fixed corrected executions", async () => {
   const { catalog } = await buildStatementCatalog(profile);
   const originals = catalog.filter((entry) => entry.provenance === "generated-original");
-  assert.equal(originals.length, 6);
+  assert.equal(originals.length, 3);
   assert.ok(originals.every((entry) => entry.sql.startsWith("EXPLAIN QUERY PLAN ")));
   assert.equal(catalog.filter((entry) => entry.id.endsWith(".select")).length, 5);
   assert.ok(catalog.every((entry) => validateStatement(entry) === undefined));
@@ -257,14 +257,16 @@ test("schema and plan guards fail closed and sanitized failures never echo malic
         { table_name: "ranking_adjustment_audit", name: "operation_token" },
       ]),
     ],
-    [
-      "schema.indexes",
-      result([
-        { index_name: "foreclosure_property_key_idx", column_name: "property_key", seqno: 0 },
-      ]),
-    ],
+    ["schema.indexes", result([{ name: "property_key", seqno: 0 }])],
     ["schema.aggregates", result([{ watchlist_count: 1, evidence_count: 2, source_count: 1 }])],
   ]);
+  for (const column of schema.get("schema.columns")?.results ?? []) {
+    const key = `schema.columns.${String(column["table_name"])}`;
+    const group = schema.get(key) ?? result([]);
+    group.results.push({ name: column["name"] });
+    schema.set(key, group);
+  }
+  schema.delete("schema.columns");
   assert.equal(validateSchema(schema).propertyIndex, "valid");
   schema.set(
     "schema.aggregates",

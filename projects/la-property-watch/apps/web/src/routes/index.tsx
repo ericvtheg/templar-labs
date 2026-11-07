@@ -2699,8 +2699,8 @@ function ScenarioWorkspace({
                 setKind(event.target.value as "flip" | "rental");
               }}
             >
-              <option value="flip">Flip · interest-only acquisition model</option>
-              <option value="rental">Rental / hold · first stabilized year</option>
+              <option value="flip">Flip · interest-only acquisition</option>
+              <option value="rental">Rental · first stabilized year</option>
             </select>
           </label>
           {kind === "rental" ? (

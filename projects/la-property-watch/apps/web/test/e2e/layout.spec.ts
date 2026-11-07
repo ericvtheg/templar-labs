@@ -305,6 +305,27 @@ test("detail, forms, and partner workspaces stay contained at responsive breakpo
       await scenarioEditor.locator("summary").click();
     }
     await expect(economics.locator(".scenario-form")).toBeVisible();
+    const clippedOptions = await economics
+      .locator(".scenario-form > label select")
+      .first()
+      .evaluate((element) => {
+        const select = element;
+        const canvas = document.createElement("canvas").getContext("2d");
+        if (!canvas) {
+          throw new Error("Canvas text measurement unavailable");
+        }
+        const style = getComputedStyle(select);
+        canvas.font = style.font;
+        const available =
+          select.clientWidth -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight) -
+          24;
+        return Array.from(select.querySelectorAll("option"))
+          .map((option) => option.textContent ?? "")
+          .filter((text) => canvas.measureText(text).width > available);
+      });
+    expect(clippedOptions, `Strategy choices must be readable at ${width}px`).toEqual([]);
     expect(
       await containedLayoutViolations(economics),
       `Economics form containment at ${width}px`,

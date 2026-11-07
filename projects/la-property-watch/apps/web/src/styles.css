@@ -302,6 +302,7 @@
 }
 
 .scenario-form .button-row,
+.scenario-form > label:has(select),
 .benchmark-form .wide,
 .benchmark-form > button {
   grid-column: 1 / -1;

@@ -238,10 +238,10 @@ export async function runOnce(
   } = {},
 ) {
   const now = options.now ?? new Date();
-  const cutoff = new Date(now.getTime() - 5 * 60_000).toISOString();
+  const cutoff = new Date(now.getTime() - 45 * 60_000).toISOString();
   const ended = now.toISOString();
   const error =
-    "Ingestion runtime terminated before completion (running job exceeded five-minute recovery threshold).";
+    "Ingestion runtime terminated before completion (running job exceeded 45-minute recovery threshold).";
   await db.batch([
     db
       .prepare(

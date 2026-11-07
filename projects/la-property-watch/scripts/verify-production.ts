@@ -169,24 +169,32 @@ if (environment("CLOUDFLARE_API_TOKEN")) {
   });
 }
 
+type DashboardPayload = {
+  properties: Array<{
+    propertyKey: string;
+    jurisdictionId: string;
+    signalTypes: string[];
+    evidenceCount: number;
+  }>;
+  page: { total: number };
+  refreshJobs: Array<{ id: string; status: string }>;
+  sources: Array<{
+    sourceId: string;
+    status: string;
+    recordsUpserted: number;
+    snapshotComplete: boolean;
+    error: string | null;
+  }>;
+};
+
 const deadline = Date.now() + 12 * 60_000;
-let dashboard:
-  | {
-      records: Array<{ saleType: string; signalType: string; jurisdictionId: string }>;
-      refreshJobs: Array<{ id: string; status: string }>;
-      sources: Array<{
-        sourceId: string;
-        status: string;
-        recordsUpserted: number;
-      }>;
-    }
-  | undefined;
+let dashboard: DashboardPayload | undefined;
 while (Date.now() < deadline) {
   await new Promise((resolve) => setTimeout(resolve, 5_000));
   const response = await request("/api/research/data", { cookie: authorized });
   check(response.status === 200, `Refresh polling returned ${response.status}.`);
-  dashboard = (await response.json()) as typeof dashboard;
-  const job = dashboard?.refreshJobs.find((candidate) => candidate.id === jobId);
+  dashboard = (await response.json()) as DashboardPayload;
+  const job = dashboard.refreshJobs.find((candidate) => candidate.id === jobId);
   if (job && !["queued", "running"].includes(job.status)) {
     check(["success", "partial"].includes(job.status), `Refresh finished as ${job.status}.`);
     break;
@@ -199,49 +207,104 @@ check(
   ),
   "Refresh did not finish before the verification deadline.",
 );
+
+const requiredSources = [
+  "travis-tax-delinquency",
+  "norfolk-delinquent-property-tax",
+  "norfolk-code-violations",
+  "nyc-acris-common-charge-liens",
+  "denver-public-trustee-ned",
+];
+for (const sourceId of requiredSources) {
+  const source = dashboard.sources.find((candidate) => candidate.sourceId === sourceId);
+  check(source, `${sourceId} had no persisted source run.`);
+  check(source.status === "success", `${sourceId} finished as ${source.status}.`);
+  check(source.recordsUpserted > 0, `${sourceId} persisted no evidence.`);
+}
+const acris = dashboard.sources.find(
+  (source) => source.sourceId === "nyc-acris-common-charge-liens",
+);
+check(acris?.snapshotComplete === false, "ACRIS must remain append/update event evidence.");
+const denver = dashboard.sources.find((source) => source.sourceId === "denver-public-trustee-ned");
 check(
-  dashboard.records.some(
-    (record) => record.signalType === "tax_delinquency" && record.jurisdictionId === "oc-ca",
+  /Terms of Use|permission/i.test(denver?.error ?? ""),
+  "Denver authorization warning was not persisted.",
+);
+
+async function currentMarket(jurisdiction: string): Promise<DashboardPayload> {
+  const response = await request(`/api/research/data?jurisdiction=${jurisdiction}`, {
+    cookie: authorized,
+  });
+  check(response.status === 200, `${jurisdiction} dashboard returned ${response.status}.`);
+  const payload = (await response.json()) as DashboardPayload;
+  check(payload.page.total > 0, `${jurisdiction} had no ranked current properties.`);
+  check(
+    payload.properties.every((property) => property.jurisdictionId === jurisdiction),
+    `${jurisdiction} filter returned a different jurisdiction.`,
+  );
+  return payload;
+}
+const markets = Object.fromEntries(
+  await Promise.all(
+    ["travis-county-tx", "norfolk-va", "nyc-ny", "denver-co"].map(async (jurisdiction) => [
+      jurisdiction,
+      await currentMarket(jurisdiction),
+    ]),
   ),
-  "No Orange County three-year delinquency records were persisted.",
+) as Record<string, DashboardPayload>;
+
+const codeResponse = await request(
+  "/api/research/data?jurisdiction=norfolk-va&signal=code_violation",
+  { cookie: authorized },
+);
+check(codeResponse.status === 200, `Norfolk code filter returned ${codeResponse.status}.`);
+const codeDashboard = (await codeResponse.json()) as DashboardPayload;
+check(codeDashboard.page.total > 0, "No ranked Norfolk code-violation properties were returned.");
+const property = codeDashboard.properties[0];
+check(property?.propertyKey, "No ranked property was available for evidence verification.");
+const detailResponse = await request(
+  `/api/research/properties/${encodeURIComponent(property.propertyKey)}?evidencePage=1&evidencePageSize=10`,
+  { cookie: authorized },
+);
+check(detailResponse.status === 200, `Property detail returned ${detailResponse.status}.`);
+const detail = (await detailResponse.json()) as {
+  property: { propertyKey: string; score: number; scoreReasons: string[] };
+  evidence: Array<{
+    id: string;
+    sourceUrl: string;
+    sourceRecordId: string;
+    snapshotPresence: string;
+  }>;
+  evidenceTotal: number;
+  evidencePage: { page: number; pageSize: number; total: number; totalPages: number };
+};
+check(detail.property.propertyKey === property.propertyKey, "Property detail identity changed.");
+check(
+  detail.property.score > 0 && detail.property.scoreReasons.length > 0,
+  "Rank explanation was missing.",
 );
 check(
-  dashboard.records.some(
-    (record) => record.signalType === "power_to_sell" && record.jurisdictionId === "oc-ca",
-  ),
-  "No Orange County power-to-sell records were persisted.",
+  detail.evidenceTotal >= detail.evidence.length && detail.evidence.length > 0,
+  "Property evidence was empty.",
 );
 check(
-  dashboard.records.some((record) => record.signalType === "scheduled_tax_sale"),
-  "No official tax-auction records were persisted.",
+  detail.evidence[0]?.snapshotPresence === "present",
+  "Current evidence was not returned first.",
 );
 check(
-  dashboard.records.some((record) => record.saleType === "trustee"),
-  "No trustee-notice records were persisted.",
+  detail.evidence.every((record) => record.sourceRecordId && record.sourceUrl),
+  "Evidence provenance was incomplete.",
 );
 check(
-  dashboard.sources.some(
-    (source) => source.sourceId === "oc-three-year-tax-delinquency" && source.recordsUpserted > 0,
-  ),
-  "Orange County three-year source status did not report persisted records.",
+  detail.evidencePage.page === 1 && detail.evidencePage.pageSize === 10,
+  "Evidence pagination metadata was incorrect.",
 );
+
+const invalid = await request("/api/research/data?page=abc", { cookie: authorized });
+check(invalid.status === 400, `Invalid pagination returned ${invalid.status}.`);
 check(
-  dashboard.sources.some(
-    (source) => source.sourceId === "oc-impending-power-to-sell" && source.recordsUpserted > 0,
-  ),
-  "Orange County power-to-sell source status did not report persisted records.",
-);
-check(
-  dashboard.sources.some(
-    (source) => source.sourceId === "la-ttc-tax-auction" && source.recordsUpserted > 0,
-  ),
-  "TTC source status did not report persisted records.",
-);
-check(
-  dashboard.sources.some(
-    (source) => source.sourceId === "cnpa-trustee-notices" && source.recordsUpserted > 0,
-  ),
-  "CNPA source status did not report persisted records.",
+  /private, no-store/.test(invalid.headers.get("cache-control") ?? ""),
+  "Validation response was cacheable.",
 );
 
 const csv = await request("/api/research/export.csv", { cookie: authorized });
@@ -250,6 +313,9 @@ check(
   csv.headers.get("content-type")?.startsWith("text/csv"),
   "Protected export did not return CSV.",
 );
+const csvText = await csv.text();
+check(csvText.startsWith('"rank_score","rank_reasons","property_key"'), "CSV header was stale.");
+check(csvText.includes(property.propertyKey), "CSV did not include the verified ranked property.");
 
 console.log(
   JSON.stringify(
@@ -258,25 +324,21 @@ console.log(
       authorizationChecks: "passed",
       interactiveAuthRedirect: "central Templar auth -> Google",
       refreshJobId: jobId,
-      records: dashboard.records.length,
-      signalCounts: Object.fromEntries(
-        [...new Set(dashboard.records.map((record) => record.signalType))].map((signalType) => [
-          signalType,
-          dashboard.records.filter((record) => record.signalType === signalType).length,
+      rankedPropertiesOnFirstPage: dashboard.properties.length,
+      currentMarketTotals: Object.fromEntries(
+        Object.entries(markets).map(([jurisdiction, payload]) => [
+          jurisdiction,
+          payload.page.total,
         ]),
       ),
-      jurisdictionCounts: Object.fromEntries(
-        [...new Set(dashboard.records.map((record) => record.jurisdictionId))].map(
-          (jurisdictionId) => [
-            jurisdictionId,
-            dashboard.records.filter((record) => record.jurisdictionId === jurisdictionId).length,
-          ],
-        ),
-      ),
+      verifiedPropertyKey: property.propertyKey,
+      verifiedEvidenceRows: detail.evidenceTotal,
+      exportBytes: new TextEncoder().encode(csvText).byteLength,
       sources: dashboard.sources.map((source) => ({
         sourceId: source.sourceId,
         status: source.status,
         recordsUpserted: source.recordsUpserted,
+        snapshotComplete: source.snapshotComplete,
       })),
     },
     null,

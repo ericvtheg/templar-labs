@@ -28,6 +28,8 @@ export type SourceResult = {
   readonly sourceUrl: string;
   readonly records: readonly ResearchRecord[];
   readonly warnings: readonly string[];
+  readonly sourceUpdatedAt?: string | null;
+  readonly snapshotComplete?: boolean;
 };
 
 export async function fetchTaxAuction(

@@ -103,7 +103,7 @@ describe("private research API", () => {
     );
     assert.equal(csv.status, 200);
     assert.match(csv.headers.get("content-disposition") ?? "", /attachment/);
-    assert.match(await csv.text(), /^"signal_type","jurisdiction_id","jurisdiction_name"/);
+    assert.match(await csv.text(), /^"rank_score","rank_reasons","property_key"/);
     const deniedCsv = await handleResearch(new Request(`${origin}/api/research/export.csv`), env);
     assert.equal(deniedCsv.status, 401);
   });
@@ -179,5 +179,45 @@ describe("private research API", () => {
     );
     assert.equal(duplicate.status, 200);
     assert.equal(sent.length, 1);
+  });
+
+  it("returns private 400 responses for invalid pagination, filters, and D1-sized search patterns", async () => {
+    const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
+    const paths = [
+      "/api/research/data?page=abc",
+      "/api/research/data?page=Infinity",
+      "/api/research/data?page=10001",
+      "/api/research/data?pageSize=9",
+      "/api/research/data?pageSize=101",
+      "/api/research/data?signal=made_up",
+      "/api/research/data?jurisdiction=Norfolk",
+      `/api/research/data?query=${encodeURIComponent("a".repeat(49))}`,
+      `/api/research/data?query=${encodeURIComponent("🙂".repeat(13))}`,
+      "/api/research/properties/missing?evidencePage=abc",
+      "/api/research/properties/missing?evidencePageSize=501",
+    ];
+    for (const path of paths) {
+      const response = await handleResearch(
+        new Request(`${origin}${path}`, { headers: { cookie } }),
+        env,
+      );
+      assert.equal(response.status, 400, path);
+      assert.match(response.headers.get("cache-control") ?? "", /private, no-store/);
+      assert.doesNotMatch(await response.text(), /datatype mismatch|foreclosure_records|SELECT /i);
+    }
+
+    const boundary = await handleResearch(
+      new Request(`${origin}/api/research/data?query=${"a".repeat(48)}`, { headers: { cookie } }),
+      env,
+    );
+    assert.equal(boundary.status, 200);
+    const sqlLooking = await handleResearch(
+      new Request(`${origin}/api/research/data?query=${encodeURIComponent('" OR 1=1 --')}`, {
+        headers: { cookie },
+      }),
+      env,
+    );
+    assert.equal(sqlLooking.status, 200);
+    assert.equal(((await sqlLooking.json()) as { page: { total: number } }).page.total, 0);
   });
 });

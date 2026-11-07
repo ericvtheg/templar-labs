@@ -1,60 +1,47 @@
-import {
-  fetchOrangeCountyPowerToSell,
-  fetchOrangeCountyThreeYearDelinquencies,
-  fetchTaxAuction,
-  fetchTrusteeNotices,
-  type SourceResult,
-} from "../src/lib/sources.ts";
+import { defaultSources } from "../src/lib/repository.ts";
 
-const startedAt = new Date().toISOString();
-const definitions = [
-  ["oc-three-year-tax-delinquency", fetchOrangeCountyThreeYearDelinquencies],
-  ["oc-impending-power-to-sell", fetchOrangeCountyPowerToSell],
-  ["la-ttc-tax-auction", fetchTaxAuction],
-  ["cnpa-trustee-notices", fetchTrusteeNotices],
-] as const;
-const outcomes = await Promise.allSettled(definitions.map(([, load]) => load()));
-
-const summarize = (result: SourceResult) => ({
-  sourceId: result.sourceId,
-  status: "fulfilled" as const,
-  records: result.records.length,
-  signalTypes: Object.fromEntries(
-    [...new Set(result.records.map((record) => record.signalType))].map((signalType) => [
-      signalType,
-      result.records.filter((record) => record.signalType === signalType).length,
-    ]),
-  ),
-  jurisdictions: [...new Set(result.records.map((record) => record.jurisdictionName))],
-  scheduledDates: result.records.filter((record) => record.scheduledDate !== null).length,
-  eventDates: result.records.filter((record) => record.eventDate !== null).length,
-  normalizedParcelIds: result.records.filter((record) => record.apn !== null).length,
-  literalSourceIds: new Set(result.records.map((record) => record.sourceRecordId)).size,
-  publishedAddresses: result.records.filter((record) => record.address !== null).length,
-  assessorMatches: result.records.filter((record) => record.assessorAddress !== null).length,
-  warnings: result.warnings,
-});
-
-const sources = outcomes.map((outcome, index) =>
-  outcome.status === "fulfilled"
-    ? summarize(outcome.value)
-    : {
-        sourceId: definitions[index]?.[0] ?? "unknown",
-        status: "rejected" as const,
-        error: outcome.reason instanceof Error ? outcome.reason.message : "Unknown source failure.",
-      },
+const currentOnly = process.argv.includes("--current-only");
+const requestedSource = process.argv.find((value) => value.startsWith("--source="))?.slice(9);
+const currentSourceIds = new Set([
+  "travis-tax-delinquency",
+  "norfolk-delinquent-property-tax",
+  "norfolk-code-violations",
+  "nyc-acris-common-charge-liens",
+  "denver-public-trustee-ned",
+]);
+const selected = defaultSources().filter(
+  (source) =>
+    (!requestedSource || source.id === requestedSource) &&
+    (!currentOnly || currentSourceIds.has(source.id)),
 );
-console.log(
-  JSON.stringify(
-    {
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      sources,
-    },
-    null,
-    2,
-  ),
-);
-if (outcomes.every((outcome) => outcome.status === "rejected")) {
+let failed = false;
+for (const source of selected) {
+  const started = Date.now();
+  try {
+    // Deliberately sequential to avoid hitting unrelated public agencies in a burst.
+    // eslint-disable-next-line no-await-in-loop
+    const result = await source.load();
+    console.log(
+      JSON.stringify({
+        sourceId: result.sourceId,
+        records: result.records.length,
+        sourceUpdatedAt: result.sourceUpdatedAt ?? null,
+        snapshotComplete: result.snapshotComplete === true,
+        warnings: result.warnings,
+        elapsedMs: Date.now() - started,
+      }),
+    );
+  } catch (cause) {
+    failed = true;
+    console.error(
+      JSON.stringify({
+        sourceId: source.id,
+        error: cause instanceof Error ? cause.message : "Unknown source error",
+        elapsedMs: Date.now() - started,
+      }),
+    );
+  }
+}
+if (failed) {
   process.exitCode = 1;
 }

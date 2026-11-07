@@ -208,7 +208,7 @@ test("runs oldest queued job through repository, reports persisted counts, and h
       ],
     });
     assert.equal(summary.job?.id, "queued");
-    assert.equal(summary.job?.status, "partial");
+    assert.equal(summary.job?.status, "success");
     assert.equal(summary.runs[0]?.records_found, 0);
     assert.equal(summary.counts.total, 0);
     assert.equal((await runOnce(db.binding)).skipped, "cooldown");

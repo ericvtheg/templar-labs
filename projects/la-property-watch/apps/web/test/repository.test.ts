@@ -125,22 +125,15 @@ describe("refresh persistence", () => {
       },
     ]);
     const dashboard = await loadDashboard(database.binding);
-    assert.equal(dashboard.records.length, 188);
+    assert.equal(dashboard.archiveTotal, 188);
+    assert.equal(dashboard.records.length, 50);
     assert.equal(dashboard.records[0]?.jurisdictionId, "oc-ca");
-    assert.equal(
-      dashboard.records.filter((record) => record.signalType === "tax_delinquency").length,
-      4,
-    );
-    assert.equal(
-      dashboard.records.filter((record) => record.signalType === "power_to_sell").length,
-      184,
-    );
+    assert.equal(dashboard.page.total, 0);
+    assert.equal(dashboard.properties.length, 0);
     assert.equal(dashboard.records[0]?.scheduledDate, null);
     const csv = dashboardCsv(dashboard);
-    assert.match(csv, /^"signal_type","jurisdiction_id","jurisdiction_name"/);
-    assert.match(csv, /"tax_delinquency","oc-ca","Orange County, CA"/);
-    assert.match(csv, /"power_to_sell","oc-ca","Orange County, CA"/);
-    assert.match(csv, /"2026-09-30"/);
+    assert.match(csv, /^"rank_score","rank_reasons","property_key"/);
+    assert.equal(csv.split("\n").length, 1);
   });
 
   it("reuses an active queued job instead of farming concurrent refreshes", async () => {
@@ -272,8 +265,8 @@ describe("refresh persistence", () => {
       },
     ]);
     const dashboard = await loadDashboard(database.binding);
-    assert.equal(dashboard.refreshJobs[0]?.status, "partial");
-    assert.equal(dashboard.sources[0]?.status, "partial");
+    assert.equal(dashboard.refreshJobs[0]?.status, "success");
+    assert.equal(dashboard.sources[0]?.status, "success");
     assert.match(dashboard.sources[0]?.error ?? "", /unavailable/);
   });
 });

@@ -1,127 +1,331 @@
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import {
-  parseCnpaRss,
-  parseOrangeCountyPowerToSellText,
-  parseOrangeCountyThreeYearDelinquencyText,
-  parseTaxAuctionText,
-} from "../../src/lib/parsers.ts";
+import { parseNorfolkTaxCsv, parseNorfolkViolations } from "../../src/lib/current-parsers.ts";
 
-const observedAt = "2026-11-05T12:00:00.000Z";
-const taxText = await readFile(
-  new URL("../fixtures/ttc-2026b-excerpt.txt", import.meta.url),
+const observedAt = "2026-11-07T12:00:00.000Z";
+const sourceUpdatedAt = "2026-11-06T12:27:31.000Z";
+const taxCsv = await readFile(
+  new URL("../fixtures/norfolk-current-tax.csv", import.meta.url),
   "utf8",
 );
-const rss = await readFile(new URL("../fixtures/cnpa-la-trustee-rss.xml", import.meta.url), "utf8");
-const threeYearText = await readFile(
-  new URL("../fixtures/orange-county-three-year-delinquency-2026.txt", import.meta.url),
-  "utf8",
+const violationJson = JSON.parse(
+  await readFile(new URL("../fixtures/norfolk-current-violation.json", import.meta.url), "utf8"),
 );
-const powerToSellText = await readFile(
-  new URL("../fixtures/orange-county-power-to-sell-2026.txt", import.meta.url),
-  "utf8",
-);
-const tax = parseTaxAuctionText(taxText, {
-  auctionId: "2026B",
-  documentUrl: "https://ttc.lacounty.gov/wp-content/uploads/2026/08/2026B-Auction-Book.pdf",
-  observedAt,
-  scheduledDate: "2026-10-17",
-  scheduledTime: "15:00",
-}).slice(0, 8);
-const trustee = parseCnpaRss(rss, observedAt).records;
-const threeYear = parseOrangeCountyThreeYearDelinquencyText(threeYearText, {
-  documentUrl:
-    "https://www.octreasurer.gov/sites/ttc/files/2026-09/Property%20TaxDefault%20List%202026.pdf",
-  observedAt,
-  sourceAsOfDate: "2026-09-30",
-  publicationDate: "2026-09-07",
-});
-const powerToSell = parseOrangeCountyPowerToSellText(powerToSellText, {
-  documentUrl:
-    "https://www.octreasurer.gov/sites/ttc/files/2026-09/PTS-List-Published-June2026.pdf",
-  observedAt,
-});
-const records = [...threeYear, ...powerToSell, ...tax, ...trustee];
-const literal = (value) =>
-  value === null || value === undefined
-    ? "NULL"
-    : typeof value === "number"
-      ? String(value)
-      : `'${String(value).replaceAll("'", "''")}'`;
-const recordValues = (record) =>
+const context = { observedAt, sourceUpdatedAt };
+const tax = parseNorfolkTaxCsv(taxCsv, context);
+const violations = parseNorfolkViolations(violationJson, context);
+const liveViolation = violations[0];
+if (!liveViolation) {
+  throw new Error("The Norfolk violation fixture was empty.");
+}
+const history = Array.from({ length: 55 }, (_, index) => ({
+  ...liveViolation,
+  id: `e2e-history-${String(index + 1).padStart(2, "0")}`,
+  sourceRecordId: `E2E-HISTORY-${index + 1}`,
+  sourceKey: `E2E-HISTORY-${index + 1}`,
+  snapshotPresence: "no_longer_present",
+  noLongerPresentAt: "2026-11-06T13:00:00.000Z",
+  evidenceStatus: "Retained historical workflow record",
+}));
+const records = [...tax, ...violations, ...history];
+const quote = String.fromCharCode(39);
+const literal = (value) => {
+  if (value === null || value === undefined) {
+    return "NULL";
+  }
+  if (typeof value === "number") {
+    return String(value);
+  }
+  return `${quote}${String(value).replaceAll(quote, quote + quote)}${quote}`;
+};
+const columns = [
+  "id",
+  "sale_type",
+  "signal_type",
+  "jurisdiction_id",
+  "jurisdiction_name",
+  "source_record_id",
+  "source_key",
+  "source_id",
+  "source_name",
+  "source_url",
+  "source_document_url",
+  "source_published_at",
+  "source_as_of_date",
+  "source_updated_at",
+  "source_good_through",
+  "source_kind",
+  "snapshot_presence",
+  "snapshot_id",
+  "no_longer_present_at",
+  "observed_at",
+  "event_date",
+  "scheduled_date",
+  "scheduled_time",
+  "status",
+  "apn",
+  "property_key",
+  "address",
+  "city",
+  "state",
+  "zip",
+  "assessor_address",
+  "assessor_city",
+  "assessor_state",
+  "assessor_zip",
+  "assessor_observed_at",
+  "assessor_source_url",
+  "item_number",
+  "minimum_bid_cents",
+  "delinquent_amount_cents",
+  "unpaid_balance_cents",
+  "principal_balance_cents",
+  "principal_as_of_date",
+  "trustee_sale_number",
+  "trustee_name",
+  "sale_verification_phone",
+  "sale_place",
+  "legal_description",
+  "owner_name",
+  "property_type",
+  "tax_year",
+  "tax_installment",
+  "tax_due_cents",
+  "penalty_due_cents",
+  "interest_due_cents",
+  "evidence_status",
+  "evidence_detail",
+  "evidence_updated_at",
+  "priority",
+  "raw_excerpt",
+  "first_seen_at",
+  "last_seen_at",
+  "updated_at",
+];
+const values = (record) => [
+  record.id,
+  record.saleType,
+  record.signalType,
+  record.jurisdictionId,
+  record.jurisdictionName,
+  record.sourceRecordId,
+  record.sourceKey,
+  record.sourceId,
+  record.sourceName,
+  record.sourceUrl,
+  record.sourceDocumentUrl,
+  record.sourcePublishedAt,
+  record.sourceAsOfDate,
+  record.sourceUpdatedAt,
+  record.sourceGoodThrough,
+  record.sourceKind,
+  record.snapshotPresence,
+  "e2e-snapshot",
+  record.noLongerPresentAt,
+  record.observedAt,
+  record.eventDate,
+  record.scheduledDate,
+  record.scheduledTime,
+  record.status,
+  record.apn,
+  record.propertyKey,
+  record.address,
+  record.city,
+  record.state,
+  record.zip,
+  record.assessorAddress,
+  record.assessorCity,
+  record.assessorState,
+  record.assessorZip,
+  record.assessorObservedAt,
+  record.assessorSourceUrl,
+  record.itemNumber,
+  record.minimumBidCents,
+  record.delinquentAmountCents,
+  record.unpaidBalanceCents,
+  record.principalBalanceCents,
+  record.principalAsOfDate,
+  record.trusteeSaleNumber,
+  record.trusteeName,
+  record.saleVerificationPhone,
+  record.salePlace,
+  record.legalDescription,
+  record.ownerName,
+  record.propertyType,
+  record.taxYear,
+  record.taxInstallment,
+  record.taxDueCents,
+  record.penaltyDueCents,
+  record.interestDueCents,
+  record.evidenceStatus,
+  record.evidenceDetail,
+  record.evidenceUpdatedAt,
+  record.priority,
+  record.rawExcerpt,
+  record.firstSeenAt,
+  record.lastSeenAt,
+  record.updatedAt,
+];
+const recordSql = records
+  .map(
+    (record) =>
+      `INSERT INTO foreclosure_records (${columns.join(",")}) VALUES (${values(record).map(literal).join(",")});`,
+  )
+  .join("\n");
+const runColumns = [
+  "id",
+  "refresh_job_id",
+  "source_id",
+  "source_name",
+  "source_url",
+  "trigger",
+  "status",
+  "started_at",
+  "finished_at",
+  "records_found",
+  "records_upserted",
+  "records_no_longer_present",
+  "source_updated_at",
+  "snapshot_complete",
+];
+const runs = [
   [
-    record.id,
-    record.saleType,
-    record.signalType,
-    record.jurisdictionId,
-    record.jurisdictionName,
-    record.sourceRecordId,
-    record.sourceKey,
-    record.sourceId,
-    record.sourceName,
-    record.sourceUrl,
-    record.sourceDocumentUrl,
-    record.sourcePublishedAt,
-    record.sourceAsOfDate,
-    record.observedAt,
-    record.eventDate,
-    record.scheduledDate,
-    record.scheduledTime,
-    record.status,
-    record.apn,
-    record.address,
-    record.city,
-    record.state,
-    record.zip,
-    record.assessorAddress,
-    record.assessorCity,
-    record.assessorState,
-    record.assessorZip,
-    record.assessorObservedAt,
-    record.assessorSourceUrl,
-    record.itemNumber,
-    record.minimumBidCents,
-    record.delinquentAmountCents,
-    record.unpaidBalanceCents,
-    record.trusteeSaleNumber,
-    record.trusteeName,
-    record.saleVerificationPhone,
-    record.salePlace,
-    record.legalDescription,
-    record.rawExcerpt,
-    record.firstSeenAt,
-    record.lastSeenAt,
-    record.updatedAt,
-  ]
-    .map(literal)
-    .join(",");
+    "e2e-tax",
+    "e2e-refresh",
+    "norfolk-delinquent-property-tax",
+    "City of Norfolk · Delinquent Property Taxes",
+    "https://data.norfolk.gov/api/views/7qie-z5gv/rows.csv?accessType=DOWNLOAD",
+    "bootstrap",
+    "success",
+    observedAt,
+    observedAt,
+    tax.length,
+    tax.length,
+    0,
+    sourceUpdatedAt,
+    1,
+  ],
+  [
+    "e2e-violations",
+    "e2e-refresh",
+    "norfolk-code-violations",
+    "City of Norfolk · Neighborhood Quality Violations",
+    "https://data.norfolk.gov/resource/agip-sqwc.json",
+    "bootstrap",
+    "success",
+    observedAt,
+    observedAt,
+    violations.length,
+    violations.length,
+    0,
+    "2026-11-06T12:16:24.000Z",
+    1,
+  ],
+];
+const runSql = runs
+  .map(
+    (run) =>
+      `INSERT INTO ingestion_runs (${runColumns.join(",")}) VALUES (${run.map(literal).join(",")});`,
+  )
+  .join("\n");
+const watchlistColumns = [
+  "property_key",
+  "jurisdiction_id",
+  "jurisdiction_name",
+  "parcel_id",
+  "address",
+  "city",
+  "state",
+  "zip",
+  "owner_name",
+  "property_type",
+  "score",
+  "signal_types",
+  "independent_signal_count",
+  "evidence_count",
+  "tax_installment_count",
+  "code_violation_count",
+  "recorded_lien_count",
+  "total_delinquent_cents",
+  "earliest_tax_year",
+  "freshest_source_updated_at",
+  "first_seen_at",
+  "last_seen_at",
+  "source_names",
+  "ranked_at",
+];
+const watchlist = [
+  [
+    "norfolk-va:15834200",
+    "norfolk-va",
+    "Norfolk, VA",
+    "15834200",
+    "2800 VIMY RIDGE AV",
+    "Norfolk",
+    "VA",
+    null,
+    "GARRIS, LEONDER P & HERMINE E",
+    "Real estate",
+    86,
+    "tax_delinquency,code_violation",
+    2,
+    3,
+    2,
+    1,
+    0,
+    120071,
+    2025,
+    sourceUpdatedAt,
+    observedAt,
+    observedAt,
+    "City of Norfolk · Delinquent Property Taxes,City of Norfolk · Neighborhood Quality Violations",
+    observedAt,
+  ],
+  [
+    "norfolk-va:00000218",
+    "norfolk-va",
+    "Norfolk, VA",
+    "00000218",
+    "E S TAPLEY AV",
+    "Norfolk",
+    "VA",
+    null,
+    "HOMES ASSOCIATION OF NORFOLK, INC",
+    "Real estate",
+    45,
+    "tax_delinquency",
+    1,
+    4,
+    4,
+    0,
+    0,
+    39810,
+    2006,
+    sourceUpdatedAt,
+    observedAt,
+    observedAt,
+    "City of Norfolk · Delinquent Property Taxes",
+    observedAt,
+  ],
+];
+const watchlistSql = watchlist
+  .map(
+    (row) =>
+      `INSERT INTO watchlist_properties (${watchlistColumns.join(",")}) VALUES (${row.map(literal).join(",")});`,
+  )
+  .join("\n");
 const sql = `
+DELETE FROM foreclosure_record_staging;
+DELETE FROM watchlist_properties;
 DELETE FROM ingestion_runs;
 DELETE FROM refresh_jobs;
 DELETE FROM foreclosure_records;
-INSERT INTO refresh_jobs (id, trigger, status, requested_at, started_at, finished_at)
-VALUES ('e2e-refresh', 'bootstrap', 'success', '${observedAt}', '${observedAt}', '${observedAt}');
-INSERT INTO ingestion_runs (id, refresh_job_id, source_id, source_name, source_url, trigger, status, started_at, finished_at, records_found, records_upserted)
-VALUES
-('e2e-three-year', 'e2e-refresh', 'oc-three-year-tax-delinquency', 'Orange County Treasurer-Tax Collector · Three-Year Delinquency', 'https://www.octreasurer.gov/PublishedNotices', 'bootstrap', 'partial', '${observedAt}', '${observedAt}', ${threeYear.length}, ${threeYear.length}),
-('e2e-power', 'e2e-refresh', 'oc-impending-power-to-sell', 'Orange County Treasurer-Tax Collector · Impending Power to Sell', 'https://www.octreasurer.gov/PublishedNotices', 'bootstrap', 'partial', '${observedAt}', '${observedAt}', ${powerToSell.length}, ${powerToSell.length}),
-('e2e-tax', 'e2e-refresh', 'la-ttc-tax-auction', 'LA County Treasurer and Tax Collector', 'https://ttc.lacounty.gov/schedule-of-upcoming-auctions/', 'bootstrap', 'success', '${observedAt}', '${observedAt}', ${tax.length}, ${tax.length}),
-('e2e-trustee', 'e2e-refresh', 'cnpa-trustee-notices', 'CNPA Public Notices', 'https://www.capublicnotice.com/category/legals/notice-of-trustee-sale', 'bootstrap', 'partial', '${observedAt}', '${observedAt}', ${trustee.length}, ${trustee.length});
-${records
-  .map(
-    (record) => `INSERT INTO foreclosure_records (
- id, sale_type, signal_type, jurisdiction_id, jurisdiction_name, source_record_id,
- source_key, source_id, source_name, source_url, source_document_url, source_published_at,
- source_as_of_date, observed_at, event_date, scheduled_date, scheduled_time, status, apn,
- address, city, state, zip, assessor_address, assessor_city, assessor_state, assessor_zip,
- assessor_observed_at, assessor_source_url, item_number, minimum_bid_cents,
- delinquent_amount_cents, unpaid_balance_cents, trustee_sale_number, trustee_name,
- sale_verification_phone, sale_place, legal_description, raw_excerpt, first_seen_at,
- last_seen_at, updated_at
-) VALUES (${recordValues(record)});`,
-  )
-  .join("\n")}
+INSERT INTO refresh_jobs (id,trigger,status,requested_at,started_at,finished_at)
+VALUES (${["e2e-refresh", "bootstrap", "success", observedAt, observedAt, observedAt].map(literal).join(",")});
+${runSql}
+${recordSql}
+${watchlistSql}
 `;
 const seedDirectory = new URL("../.results/", import.meta.url);
 await mkdir(seedDirectory, { recursive: true });

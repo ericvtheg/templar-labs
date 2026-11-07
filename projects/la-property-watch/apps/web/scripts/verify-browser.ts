@@ -85,53 +85,66 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(origin);
-      await expect(page.getByRole("heading", { name: "Property observations" })).toBeVisible();
-      const response = await context.request.get(`${origin}/api/research/data`);
+      await expect(page.getByRole("heading", { name: /Find distress earlier/ })).toBeVisible();
+      const params = new URLSearchParams({
+        jurisdiction: "norfolk-va",
+        signal: "code_violation",
+      });
+      const response = await context.request.get(`${origin}/api/research/data?${params}`);
       assert.equal(response.status(), 200);
       const data = (await response.json()) as {
-        records: Array<{
-          signalType: string;
-          sourceRecordId: string;
-          sourceUrl: string;
+        properties: Array<{
+          propertyKey: string;
+          parcelId: string | null;
+          address: string | null;
+          score: number;
         }>;
+        page: { total: number };
       };
-      const record = data.records.find(
-        (candidate) => candidate.signalType === "power_to_sell" && candidate.sourceRecordId,
-      );
       assert(
-        record?.sourceRecordId,
-        "Need a persisted real power-to-sell record for UI verification",
+        data.page.total > 0,
+        "Need a persisted ranked Norfolk code property for UI verification",
       );
-      await page.getByLabel("Search records").fill(record.sourceRecordId);
-      await page.getByRole("button").filter({ hasText: record.sourceRecordId }).first().click();
+      const property = data.properties[0];
+      assert(property, "Ranked property page was empty");
+      const detailResponse = await context.request.get(
+        `${origin}/api/research/properties/${encodeURIComponent(property.propertyKey)}?evidencePage=1&evidencePageSize=10`,
+      );
+      assert.equal(detailResponse.status(), 200);
+      const detail = (await detailResponse.json()) as {
+        evidence: Array<{ sourceUrl: string; snapshotPresence: string }>;
+        evidenceTotal: number;
+      };
+      assert(detail.evidence[0]?.sourceUrl, "Ranked property evidence lacked source provenance");
+      assert.equal(detail.evidence[0]?.snapshotPresence, "present");
+      await page
+        .getByLabel("Search properties")
+        .fill(property.parcelId ?? property.address ?? property.propertyKey);
+      await page.getByRole("button", { name: "Search" }).click();
+      await page.locator(".property-row").first().click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
+      await expect(dialog.getByText("Present in latest complete snapshot").first()).toBeVisible();
+      await expect(dialog.getByText(/deterministic prioritization/)).toBeVisible();
       await expect(
-        dialog.getByText("No auction date is represented by this signal."),
-      ).toBeVisible();
-      await expect(dialog.getByRole("link", { name: "Open source", exact: true })).toHaveAttribute(
-        "href",
-        record.sourceUrl,
-      );
+        dialog.getByRole("link", { name: "Open source", exact: true }).first(),
+      ).toHaveAttribute("href", detail.evidence[0].sourceUrl);
       assert(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         "Horizontal viewport overflow",
       );
-      await page.screenshot({
-        path: `test/.results/production/detail-${viewport.width}.png`,
-      });
+      await page.screenshot({ path: `test/.results/production/detail-${viewport.width}.png` });
       await page.getByRole("button", { name: "Close details" }).click();
-      await page.getByLabel("Search records").fill("");
-      await page.screenshot({
-        path: `test/.results/production/dashboard-${viewport.width}.png`,
-      });
+      await page.getByLabel("Search properties").fill("");
+      await page.getByRole("button", { name: "Search" }).click();
+      await page.screenshot({ path: `test/.results/production/dashboard-${viewport.width}.png` });
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
       await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
       assert.deepEqual(errors, [], "Unexpected browser JavaScript errors");
       await context.close();
     }
     console.log(
-      "Production browser checks passed: anonymous/denied access, authorized desktop/mobile, real persisted record search/details/source link, no horizontal overflow, sign-out, no JavaScript errors.",
+      "Production browser checks passed: anonymous/denied access, authorized desktop/mobile, ranked current-property search, current-first evidence provenance, no horizontal overflow, sign-out, and no JavaScript errors.",
     );
   } finally {
     await browser.close();

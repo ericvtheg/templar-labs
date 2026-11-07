@@ -1,0 +1,19 @@
+[
+  {
+    "violation_id": "VI-0168795",
+    "gpin": "1438649591",
+    "tax_account": "15834200",
+    "address": "2800 VIMY RIDGE AVENUE",
+    "latitude": "36.87146462",
+    "longitude": "-76.26377382",
+    "ward": "3.0",
+    "superward": "7.0",
+    "civic_league": "Fairmount Park",
+    "created_date": "2026-01-05T21:45:20.000",
+    "last_modified_date": "2026-11-05T21:58:23.000",
+    "abatement_date": "2026-02-05T00:00:00.000",
+    "status": "Work in Progress",
+    "ordinance": "103.2.3 Responsibility.",
+    "department": "Neighborhood Services"
+  }
+]

@@ -1,54 +1,78 @@
-# Property Watch live-source research
+# Property Watch source research
 
-Evidence below was verified with actual public-source fetches on 2026-11-06 UTC. Counts describe what the parsers observed on that date; they are not claims of complete county coverage or current delinquency/foreclosure status.
+Read-only live checks were run on 2026-11-07 UTC. Counts below are parser observations, not claims of complete market coverage or present legal status.
 
-## Orange County Treasurer-Tax Collector published notices
+## Travis County delinquent tax roll
 
-Landing page: <https://www.octreasurer.gov/PublishedNotices>
+- Data: <https://tax-office.traviscountytx.gov/voterdata/TaxDelqOpenData.csv>
+- Layout: <https://tax-office.traviscountytx.gov/pages/DelinquentFileLayout.php>
+- Observed: 7,249 validated real-property records.
+- Publisher update: `2026-11-05T19:18:26Z` from the HTTP `Last-Modified` header.
+- Identity: exact 14-digit account number, jurisdiction-scoped as `travis-county-tx:<account>`.
+- Amount: source delinquent total in exact integer cents. Real-property type categories are retained; personal, utility, and mineral categories are excluded visibly.
+- Snapshot contract: complete. Absence after a later complete successful import becomes `no_longer_present`, not “paid.”
 
-The ingestion adapters discover the newest PDF inside the applicable official table row on this page. They do not pin the current document forever.
+## Norfolk delinquent property taxes
 
-### Three-Year Delinquency (R&T Code 3371)
+- Data: <https://data.norfolk.gov/api/views/7qie-z5gv/rows.csv?accessType=DOWNLOAD>
+- Metadata: <https://data.norfolk.gov/api/views/7qie-z5gv>
+- Observed: 29,104 installment rows across 5,044 literal PINs.
+- Publisher update: `2026-11-06T12:27:31Z`.
+- Identity: the source PIN must be exactly eight digits. Short, empty, or otherwise malformed values fail ingestion; they are never zero-padded or repaired. Installment identity also includes billing account, tax year, and quarter.
+- Amount: tax, penalty, and interest parse independently to safe integer cents and must equal the published total exactly. CSV quote transitions and comma grouping are strict.
+- Ranking: installment evidence rolls up once by PIN. Property totals sum only tax-delinquency evidence, so joining a code record cannot multiply debt.
+- Snapshot contract: complete; absence is not proof of resolution.
 
-- Current PDF observed: <https://www.octreasurer.gov/sites/ttc/files/2026-09/Property%20TaxDefault%20List%202026.pdf>
-- Observed records: 4.
-- Tax-default event published by the county: 2023-07-01, covering fiscal year 2022-2023 delinquency.
-- First publication date: 2026-09-07; the notice also states September 14 and 21.
-- Amount as-of date: 2026-09-30.
-- Addresses: all four say “Address Not Available.”
-- Scope limitation: the county explicitly says this list includes only parcels whose latest delinquency reminder was returned as undeliverable. It is not the complete Orange County delinquency roll.
-- Identifier limitation: the current `unpdf` extraction emits the first literal parcel ID as `899-283 -45.00`. The application preserves that exact source value and leaves its normalized parcel ID null. It does not silently remove the malformed space. The other three IDs match accepted OC source forms.
-- The notice describes a payment-plan/redemption path and a conditional future eligibility threshold. It does not publish a scheduled auction date, and the application does not create one.
+## Norfolk neighborhood quality violations
 
-### Notice of Impending Power to Sell (R&T Code 3361-3362)
+- Data: <https://data.norfolk.gov/resource/agip-sqwc.json>
+- Metadata: <https://data.norfolk.gov/api/views/agip-sqwc.json>
+- Observed: 6,532 non-closed workflow rows.
+- Publisher update: `2026-11-06T12:16:24Z`.
+- Identity and join: violation ID is the evidence identity. Only an exact eight-digit `tax_account` joins the tax property. Missing or malformed accounts remain under an explicit unmatched property key with the literal source value in evidence detail.
+- Status: publisher workflow text is preserved. Unknown non-closed statuses are labeled for review rather than silently discarded.
+- Snapshot contract: complete; absent rows become no longer present without a resolution claim.
 
-- Current PDF observed: <https://www.octreasurer.gov/sites/ttc/files/2026-09/PTS-List-Published-June2026.pdf>
-- Observed records: 184 unique literal parcel IDs, despite item numbering extending to No. 208 with gaps.
-- Published addresses recognized conservatively: 120; the remaining 64 say “Address Not Available” and remain null.
-- Executed: 2026-05-26.
-- First publication date: 2026-06-01; the notice also states June 8 and 15.
-- Amount as-of date: 2026-06-30.
-- Statutory power-to-sell date: 2026-07-01.
-- Limitation: power to sell is not an auction date. The notice is a historical snapshot and does not establish whether a parcel was later redeemed, remained eligible, or was scheduled/sold. Current outcome remains unverified.
+## NYC ACRIS common-charge lien events
 
-The two-column PDF text interleaves item numbers. Parsing is bounded by each `NO.` marker, strict `NNN-NNN-NN` parcel form, and the published amount. The live check recognized exactly 184 records and 184 unique source parcel IDs.
+- Master data: <https://data.cityofnewyork.us/resource/bnx9-e6tj.json>
+- Legal/property data: <https://data.cityofnewyork.us/resource/8h5j-fqxa.json>
+- Metadata: <https://data.cityofnewyork.us/api/views/bnx9-e6tj>
+- Scope: LOCC and TOLCC recording events in a rolling two-year window starting on the first day of the month two years before the run.
+- Observed: 5,083 validated document/property evidence records.
+- Dataset update: `2026-10-08T20:09:15Z`.
+- Declared coverage: live rows carry monthly `good_through_date` values. The observed event window ranged from `2024-11-30` through `2026-09-30`. Each evidence row stores and displays its own validated literal date; the loader does not infer coverage from the latest event date or assign the newest watermark to older rows.
+- Validation: document IDs are exactly 16 digits; LOCC/TOLCC types are enforced; calendar dates and local timestamps are validated; borough must be 1–5 and block/lot must be positive literal numeric components before a BBL is formed. Invalid BBL components remain unmatched and are not padded into a valid-looking parcel.
+- Relationship limitation: TOLCC is a termination recording event. The public rows do not provide a safe universal mapping that proves every LOCC on the same BBL was released, so one termination never suppresses every lien at a property.
+- Snapshot contract: `false`. The rolling window is append/update event evidence, not an outstanding-lien roll; window exclusion never reconciles older evidence away.
+- Operational observation: the complete master plus legal-property join took about 330 seconds through bounded groups of 50 document IDs. Requests are sequential to reduce publisher load and retry only transient status codes.
 
-## Existing Los Angeles County sources
+## Denver Public Trustee foreclosure search
 
-### Treasurer and Tax Collector auction book
+- Search: <https://denvergov.org/foreclosuresearch/>
+- Scope: explicit rolling 90 Denver-calendar-day NED window, inclusive, all source statuses, with complete postback pagination.
+- Observed: 192 records across eight pages: 153 NED Recorded, 15 Intent to Cure Filed, 3 Bankruptcy Sale Stayed (Restart Needed), 1 To be Withdrawn, 16 Withdrawn, and 4 Withdrawn (Cured).
+- Signal: a Notice of Election and Demand is modeled as `mortgage_foreclosure_initiated`, not a scheduled sale prediction. Bankruptcy-stayed cases retain that label and are not called imminent sales.
+- Priority: Withdrawn, cured, rescinded, deeded, sold, and to-be-withdrawn statuses remain evidence but receive zero active ranking priority.
+- Identity: search rows do not publish an authoritative parcel number. The case ID remains an explicit unmatched property identity; no APN is fabricated or address-fuzzy-joined.
+- Money: published principal is stored separately from tax delinquency, arrears, cure, reinstatement, and payoff. It never enters reported delinquent-tax totals.
+- Freshness: the registry does not publish a dataset update timestamp, so `sourceUpdatedAt` remains null. Fetch observation time is not relabeled as publisher freshness.
+- Access constraint: Denver Terms of Use state that commercial use requires written permission. Permission is an unresolved production/commercialization blocker and is visible in source warnings and the UI.
+- Adapter safety: verification challenges stop the run. The adapter does not populate, solve, or bypass a challenge.
 
-Source: <https://ttc.lacounty.gov/schedule-of-upcoming-auctions/>
+## Secondary historical archive
 
-On 2026-11-06 the live adapter followed the current official auction-book PDF and recognized 1,252 scheduled-tax-sale records. This is a later-stage sale publication, not an early distress feed. Published dates can be historical, postponed, redeemed, or otherwise stale.
+Orange County three-year delinquency and impending-power-to-sell publications, the Los Angeles County tax auction book, and bounded CNPA trustee-sale RSS remain supported as secondary historical evidence. They preserve literal source identifiers, dates, amounts, and provenance but do not rank in the default current watchlist. Power to sell is not an auction date, and published sale notices can later be redeemed, postponed, cancelled, or completed.
 
-### CNPA trustee-sale notices
+## Publication, ranking, and retention invariants
 
-Source: <https://www.capublicnotice.com/category/legals/notice-of-trustee-sale/rss.xml?county=Los%20Angeles&size=100>
+- Source records stage under an ingestion-run ID. A successful D1 batch publishes staged evidence, complete-snapshot reconciliation, the entire watchlist generation, ingestion success, and staging cleanup atomically.
+- A failed load or persistence batch deletes staging rows and leaves live evidence, membership, amounts, and rankings unchanged.
+- Ranking uses only current, present, positive-priority evidence. Removed and zero-priority evidence remains accessible in property history and in the all-watchlist evidence export.
+- Property detail is current-first and deterministically paginated. A property that loses its final current signal remains accessible by its retained evidence key with score zero.
+- Freshness score and explanation use the same persisted ranking clock and exact timestamp arithmetic: 2-day, 7-day, and 30-day buckets.
+- The CSV export keyset-pages evidence IDs for one ranking generation, has no 100,000-row cutoff, neutralizes spreadsheet formulas, and aborts if publication changes during export.
 
-On 2026-11-06 the bounded RSS fetch recognized 15 LA County trustee-sale notices and rejected 7 items missing required provenance/county evidence or duplicated by source ID. These are scheduled trustee-sale notices, not notice-of-default records. The feed may contain out-of-county items; strict LA recorder evidence remains mandatory.
+## Known coverage gaps
 
-## Coverage gaps
-
-No accessible, ingestible public source was verified for mechanic liens, HOA liens, or utility liens in the current markets. The UI reports those as unavailable coverage. It never treats missing source coverage as evidence that a lien does not exist.
-
-No contact enrichment, homeowner lookup, paid service, CAPTCHA bypass, or outreach capability was introduced.
+No verified accessible source is integrated for nationwide mechanic liens, utility liens, or comprehensive HOA outstanding balances. ACRIS covers NYC common-charge recording events only. Absence from Property Watch never means no lien, debt, violation, default, or foreclosure exists. No paid service, CAPTCHA bypass, contact lookup, or outreach system is included.

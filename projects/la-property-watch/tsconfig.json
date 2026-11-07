@@ -1,4 +1,7 @@
 {
   "extends": "@templar/tsconfig/node-script",
-  "include": ["alchemy.run.ts", "db/**/*.ts", "scripts/**/*.ts"]
+  "include": ["alchemy.run.ts", "db/**/*.ts", "scripts/**/*.ts"],
+  "compilerOptions": {
+    "types": ["node", "@cloudflare/workers-types"]
+  }
 }

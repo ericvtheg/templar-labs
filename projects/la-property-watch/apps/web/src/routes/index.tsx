@@ -17,11 +17,13 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { loadApp } from "../lib/functions.ts";
 import {
   type DashboardData,
   formatParcelId,
+  type PropertyDetail as PropertyDetailData,
+  type RankedProperty,
   type ResearchRecord,
   type SignalType,
 } from "../lib/model.ts";
@@ -108,61 +110,69 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   const [query, setQuery] = useState("");
   const [signalType, setSignalType] = useState<"all" | SignalType>("all");
   const [jurisdiction, setJurisdiction] = useState("all");
-  const [status, setStatus] = useState<"all" | ResearchRecord["status"]>("all");
-  const [selected, setSelected] = useState<ResearchRecord | null>(null);
+  const [selected, setSelected] = useState<PropertyDetailData | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
   const [refreshState, setRefreshState] = useState<"idle" | "queueing" | "running">("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
 
-  const jurisdictions = useMemo(
-    () =>
-      [...new Map(data.records.map((record) => [record.jurisdictionId, record.jurisdictionName]))]
-        .map(([id, name]) => ({ id, name }))
-        .toSorted((left, right) => left.name.localeCompare(right.name)),
-    [data.records],
-  );
+  const pageEvidence = data.properties.reduce((sum, property) => sum + property.evidenceCount, 0);
+  const healthySources = data.sources.filter((source) => source.status === "success").length;
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return data.records.filter((record) => {
-      if (signalType !== "all" && record.signalType !== signalType) {
-        return false;
+  async function loadPage(
+    page = 1,
+    overrides: Partial<{ signal: SignalType | "all"; jurisdiction: string }> = {},
+  ) {
+    setListLoading(true);
+    try {
+      const selectedSignal = overrides.signal ?? signalType;
+      const selectedJurisdiction = overrides.jurisdiction ?? jurisdiction;
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: "50",
+        query: query.trim(),
+        signal: selectedSignal,
+        jurisdiction: selectedJurisdiction,
+      });
+      const response = await fetch(`/api/research/data?${params}`, { credentials: "same-origin" });
+      if (!response.ok) {
+        throw new Error("Could not load the ranked property list.");
       }
-      if (jurisdiction !== "all" && record.jurisdictionId !== jurisdiction) {
-        return false;
-      }
-      if (status !== "all" && record.status !== status) {
-        return false;
-      }
-      if (!needle) {
-        return true;
-      }
-      return [
-        record.address,
-        record.city,
-        record.zip,
-        record.apn,
-        record.sourceRecordId,
-        formatParcelId(record.apn, record.jurisdictionId),
-        record.jurisdictionName,
-        record.trusteeSaleNumber,
-        record.itemNumber,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(needle));
-    });
-  }, [data.records, jurisdiction, query, signalType, status]);
+      setData((await response.json()) as DashboardData);
+    } catch (cause) {
+      setNotice(
+        cause instanceof Error ? cause.message : "Could not load the ranked property list.",
+      );
+    } finally {
+      setListLoading(false);
+    }
+  }
 
-  const counts = useMemo(
-    () => ({
-      early: data.records.filter((record) => record.signalType === "tax_delinquency").length,
-      power: data.records.filter((record) => record.signalType === "power_to_sell").length,
-      scheduled: data.records.filter((record) => record.signalType.startsWith("scheduled_")).length,
-      markets: new Set(data.records.map((record) => record.jurisdictionId)).size,
-    }),
-    [data.records],
-  );
+  async function loadEvidencePage(propertyKey: string, page = 1) {
+    setDetailLoading(true);
+    setNotice(null);
+    try {
+      const params = new URLSearchParams({ evidencePage: String(page), evidencePageSize: "50" });
+      const response = await fetch(
+        `/api/research/properties/${encodeURIComponent(propertyKey)}?${params}`,
+        { credentials: "same-origin" },
+      );
+      if (!response.ok) {
+        throw new Error("Could not load property evidence.");
+      }
+      setSelected((await response.json()) as PropertyDetailData);
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : "Could not load property evidence.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function openProperty(property: RankedProperty) {
+    await loadEvidencePage(property.propertyKey, 1);
+  }
 
   async function refresh() {
     setNotice(null);
@@ -176,15 +186,13 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       if (!response.ok || !body.job) {
         throw new Error(body.error ?? "Refresh could not be queued.");
       }
-      setNotice(
-        "Refresh queued. The import runner checks about every 15 minutes; scheduling delays are possible.",
-      );
+      setNotice("Refresh queued. The protected runner checks queued work throughout the day.");
       setRefreshState("running");
       const completed = await pollRefresh(body.job.id, setData);
       setNotice(
         completed
-          ? "Source refresh finished. The workspace now reflects the latest successful observations."
-          : "Refresh is queued or running in the background. Reload to see its progress.",
+          ? "Refresh finished. Rankings now use the latest complete source snapshots."
+          : "Refresh remains queued or running. Reload later for its result.",
       );
     } catch (cause) {
       setNotice(cause instanceof Error ? cause.message : "Refresh could not be queued.");
@@ -214,20 +222,20 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
           </form>
         </div>
       </header>
-
       <main>
         <section className="hero">
           <div>
-            <p className="eyebrow">Multi-market · Source intelligence</p>
+            <p className="eyebrow">Current official signals · Property ranked</p>
             <h1>
               Find distress earlier,
               <br />
-              <em>with the paper trail.</em>
+              <em>with exact evidence.</em>
             </h1>
             <p className="hero-copy">
-              Start with tax delinquency and statutory power-to-sell signals, then follow later
-              notices and sale events without treating a lien or delinquency as imminent
-              foreclosure.
+              Current tax delinquencies, open municipal violations, recorded association liens, and
+              mortgage foreclosure initiations are grouped conservatively by jurisdiction-scoped
+              property identity. Scores explain prioritization; they are not foreclosure
+              probabilities.
             </p>
           </div>
           <div className="hero-actions">
@@ -249,75 +257,78 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                   : "Refresh sources"}
             </button>
             <a className="button secondary" href="/api/research/export.csv">
-              <Download size={17} /> Export CSV
+              <Download size={17} /> Export evidence CSV
             </a>
-            <p>Sources run independently with bounded downloads and explicit observation dates.</p>
+            <p>
+              Only complete successful snapshots remove records from the current view. Disappearance
+              never means paid or resolved.
+            </p>
           </div>
         </section>
-
         {notice ? (
           <div className="notice" role="status">
             <Clock3 size={17} />
             {notice}
           </div>
         ) : null}
-
-        <section className="metric-grid" aria-label="Record summary">
-          <Metric label="3-year tax delinquency" value={counts.early} icon={<Clock3 size={18} />} />
+        <section className="metric-grid" aria-label="Watchlist summary">
           <Metric
-            label="Power-to-sell notices"
-            value={counts.power}
+            label="Ranked current properties"
+            value={data.page.total}
             icon={<Building2 size={18} />}
           />
+          <Metric label="Evidence on this page" value={pageEvidence} icon={<Layers3 size={18} />} />
           <Metric
-            label="Published sale events"
-            value={counts.scheduled}
+            label="Healthy latest source runs"
+            value={healthySources}
+            icon={<CheckCircle2 size={18} />}
+          />
+          <Metric
+            label="Secondary archive records"
+            value={data.archiveTotal}
             icon={<CalendarDays size={18} />}
           />
-          <Metric
-            label="Market jurisdictions"
-            value={counts.markets}
-            icon={<Layers3 size={18} />}
-          />
         </section>
-
         <section className="coverage-strip" aria-label="Source coverage">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">Coverage map</p>
-              <h2>What this workspace can see</h2>
+              <p className="eyebrow">Current coverage</p>
+              <h2>What is ranked</h2>
             </div>
-            <span>Coverage is source-specific, not statewide</span>
+            <span>Coverage is source-specific, not nationwide</span>
           </div>
           <div className="coverage-grid">
             <article>
-              <strong>Orange County · earlier tax distress</strong>
+              <strong>Travis County + Norfolk · tax</strong>
               <p>
-                Three-year delinquency and impending power-to-sell publications. Both are historical
-                snapshots; neither is a scheduled auction.
+                Daily official delinquency snapshots. Norfolk installments roll up once per property
+                while every component remains evidence.
               </p>
             </article>
             <article>
-              <strong>Los Angeles County · later stages</strong>
-              <p>Official tax-auction lists and published mortgage trustee-sale notices.</p>
-            </article>
-            <article className="coverage-gap">
-              <strong>Known gaps</strong>
+              <strong>Norfolk · municipal code</strong>
               <p>
-                No ingestible public mechanic-lien, HOA-lien, or utility-lien source has been
-                verified. Missing coverage does not mean no lien exists.
+                Open workflow records join only on the exact tax-account key. Unmatched violations
+                remain separate, never fuzzy-merged.
+              </p>
+            </article>
+            <article>
+              <strong>Denver + NYC · filings</strong>
+              <p>
+                Denver NED foreclosure initiations and monthly NYC common-charge lien recordings.
+                Denver registry use requires permission under its Terms of Use before
+                commercialization.
               </p>
             </article>
           </div>
         </section>
-
         <section className="source-strip" aria-label="Source status">
           <div className="section-heading">
             <div>
               <p className="eyebrow">Operations</p>
-              <h2>Source status</h2>
+              <h2>Source freshness and failures</h2>
             </div>
-            <span>Generated {formatTimestamp(data.generatedAt)}</span>
+            <span>Fetched and source-updated timestamps are distinct</span>
           </div>
           <div className="source-grid">
             {data.sources.length === 0 ? (
@@ -332,12 +343,22 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                   <div>
                     <h3>{source.sourceName}</h3>
                     <p>
-                      {source.recordsUpserted.toLocaleString()} records · {source.status}
+                      {source.recordsUpserted.toLocaleString()} evidence rows · {source.status}
                     </p>
                     <small>
-                      {source.finishedAt
-                        ? `Finished ${formatTimestamp(source.finishedAt)}`
-                        : "Run in progress"}
+                      Fetched{" "}
+                      {source.finishedAt ? formatTimestamp(source.finishedAt) : "in progress"}
+                    </small>
+                    <small>
+                      Source updated{" "}
+                      {source.sourceUpdatedAt
+                        ? formatTimestamp(source.sourceUpdatedAt)
+                        : "not published"}
+                    </small>
+                    <small>
+                      {source.snapshotComplete
+                        ? `${source.recordsNoLongerPresent} no longer present after complete snapshot`
+                        : "Snapshot not reconciled as complete"}
                     </small>
                     {source.error ? <small className="source-warning">{source.error}</small> : null}
                   </div>
@@ -354,40 +375,52 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
             )}
           </div>
         </section>
-
         <section className="records-section">
           <div className="section-heading records-heading">
             <div>
-              <p className="eyebrow">Research file</p>
-              <h2>Property observations</h2>
+              <p className="eyebrow">Ranked watchlist</p>
+              <h2>Current property signals</h2>
             </div>
-            <span>{filtered.length.toLocaleString()} shown</span>
+            <span>
+              {data.page.total.toLocaleString()} properties · page {data.page.page} of{" "}
+              {data.page.totalPages}
+            </span>
           </div>
-          <div className="filters">
+          <form
+            className="filters current-filters"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void loadPage(1);
+            }}
+          >
             <label className="search-field">
               <Search size={17} />
-              <span className="sr-only">Search records</span>
+              <span className="sr-only">Search properties</span>
               <input
-                aria-label="Search records"
+                aria-label="Search properties"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search address, parcel ID, source record…"
+                placeholder="Search situs address, parcel ID, market…"
               />
             </label>
             <label>
-              <span className="sr-only">Signal stage</span>
+              <span className="sr-only">Signal type</span>
               <select
-                aria-label="Signal stage"
+                aria-label="Signal type"
                 value={signalType}
-                onChange={(event) => setSignalType(event.target.value as typeof signalType)}
+                onChange={(event) => {
+                  const value = event.target.value as SignalType | "all";
+                  setSignalType(value);
+                  void loadPage(1, { signal: value });
+                }}
               >
-                <option value="all">All signal stages</option>
-                <option value="tax_delinquency">Tax delinquency · early</option>
-                <option value="power_to_sell">Power to sell · statutory</option>
-                <option value="notice_of_default">Notice of default</option>
+                <option value="all">All current signals</option>
+                <option value="tax_delinquency">Tax delinquency</option>
+                <option value="code_violation">Open code workflow</option>
                 <option value="recorded_lien">Recorded lien</option>
-                <option value="scheduled_trustee_sale">Scheduled trustee sale</option>
-                <option value="scheduled_tax_sale">Scheduled tax sale</option>
+                <option value="mortgage_foreclosure_initiated">
+                  Mortgage foreclosure initiated
+                </option>
               </select>
             </label>
             <label>
@@ -395,74 +428,360 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
               <select
                 aria-label="Market jurisdiction"
                 value={jurisdiction}
-                onChange={(event) => setJurisdiction(event.target.value)}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setJurisdiction(value);
+                  void loadPage(1, { jurisdiction: value });
+                }}
               >
-                <option value="all">All markets</option>
-                {jurisdictions.map((market) => (
-                  <option value={market.id} key={market.id}>
-                    {market.name}
-                  </option>
-                ))}
+                <option value="all">All current markets</option>
+                <option value="travis-county-tx">Travis County, TX</option>
+                <option value="norfolk-va">Norfolk, VA</option>
+                <option value="denver-co">Denver, CO</option>
+                <option value="nyc-ny">New York City, NY</option>
               </select>
             </label>
-            <label>
-              <span className="sr-only">Published status</span>
-              <select
-                aria-label="Published status"
-                value={status}
-                onChange={(event) => setStatus(event.target.value as typeof status)}
-              >
-                <option value="all">All statuses</option>
-                <option value="signal_status_unverified">Historical signal</option>
-                <option value="scheduled_as_published">Future date published</option>
-                <option value="past_outcome_unverified">Past · outcome unverified</option>
-                <option value="date_not_found">Sale date not found</option>
-              </select>
-            </label>
-          </div>
-
-          {filtered.length === 0 ? (
+            <button className="button secondary" type="submit" disabled={listLoading}>
+              {listLoading ? "Loading…" : "Search"}
+            </button>
+          </form>
+          {data.properties.length === 0 ? (
             <div className="empty-state">
               <FileSearch2 size={30} />
               <h3>
-                {data.records.length === 0
-                  ? "No live observations yet"
-                  : "No records match these filters"}
+                {data.page.total === 0
+                  ? "No current ranked properties yet"
+                  : "No properties on this page"}
               </h3>
               <p>
-                {data.records.length === 0
-                  ? "Run a protected source refresh to import public-source observations. Production never starts with fictional records."
-                  : "Try a broader address, parcel ID, signal stage, market, or status."}
+                Run a protected refresh or broaden the server-side filters. Production starts empty
+                and never seeds fictional customer data.
               </p>
             </div>
           ) : (
-            <div className="record-list">
-              {filtered.map((record) => (
-                <RecordRow key={record.id} record={record} onOpen={() => setSelected(record)} />
+            <div className="property-list">
+              {data.properties.map((property) => (
+                <PropertyRow
+                  key={property.propertyKey}
+                  property={property}
+                  onOpen={() => void openProperty(property)}
+                  loading={detailLoading}
+                />
               ))}
             </div>
           )}
+          <nav className="pagination" aria-label="Property pages">
+            <button
+              className="button secondary"
+              type="button"
+              disabled={listLoading || data.page.page <= 1}
+              onClick={() => void loadPage(data.page.page - 1)}
+            >
+              Previous
+            </button>
+            <span>
+              Page {data.page.page} of {data.page.totalPages}
+            </span>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={listLoading || data.page.page >= data.page.totalPages}
+              onClick={() => void loadPage(data.page.page + 1)}
+            >
+              Next
+            </button>
+          </nav>
         </section>
-
+        <details className="archive-section">
+          <summary>
+            Secondary historical auction and notice archive · {data.archiveTotal.toLocaleString()}{" "}
+            records
+          </summary>
+          <p>
+            These records remain accessible for context but do not drive the default current
+            watchlist ranking.
+          </p>
+          <div className="archive-list">
+            {data.archiveRecords.map((record) => (
+              <a key={record.id} href={record.sourceUrl} target="_blank" rel="noreferrer">
+                <span>
+                  {signalLabel(record.signalType)} · {record.jurisdictionName}
+                </span>
+                <strong>{record.address ?? record.assessorAddress ?? record.sourceRecordId}</strong>
+                <small>
+                  {formatRecordDate(record)} · {record.sourceName}
+                </small>
+              </a>
+            ))}
+          </div>
+        </details>
         <section className="disclaimer">
           <TriangleAlert size={20} />
           <div>
-            <strong>Distress signal, not foreclosure prediction.</strong>
+            <strong>Prioritization, not foreclosure prediction.</strong>
             <p>
-              Delinquency, lien, default, and power-to-sell records do not prove that foreclosure is
-              imminent. Published dates and balances may be stale, redeemed, postponed, cancelled,
-              or completed after observation. Confirm the linked source before relying on any
-              record.
+              A delinquency, violation, lien recording, or NED does not prove foreclosure is
+              imminent. Scores are deterministic workflow triage. Confirm exact linked evidence,
+              current status, releases, cure, and legal meaning before relying on a record.
             </p>
           </div>
         </section>
       </main>
       <footer>
         <span>Templar Labs · Property Watch</span>
-        <span>Private research workspace · No contact lookup or outreach features</span>
+        <span>Private research workspace · No contact lookup or outreach</span>
       </footer>
-      {selected ? <RecordDetail record={selected} onClose={() => setSelected(null)} /> : null}
+      {selected ? (
+        <PropertyDetailPanel
+          detail={selected}
+          loading={detailLoading}
+          onClose={() => setSelected(null)}
+          onEvidencePage={(page) => void loadEvidencePage(selected.property.propertyKey, page)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function PropertyRow({
+  property,
+  onOpen,
+  loading,
+}: {
+  property: RankedProperty;
+  onOpen: () => void;
+  loading: boolean;
+}) {
+  return (
+    <button className="property-row" type="button" onClick={onOpen} disabled={loading}>
+      <div className="score-box">
+        <strong>{property.score}</strong>
+        <span>priority</span>
+      </div>
+      <div className="property-address">
+        <strong>{property.address ?? "Address not published"}</strong>
+        <span>
+          {[property.city, property.state, property.zip].filter(Boolean).join(" ") ||
+            property.jurisdictionName}
+        </span>
+        <small>
+          {property.parcelId
+            ? `Parcel ${formatParcelId(property.parcelId, property.jurisdictionId)}`
+            : "No authoritative parcel key · kept unmatched"}
+        </small>
+      </div>
+      <div className="property-signals">
+        {property.signalTypes.map((signal) => (
+          <span key={signal}>{signalLabel(signal)}</span>
+        ))}
+      </div>
+      <div className="property-totals">
+        <strong>{formatMoney(property.totalDelinquentCents)}</strong>
+        <span>{property.evidenceCount} evidence rows</span>
+        <small>
+          {property.independentSignalCount} independent signal type
+          {property.independentSignalCount === 1 ? "" : "s"}
+        </small>
+      </div>
+      <div className="property-reasons">
+        {property.scoreReasons.slice(0, 2).map((reason) => (
+          <span key={reason}>{reason}</span>
+        ))}
+      </div>
+      <ArrowUpRight size={18} />
+    </button>
+  );
+}
+
+function PropertyDetailPanel({
+  detail,
+  loading,
+  onClose,
+  onEvidencePage,
+}: {
+  detail: PropertyDetailData;
+  loading: boolean;
+  onClose: () => void;
+  onEvidencePage: (page: number) => void;
+}) {
+  const property = detail.property;
+  const start = (detail.evidencePage.page - 1) * detail.evidencePage.pageSize + 1;
+  const end = start + detail.evidence.length - 1;
+  return (
+    <div className="detail-backdrop">
+      <aside
+        className="detail-panel property-detail"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ranked property evidence"
+      >
+        <button className="close-button" type="button" onClick={onClose} aria-label="Close details">
+          <X size={20} />
+        </button>
+        <p className="eyebrow">
+          Rank {property.score} · {property.jurisdictionName}
+        </p>
+        <h2>{property.address ?? "Address not published"}</h2>
+        <p className="detail-intro">
+          This score is deterministic prioritization, not a probability. Every contributing point
+          and source row remains inspectable.
+        </p>
+        <dl className="detail-grid">
+          <Detail label="Property key" value={property.propertyKey} wide />
+          <Detail
+            label="Parcel ID"
+            value={
+              property.parcelId
+                ? formatParcelId(property.parcelId, property.jurisdictionId)
+                : "Unmatched · no parcel invented"
+            }
+          />
+          <Detail label="Reported tax total" value={formatMoney(property.totalDelinquentCents)} />
+          <Detail label="Evidence rows" value={String(detail.evidenceTotal)} />
+          <Detail label="Independent signals" value={String(property.independentSignalCount)} />
+          <Detail label="First seen" value={formatTimestamp(property.firstSeenAt)} />
+          <Detail label="Last seen" value={formatTimestamp(property.lastSeenAt)} />
+        </dl>
+        <section className="score-explanation">
+          <p className="eyebrow">Why this score</p>
+          {property.scoreReasons.map((reason) => (
+            <div key={reason}>{reason}</div>
+          ))}
+        </section>
+        <section className="evidence-section">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Exact evidence · current first</p>
+              <h3>{detail.evidenceTotal} source rows</h3>
+            </div>
+            <span>
+              Showing {start}–{end} · page {detail.evidencePage.page} of{" "}
+              {detail.evidencePage.totalPages}
+            </span>
+          </div>
+          {detail.evidence.map((record) => (
+            <EvidenceCard key={record.id} record={record} />
+          ))}
+          <nav className="pagination" aria-label="Evidence pages">
+            <button
+              className="button secondary"
+              type="button"
+              disabled={loading || detail.evidencePage.page <= 1}
+              onClick={() => onEvidencePage(detail.evidencePage.page - 1)}
+            >
+              Previous evidence
+            </button>
+            <span>
+              {loading
+                ? "Loading evidence…"
+                : `Page ${detail.evidencePage.page} of ${detail.evidencePage.totalPages}`}
+            </span>
+            <button
+              className="button secondary"
+              type="button"
+              disabled={loading || detail.evidencePage.page >= detail.evidencePage.totalPages}
+              onClick={() => onEvidencePage(detail.evidencePage.page + 1)}
+            >
+              Next evidence
+            </button>
+          </nav>
+        </section>
+      </aside>
+    </div>
+  );
+}
+
+function EvidenceCard({ record }: { record: ResearchRecord }) {
+  const componentTotal =
+    (record.taxDueCents ?? 0) + (record.penaltyDueCents ?? 0) + (record.interestDueCents ?? 0);
+  return (
+    <article className={`evidence-card ${record.snapshotPresence}`}>
+      <div className="evidence-head">
+        <div>
+          <span className="signal-tag">{signalLabel(record.signalType)}</span>
+          <strong>{record.evidenceStatus ?? "Source status not published"}</strong>
+        </div>
+        <span>
+          {record.snapshotPresence === "present"
+            ? "Present in latest complete snapshot"
+            : "No longer present · not proof of resolution"}
+        </span>
+      </div>
+      <dl>
+        <Detail label="Source record ID" value={record.sourceRecordId} />
+        <Detail label="Event date" value={formatCalendarDate(record.eventDate)} />
+        <Detail
+          label="Tax year / installment"
+          value={
+            record.taxYear
+              ? `${record.taxYear}${record.taxInstallment ? ` · ${record.taxInstallment}` : ""}`
+              : "Not applicable"
+          }
+        />
+        <Detail label="Evidence total" value={formatMoney(record.delinquentAmountCents)} />
+        <Detail
+          label="Tax + penalty + interest"
+          value={
+            record.taxYear
+              ? `${formatMoney(record.taxDueCents)} + ${formatMoney(record.penaltyDueCents)} + ${formatMoney(record.interestDueCents)} = ${formatMoney(componentTotal)}`
+              : "Not applicable"
+          }
+          wide
+        />
+        <Detail
+          label="Published principal"
+          value={
+            record.principalBalanceCents === null
+              ? "Not published"
+              : `${formatMoney(record.principalBalanceCents)} · not arrears or payoff`
+          }
+          wide
+        />
+        <Detail
+          label="Source updated"
+          value={
+            record.sourceUpdatedAt
+              ? formatTimestamp(record.sourceUpdatedAt)
+              : "Source does not publish an update timestamp"
+          }
+        />
+        <Detail
+          label="Source good through"
+          value={
+            record.sourceGoodThrough
+              ? formatCalendarDate(record.sourceGoodThrough)
+              : "Not published"
+          }
+        />
+        <Detail
+          label="Evidence modified"
+          value={
+            record.evidenceUpdatedAt ? formatTimestamp(record.evidenceUpdatedAt) : "Not published"
+          }
+        />
+        <Detail
+          label="First / last seen"
+          value={`${formatTimestamp(record.firstSeenAt)} / ${formatTimestamp(record.lastSeenAt)}`}
+          wide
+        />
+      </dl>
+      {record.evidenceDetail ? <p className="evidence-detail">{record.evidenceDetail}</p> : null}
+      <div className="source-links">
+        <a className="button primary" href={record.sourceUrl} target="_blank" rel="noreferrer">
+          Open source <ExternalLink size={16} />
+        </a>
+        {record.sourceDocumentUrl ? (
+          <a
+            className="button secondary"
+            href={record.sourceDocumentUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source documentation
+          </a>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
@@ -478,165 +797,12 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
   );
 }
 
-function RecordRow({ record, onOpen }: { record: ResearchRecord; onOpen: () => void }) {
-  const address = record.address ?? record.assessorAddress ?? "Address not published";
-  return (
-    <button className="record-row" type="button" onClick={onOpen}>
-      <div className={`sale-badge ${record.signalType}`}>{signalCode(record.signalType)}</div>
-      <div className="record-address">
-        <strong>{address}</strong>
-        <span>
-          {[
-            record.city ?? record.assessorCity,
-            record.state ?? record.assessorState,
-            record.zip ?? record.assessorZip,
-          ]
-            .filter(Boolean)
-            .join(" ") || record.jurisdictionName}
-        </span>
-      </div>
-      <div className="record-apn">
-        <span>Source record ID</span>
-        <strong>{record.sourceRecordId}</strong>
-      </div>
-      <div className="record-date">
-        <span>{eventLabel(record)}</span>
-        <strong>{formatRecordDate(record)}</strong>
-      </div>
-      <StatusPill status={record.status} />
-      <ArrowUpRight className="row-arrow" size={18} />
-    </button>
-  );
-}
-
-function RecordDetail({ record, onClose }: { record: ResearchRecord; onClose: () => void }) {
-  const amount =
-    record.signalType === "tax_delinquency" || record.signalType === "power_to_sell"
-      ? record.delinquentAmountCents
-      : (record.minimumBidCents ?? record.unpaidBalanceCents);
-  const amountLabel =
-    record.signalType === "tax_delinquency" || record.signalType === "power_to_sell"
-      ? "Amount due as of source date"
-      : record.signalType === "scheduled_tax_sale"
-        ? "Minimum bid"
-        : "Published unpaid balance";
-  return (
-    <div className="detail-backdrop">
-      <aside
-        className="detail-panel"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Property observation details"
-      >
-        <button className="close-button" type="button" onClick={onClose} aria-label="Close details">
-          <X size={20} />
-        </button>
-        <p className="eyebrow">
-          {signalLabel(record.signalType)} · {record.jurisdictionName}
-        </p>
-        <h2>{record.address ?? record.assessorAddress ?? "Address not published"}</h2>
-        <div className="detail-status">
-          <StatusPill status={record.status} />
-          <span>Observed {formatTimestamp(record.observedAt)}</span>
-        </div>
-        <dl className="detail-grid">
-          <Detail label="Source record ID" value={record.sourceRecordId} />
-          <Detail
-            label="Normalized parcel ID"
-            value={
-              record.apn
-                ? formatParcelId(record.apn, record.jurisdictionId)
-                : "Not normalized · source value preserved"
-            }
-          />
-          <Detail label={eventLabel(record)} value={formatRecordDate(record)} />
-          <Detail label={amountLabel} value={formatMoney(amount)} />
-          <Detail label="Source as-of date" value={formatCalendarDate(record.sourceAsOfDate)} />
-          <Detail label="First publication" value={formatCalendarDate(record.sourcePublishedAt)} />
-          <Detail
-            label={record.signalType.startsWith("scheduled_") ? "Sale record" : "Source item"}
-            value={record.itemNumber ?? record.trusteeSaleNumber ?? record.sourceRecordId}
-          />
-          <Detail label="Observed at" value={formatTimestamp(record.observedAt)} />
-          {record.trusteeName ? (
-            <Detail label="Appointed trustee" value={record.trusteeName} />
-          ) : null}
-          {record.saleVerificationPhone ? (
-            <Detail label="Sale-status line (not homeowner)" value={record.saleVerificationPhone} />
-          ) : null}
-          {record.salePlace ? (
-            <Detail label="Published sale place" value={record.salePlace} wide />
-          ) : null}
-        </dl>
-        {!record.signalType.startsWith("scheduled_") ? (
-          <section className="signal-note">
-            <strong>No auction date is represented by this signal.</strong>
-            <p>
-              It is a historical public-record observation. Current balance, redemption, lien, and
-              foreclosure status have not been independently verified.
-            </p>
-          </section>
-        ) : null}
-        {record.assessorAddress ? (
-          <section className="provenance-box">
-            <p className="eyebrow">Assessor enrichment</p>
-            <strong>{record.assessorAddress}</strong>
-            <span>
-              {[record.assessorCity, record.assessorState, record.assessorZip]
-                .filter(Boolean)
-                .join(" ")}
-            </span>
-            <small>
-              Kept separate from the published notice address. Observed{" "}
-              {record.assessorObservedAt ? formatTimestamp(record.assessorObservedAt) : "—"}.
-            </small>
-          </section>
-        ) : null}
-        <section className="excerpt">
-          <p className="eyebrow">Published excerpt</p>
-          <p>{record.rawExcerpt}</p>
-        </section>
-        <div className="source-links">
-          <a className="button primary" href={record.sourceUrl} target="_blank" rel="noreferrer">
-            Open source <ExternalLink size={16} />
-          </a>
-          {record.sourceDocumentUrl ? (
-            <a
-              className="button secondary"
-              href={record.sourceDocumentUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open source document
-            </a>
-          ) : null}
-        </div>
-      </aside>
-    </div>
-  );
-}
-
 function Detail({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={wide ? "wide" : ""}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
-  );
-}
-
-function StatusPill({ status }: { status: ResearchRecord["status"] }) {
-  const labels = {
-    signal_status_unverified: "Historical signal · status unknown",
-    scheduled_as_published: "Scheduled as published",
-    past_outcome_unverified: "Past · outcome unverified",
-    date_not_found: "Sale date not found",
-  } as const;
-  return (
-    <span className={`status-pill ${status}`}>
-      {status === "scheduled_as_published" ? <CheckCircle2 size={13} /> : <Clock3 size={13} />}
-      {labels[status]}
-    </span>
   );
 }
 
@@ -659,35 +825,16 @@ async function pollRefresh(jobId: string, update: (data: DashboardData) => void)
 
 function signalLabel(signalType: SignalType): string {
   return {
-    tax_delinquency: "Three-year tax delinquency",
+    tax_delinquency: "Tax delinquency",
+    code_violation: "Active code violation",
     power_to_sell: "Impending power to sell",
     recorded_lien: "Recorded lien",
+    lien_release: "Recorded lien release",
     notice_of_default: "Notice of default",
+    mortgage_foreclosure_initiated: "Mortgage foreclosure initiated",
     scheduled_trustee_sale: "Scheduled trustee sale",
     scheduled_tax_sale: "Scheduled tax sale",
   }[signalType];
-}
-
-function signalCode(signalType: SignalType): string {
-  return {
-    tax_delinquency: "3YR",
-    power_to_sell: "PTS",
-    recorded_lien: "LIEN",
-    notice_of_default: "NOD",
-    scheduled_trustee_sale: "TRUST",
-    scheduled_tax_sale: "TAX",
-  }[signalType];
-}
-
-function eventLabel(record: ResearchRecord): string {
-  return {
-    tax_delinquency: "Tax-default date",
-    power_to_sell: "Power-to-sell date · not auction",
-    recorded_lien: "Recorded event date",
-    notice_of_default: "Default notice date",
-    scheduled_trustee_sale: "Published sale date",
-    scheduled_tax_sale: "Published sale date",
-  }[record.signalType];
 }
 
 function formatRecordDate(record: ResearchRecord): string {

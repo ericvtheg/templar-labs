@@ -1,86 +1,78 @@
 # Property Watch
 
-Private, multi-market property-distress research workspace at the existing deployment URL `https://la-property-watch.breli.app`.
+Private, property-first distress research at `https://la-property-watch.breli.app`. The default workflow ranks current official signals by jurisdiction-scoped property identity, explains every score contribution, and opens the exact evidence rows behind a property. It does not estimate foreclosure probability, find contacts, or automate outreach.
 
-The primary workflow starts with earlier public signals, currently Orange County three-year tax delinquency and impending power to sell, then keeps later LA County trustee/tax-sale publications in their correct stages. A delinquency, lien, default, or power-to-sell record is never presented as proof that foreclosure is imminent.
+## Core researcher workflow
+
+1. A protected refresh reads each official source independently.
+2. A source is staged and validated in bounded batches. Live evidence, snapshot reconciliation, watchlist replacement, and run success publish in one D1 batch; a failed batch leaves the previous published source and rankings unchanged.
+3. The dashboard pages and filters ranked properties on the server by market, signal, address, or literal parcel ID.
+4. Property details show present evidence first and retain deterministic pagination into no-longer-present history. Disappearance from a complete source snapshot is never labeled paid, cured, or resolved.
+5. The all-watchlist evidence export uses keyset pagination with a ranking-generation boundary. It either returns every evidence identity from one coherent publication or fails for retry if a refresh changes the generation. Spreadsheet formula prefixes are neutralized while numeric cells remain numeric.
+
+Production starts empty. Real-derived fixtures are used only by tests and local browser verification.
+
+## Current ranked sources
+
+- Travis County Tax Office delinquent tax roll: literal 14-digit accounts; complete publisher snapshot.
+- City of Norfolk delinquent property taxes: literal 8-digit PINs and exact year/quarter components; complete publisher snapshot.
+- City of Norfolk neighborhood quality violations: only non-closed workflow rows; exact 8-digit `tax_account` joins. Missing or malformed identifiers remain unmatched evidence.
+- NYC ACRIS common-charge liens and terminations: rolling two-year recording-event window. Every master row must provide a valid document ID, event date, and row-level `good_through_date`. This is append/update event evidence, never a complete outstanding-lien snapshot. A termination on a BBL does not release every lien on that BBL.
+- Denver Public Trustee foreclosure search: explicit rolling 90-day NED window across all source statuses. Withdrawn, cured, and “to be withdrawn” cases remain evidence but receive zero active priority. Published principal is separate from arrears and tax delinquency. Search rows do not publish a parcel ID or publisher-update timestamp, so neither is invented.
+
+Denver Terms of Use state that commercial use of site materials requires written permission. Authorization must be confirmed before commercialization or sustained production operation; the application and persisted source warning keep that blocker visible.
+
+Orange County published delinquency/power-to-sell records and Los Angeles tax/trustee sale publications remain a secondary historical archive. They do not drive the default current watchlist.
+
+## Ranking and freshness
+
+The score is deterministic triage, capped at 100. Current present evidence can contribute: tax delinquency 25, open code workflow 20, recorded lien event 20, mortgage foreclosure initiation 35, independent-signal bonuses, published tax-total bands, multiple-code-record bonuses, tax-age bands, and source freshness.
+
+Freshness uses the single persisted `ranked_at` clock for both score and displayed reasons: source update within 2 days adds 10, within 7 adds 6, within 30 adds 2, and older or unpublished timestamps add 0. A failed source run preserves the last successfully published evidence and visibly reports the failure; it never refreshes the scoring clock. A complete successful snapshot may mark absent rows no longer present. Event-window sources such as ACRIS do not reconcile absence.
 
 ## Access and privacy
 
 - Central Templar Google SSO creates the session.
-- Every page loader, data request, refresh action, and CSV export rechecks the unchanged literal app allowlist: the account must be verified and exactly `ericventor97@gmail.com` or `Rhwcreative@gmail.com`.
-- There is no admin override, public data route, production test bypass, contact lookup, or outreach feature.
-- Mutating requests require the application origin. Private responses are `no-store` and vary on the session cookie.
+- Every page loader, JSON request, property detail, refresh action, and CSV export rechecks the literal allowlist: verified `ericventor97@gmail.com` or `Rhwcreative@gmail.com` only.
+- There is no admin override or public records route.
+- Mutations require exact same origin. Private responses, including validation failures, are `private, no-store` and vary on the session cookie.
+- Search, pagination, signal, and jurisdiction parameters are bounded before D1. LIKE patterns are escaped literally and limited to D1’s 50-byte pattern ceiling.
 
-## Signal stages and markets
+## Verified live-source observations
 
-Records have a first-class signal stage and jurisdiction. Source parcel identifiers remain literal, while normalized parcel IDs are jurisdiction-scoped so the same digits in different counties cannot collide.
+Read-only checks on 2026-11-07 UTC, with no D1 writes, returned:
 
-- `tax_delinquency`: Orange County three-year delinquency snapshot.
-- `power_to_sell`: Orange County impending statutory power to sell. This is not an auction date.
-- `notice_of_default` and `recorded_lien`: modeled and filterable, but no verified ingestible source is currently available.
-- `scheduled_trustee_sale`: LA County CNPA trustee-sale publication.
-- `scheduled_tax_sale`: LA County Treasurer and Tax Collector auction publication.
+- Travis tax: 7,249 records; publisher update `2026-11-05T19:18:26Z`; complete snapshot.
+- Norfolk tax: 29,104 installments; publisher update `2026-11-06T12:27:31Z`; complete snapshot.
+- Norfolk violations: 6,532 open workflow rows; publisher update `2026-11-06T12:16:24Z`; complete snapshot, with unmatched identifiers retained separately.
+- NYC ACRIS: 5,083 validated legal-property evidence rows; publisher update `2026-10-08T20:09:15Z`; row-level declared coverage from `2024-11-30` through `2026-09-30`; non-complete event window.
+- Denver: 192 records over all eight result pages. Observed statuses were 153 NED Recorded, 15 Intent to Cure Filed, 3 Bankruptcy Sale Stayed (Restart Needed), 1 To be Withdrawn, 16 Withdrawn, and 4 Withdrawn (Cured).
 
-Published event dates, scheduled sale dates, source publication dates, source as-of dates, and ingestion observation timestamps are stored separately. Historical balances are labeled with their source as-of date.
+Counts are observations, not nationwide coverage or proof that a debt, lien, violation, or foreclosure remains active.
 
-Detailed URLs, observed counts, dates, parser constraints, and coverage limitations are in [`docs/source-research.md`](docs/source-research.md).
+## Operations
 
-## Data pipeline
-
-Each source is fetched independently with a 30-second request timeout and bounded response size. One blocked publisher does not hide healthy source results.
-
-1. The Orange County adapters fetch the official Published Notices page, discover the newest PDF inside the correct table row, extract text with `unpdf`, and parse strict literal source IDs.
-2. The LA tax adapter follows the official current auction-book link and optionally enriches LA AINs from the official Assessor ArcGIS layer in bounded batches.
-3. The CNPA adapter makes one bounded request to the permitted LA trustee-sale RSS endpoint. It does not crawl the robots-disallowed search path or fetch notice detail pages in parallel.
-4. Records are idempotently upserted by source record identity. Existing LA records are migrated in place.
-
-Manual refresh returns promptly with a D1-backed job. A unique lease prevents concurrent refresh races, completed jobs impose a 20-second cooldown, and stale leases expire after 30 minutes. Production uses the external Node ingestion runner because PDF extraction exceeded Worker resource limits; the Worker only queues jobs.
-
-## Verified live-source result
-
-A read-only live run on 2026-11-06 UTC reported:
-
-- Orange County three-year delinquency: 4 records, 0 addresses, 3 normalized parcel IDs, 1 malformed literal ID preserved without repair.
-- Orange County impending power to sell: 184 unique records, 120 conservatively parsed published addresses, no auction dates invented.
-- LA County tax auction book: 1,252 records.
-- CNPA LA trustee-sale RSS: 15 retained notices and 7 rejected/deduplicated items.
-
-These counts are observations of historical publications, not complete-market or current-status claims.
-
-## Local development and checks
+Manual refresh queues durable D1 work. A unique lease prevents concurrent refreshes, completed jobs impose a short cooldown, and stale leases expire after 60 minutes. The external Node runner performs the bounded source work; the Worker handles authenticated reads and queueing. Scheduled queue processing runs every 15 minutes, and a full refresh runs daily at 10:17 UTC. Workflow and bootstrap timeouts are 45 minutes because the full ACRIS legal join is intentionally sequential and source-bound.
 
 From the repository root:
 
 ```bash
-pnpm --filter la-property-watch-web typecheck
-pnpm --filter la-property-watch-web test
-pnpm --filter la-property-watch-web test:e2e
-pnpm --filter la-property-watch-web build
-pnpm --filter la-property-watch ingest:live
+pnpm --dir projects/la-property-watch/apps/web typecheck
+pnpm --dir projects/la-property-watch/apps/web test
+pnpm --dir projects/la-property-watch/apps/web test:e2e
+pnpm --dir projects/la-property-watch/apps/web build
+pnpm --dir projects/la-property-watch typecheck
+pnpm --dir projects/la-property-watch/apps/web ingest:live -- --current-only
 ```
 
-The live-ingestion command reads public sources and prints source-by-source counts; it does not write D1. Local development applies the project migrations before starting Vite:
+`ingest:live` is read-only and prints source counts, coverage, warnings, and timing. Production verification requires `TEMPLAR_AUTH_SECRET` and checks access control, all current source runs, jurisdiction filters, ranked property detail, current-first evidence, validation errors, and the protected full export:
 
 ```bash
-pnpm --filter la-property-watch dev
+TEMPLAR_AUTH_SECRET=... pnpm --dir projects/la-property-watch verify:production
 ```
 
-## Deployment and production verification
-
-The existing `la-property-watch` deployment resource and URL are unchanged. After review, push and run the existing Deploy workflow with `project=la-property-watch`; it applies `db/migrations`, deploys the same resource, runs the external production ingestion runner, and verifies protected data/CSV plus desktop/mobile browser workflows.
-
-For manual post-deploy verification from a trusted environment:
-
-```bash
-TEMPLAR_AUTH_SECRET=... pnpm --filter la-property-watch verify:production
-```
-
-The verifier checks anonymous, forged, wrong-email, and unverified access; central Google sign-in routing; all four persisted source types; protected CSV; and the early-signal browser workflow. It never prints the secret or session cookies.
+See [`docs/source-research.md`](docs/source-research.md) for field contracts and limitations.
 
 ## Boundaries
 
-- This is research support, not legal advice, title evidence, contact data, outreach, or foreclosure prediction.
-- Public records can be paid, redeemed, released, postponed, cancelled, superseded, or completed after publication. Current outcome remains unverified unless a later official source explicitly establishes it.
-- The current OC three-year list covers only returned-undeliverable reminders, not the full county delinquency roll.
-- Mechanic, HOA, and utility liens remain explicit coverage gaps; absence from this workspace does not mean no lien exists.
-- Scanned future PDFs without a text layer fail visibly. No OCR service, paid source, CAPTCHA, or access-control bypass is used.
+This is research support, not legal advice, title evidence, debt verification, or foreclosure prediction. Public records can be paid, redeemed, released, cured, stayed, withdrawn, postponed, cancelled, superseded, or completed after publication. Exact linked official evidence and current legal meaning must be checked before reliance. No paid source, CAPTCHA bypass, contact enrichment, homeowner lookup, or outreach capability is used.

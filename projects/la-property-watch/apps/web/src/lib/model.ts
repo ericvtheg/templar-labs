@@ -4,9 +4,12 @@ export const allowedEmails: readonly string[] = ["ericventor97@gmail.com", "Rhwc
 export type SaleType = "tax_default" | "trustee";
 export type SignalType =
   | "tax_delinquency"
+  | "code_violation"
   | "power_to_sell"
   | "recorded_lien"
+  | "lien_release"
   | "notice_of_default"
+  | "mortgage_foreclosure_initiated"
   | "scheduled_trustee_sale"
   | "scheduled_tax_sale";
 export type RecordStatus =
@@ -32,12 +35,18 @@ export type ResearchRecord = {
   readonly sourceDocumentUrl: string | null;
   readonly sourcePublishedAt: string | null;
   readonly sourceAsOfDate: string | null;
+  readonly sourceUpdatedAt: string | null;
+  readonly sourceGoodThrough: string | null;
+  readonly sourceKind: "current" | "secondary";
+  readonly snapshotPresence: "present" | "no_longer_present";
+  readonly noLongerPresentAt: string | null;
   readonly observedAt: string;
   readonly eventDate: string | null;
   readonly scheduledDate: string | null;
   readonly scheduledTime: string | null;
   readonly status: RecordStatus;
   readonly apn: string | null;
+  readonly propertyKey: string;
   readonly address: string | null;
   readonly city: string | null;
   readonly state: string | null;
@@ -52,11 +61,24 @@ export type ResearchRecord = {
   readonly minimumBidCents: number | null;
   readonly delinquentAmountCents: number | null;
   readonly unpaidBalanceCents: number | null;
+  readonly principalBalanceCents: number | null;
+  readonly principalAsOfDate: string | null;
   readonly trusteeSaleNumber: string | null;
   readonly trusteeName: string | null;
   readonly saleVerificationPhone: string | null;
   readonly salePlace: string | null;
   readonly legalDescription: string | null;
+  readonly ownerName: string | null;
+  readonly propertyType: string | null;
+  readonly taxYear: number | null;
+  readonly taxInstallment: number | null;
+  readonly taxDueCents: number | null;
+  readonly penaltyDueCents: number | null;
+  readonly interestDueCents: number | null;
+  readonly evidenceStatus: string | null;
+  readonly evidenceDetail: string | null;
+  readonly evidenceUpdatedAt: string | null;
+  readonly priority: number | null;
   readonly rawExcerpt: string;
   readonly firstSeenAt: string;
   readonly lastSeenAt: string;
@@ -75,7 +97,52 @@ export type SourceRun = {
   readonly finishedAt: string | null;
   readonly recordsFound: number;
   readonly recordsUpserted: number;
+  readonly recordsNoLongerPresent: number;
+  readonly sourceUpdatedAt: string | null;
+  readonly snapshotComplete: boolean;
   readonly error: string | null;
+};
+
+export type RankedProperty = {
+  readonly propertyKey: string;
+  readonly jurisdictionId: string;
+  readonly jurisdictionName: string;
+  readonly parcelId: string | null;
+  readonly address: string | null;
+  readonly city: string | null;
+  readonly state: string | null;
+  readonly zip: string | null;
+  readonly ownerName: string | null;
+  readonly propertyType: string | null;
+  readonly score: number;
+  readonly scoreReasons: readonly string[];
+  readonly signalTypes: readonly SignalType[];
+  readonly independentSignalCount: number;
+  readonly evidenceCount: number;
+  readonly taxInstallmentCount: number;
+  readonly codeViolationCount: number;
+  readonly recordedLienCount: number;
+  readonly totalDelinquentCents: number;
+  readonly earliestTaxYear: number | null;
+  readonly freshestSourceUpdatedAt: string | null;
+  readonly firstSeenAt: string;
+  readonly lastSeenAt: string;
+  readonly sourceNames: readonly string[];
+};
+
+export type PropertyPage = {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly totalPages: number;
+};
+
+export type PropertyDetail = {
+  readonly property: RankedProperty;
+  readonly evidence: readonly ResearchRecord[];
+  readonly evidenceTotal: number;
+  readonly evidencePage: PropertyPage;
+  readonly truncated: boolean;
 };
 
 export type RefreshJob = {
@@ -89,7 +156,12 @@ export type RefreshJob = {
 };
 
 export type DashboardData = {
+  /** @deprecated Compatibility alias for the historical evidence view. */
   readonly records: readonly ResearchRecord[];
+  readonly properties: readonly RankedProperty[];
+  readonly page: PropertyPage;
+  readonly archiveRecords: readonly ResearchRecord[];
+  readonly archiveTotal: number;
   readonly sources: readonly SourceRun[];
   readonly refreshJobs: readonly RefreshJob[];
   readonly generatedAt: string;
@@ -108,8 +180,11 @@ export function statusFor(
 ): RecordStatus {
   if (
     signalType === "tax_delinquency" ||
+    signalType === "code_violation" ||
     signalType === "recorded_lien" ||
-    signalType === "notice_of_default"
+    signalType === "lien_release" ||
+    signalType === "notice_of_default" ||
+    signalType === "mortgage_foreclosure_initiated"
   ) {
     return "signal_status_unverified";
   }
@@ -163,6 +238,15 @@ export function normalizeParcelId(
     const extended = value.match(/^(\d{3})-(\d{3})-(\d{2})\.(\d{2})$/);
     return extended ? `${extended[1]}${extended[2]}${extended[3]}${extended[4]}` : null;
   }
+  if (jurisdictionId === "travis-county-tx") {
+    return /^\d{14}$/.test(value) ? value : null;
+  }
+  if (jurisdictionId === "norfolk-va") {
+    return /^\d{8}$/.test(value) ? value : null;
+  }
+  if (jurisdictionId === "nyc-ny") {
+    return /^\d{10}$/.test(value) ? value : null;
+  }
   return null;
 }
 
@@ -179,6 +263,12 @@ export function formatParcelId(value: string | null, jurisdictionId: string): st
   }
   if (jurisdictionId === "oc-ca" && value?.length === 10) {
     return `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6, 8)}.${value.slice(8)}`;
+  }
+  if (jurisdictionId === "travis-county-tx" && value?.length === 14) {
+    return `${value.slice(0, 10)}-${value.slice(10)}`;
+  }
+  if (jurisdictionId === "nyc-ny" && value?.length === 10) {
+    return `${value.slice(0, 1)}-${value.slice(1, 6)}-${value.slice(6)}`;
   }
   return formatApn(value);
 }

@@ -1239,11 +1239,14 @@ importers:
         version: link:../../packages/scheduler
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@cloudflare/workers-types@4.20260514.1)(kysely@0.28.17)
+        version: 0.45.2(@cloudflare/workers-types@4.20260511.1)(kysely@0.28.17)
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 4.20260511.1
+        version: 4.20260511.1
       alchemy:
         specifier: ^0.93.7
-        version: 0.93.7(@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260514.1)))(kysely@0.28.17)(stripe@18.5.0(@types/node@26.6.3))(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)
+        version: 0.93.7(@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260511.1)))(kysely@0.28.17)(stripe@18.5.0(@types/node@26.6.3))(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -11744,6 +11747,20 @@ snapshots:
       - workerd
     optional: true
 
+  '@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260511.1))':
+    dependencies:
+      '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260508.1)
+      miniflare: 4.20260508.0
+      unenv: 2.0.0-rc.24
+      vite: 7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0)
+      wrangler: 4.90.1(@cloudflare/workers-types@4.20260511.1)
+      ws: 8.18.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - workerd
+    optional: true
+
   '@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260514.1))':
     dependencies:
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260508.1)
@@ -15587,6 +15604,75 @@ snapshots:
       '@cloudflare/vite-plugin': 1.36.4(vite@7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260514.1))
       stripe: 18.5.0(@types/node@24.12.4)
       vite: 7.3.3(@types/node@24.12.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0)
+    transitivePeerDependencies:
+      - '@aws-sdk/client-rds-data'
+      - '@electric-sql/pglite'
+      - '@libsql/client-wasm'
+      - '@neondatabase/serverless'
+      - '@op-engineering/op-sqlite'
+      - '@opentelemetry/api'
+      - '@planetscale/database'
+      - '@prisma/client'
+      - '@tidbcloud/serverless'
+      - '@types/better-sqlite3'
+      - '@types/pg'
+      - '@types/sql.js'
+      - '@upstash/redis'
+      - '@vercel/postgres'
+      - '@xata.io/client'
+      - aws-crt
+      - better-sqlite3
+      - bufferutil
+      - bun-types
+      - expo-sqlite
+      - gel
+      - knex
+      - kysely
+      - mysql2
+      - pg
+      - postgres
+      - prisma
+      - sql.js
+      - sqlite3
+      - utf-8-validate
+      - workerd
+
+  alchemy@0.93.7(@cloudflare/vite-plugin@1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260511.1)))(kysely@0.28.17)(stripe@18.5.0(@types/node@26.6.3))(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1):
+    dependencies:
+      '@aws-sdk/credential-providers': 3.1045.0
+      '@cloudflare/unenv-preset': 2.7.7(unenv@2.0.0-rc.21)(workerd@1.20260508.1)
+      '@cloudflare/workers-types': 4.20260514.1
+      '@iarna/toml': 2.2.5
+      '@octokit/rest': 21.1.1
+      '@smithy/node-config-provider': 4.4.1
+      '@smithy/types': 4.14.1
+      aws4fetch: 1.0.20
+      drizzle-orm: 0.45.2(@cloudflare/workers-types@4.20260514.1)(kysely@0.28.17)
+      env-paths: 3.0.0
+      esbuild: 0.25.12
+      execa: 9.6.1
+      fast-json-patch: 3.1.1
+      fast-xml-parser: 5.8.0
+      find-process: 2.1.1
+      glob: 10.5.0
+      jszip: 3.10.1
+      libsodium-wrappers: 0.8.4
+      miniflare: 4.20260424.0
+      neverthrow: 8.2.0
+      open: 10.2.0
+      openapi-types: 12.1.3
+      pathe: 2.0.3
+      picocolors: 1.1.1
+      proper-lockfile: 4.1.2
+      signal-exit: 4.1.0
+      unenv: 2.0.0-rc.21
+      wrangler: 4.90.1(@cloudflare/workers-types@4.20260514.1)
+      ws: 8.20.1
+      yaml: 2.9.0
+    optionalDependencies:
+      '@cloudflare/vite-plugin': 1.36.4(vite@7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0))(workerd@1.20260508.1)(wrangler@4.90.1(@cloudflare/workers-types@4.20260511.1))
+      stripe: 18.5.0(@types/node@26.6.3)
+      vite: 7.3.3(@types/node@26.6.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.9.0)
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
       - '@electric-sql/pglite'

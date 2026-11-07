@@ -15,40 +15,49 @@ test("signed-out visitors see only the central sign-in gate", async ({ page }) =
   expect((await page.request.get("/api/research/export.csv")).status()).toBe(401);
 });
 
-test("authorized research workflow filters records and opens provenance details", async ({
+test("authorized researcher ranks, filters, and paginates exact current-first evidence", async ({
   page,
 }) => {
   await signInLocally(page.context(), { email: allowedEmail });
   await page.goto("/");
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
   await expect(page.getByRole("heading", { name: /Find distress earlier/ })).toBeVisible();
-  await expect(page.getByText("184", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Three-Year Delinquency/).first()).toBeVisible();
-  await expect(page.getByText(/Impending Power to Sell/).first()).toBeVisible();
-  await expect(page.getByText("CNPA Public Notices")).toBeVisible();
+  await expect(
+    page.getByLabel("Watchlist summary").getByText("2", { exact: true }).first(),
+  ).toBeVisible();
+  await expect(page.getByText("City of Norfolk · Delinquent Property Taxes")).toBeVisible();
+  await expect(page.getByText("City of Norfolk · Neighborhood Quality Violations")).toBeVisible();
+  await expect(page.getByText(/Denver registry use requires permission/)).toBeVisible();
 
-  await page.getByLabel("Search records").fill("4007-017-003");
-  await expect(page.getByRole("button", { name: /6410 7th Avenue/ })).toBeVisible();
-  await page.getByRole("button", { name: /6410 7th Avenue/ }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByText("Sale-status line (not homeowner)")).toBeVisible();
-  await expect(page.getByText("(714) 730-2727")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open source" })).toHaveAttribute(
-    "href",
-    /capublicnotice\.com\/advert/,
+  await page.getByLabel("Search properties").fill("15834200");
+  await page.getByRole("button", { name: "Search" }).click();
+  const property = page.getByRole("button", { name: /2800 VIMY RIDGE AV/ });
+  await expect(property).toBeVisible();
+  await property.click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "58 source rows" })).toBeVisible();
+  await expect(dialog.getByText("Showing 1–50 · page 1 of 2")).toBeVisible();
+  await expect(dialog.locator(".evidence-card").first()).toContainText(
+    "Present in latest complete snapshot",
   );
+  await expect(dialog.getByText("$272.26 + $0.00 + $0.00 = $272.26")).toBeVisible();
+  await expect(dialog.getByText(/two independent signal types/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Next evidence" }).click();
+  await expect(dialog.getByText("Showing 51–58 · page 2 of 2")).toBeVisible();
+  await expect(dialog.locator(".evidence-card").first()).toContainText("No longer present");
+  await expect(dialog.getByRole("button", { name: "Previous evidence" })).toBeEnabled();
   await page.getByRole("button", { name: "Close details" }).click();
 
-  await page.getByLabel("Search records").fill("");
-  await page.getByLabel("Signal stage").selectOption("tax_delinquency");
-  await expect(page.getByText("4 shown")).toBeVisible();
-  await page.getByLabel("Signal stage").selectOption("all");
-  await page.getByLabel("Market jurisdiction").selectOption("oc-ca");
-  await expect(page.getByText("188 shown")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /Past · outcome unverified/ }).first(),
-  ).toBeVisible();
-  await expect(page.getByRole("link", { name: /Export CSV/ })).toHaveAttribute(
+  await page.getByLabel("Search properties").fill("");
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByLabel("Signal type").selectOption("code_violation");
+  await expect(page.getByText("1 properties · page 1 of 1")).toBeVisible();
+  await expect(page.getByRole("button", { name: /2800 VIMY RIDGE AV/ })).toBeVisible();
+  await page.getByLabel("Signal type").selectOption("tax_delinquency");
+  await expect(page.getByText("2 properties · page 1 of 1")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Export evidence CSV/ })).toHaveAttribute(
     "href",
     "/api/research/export.csv",
   );

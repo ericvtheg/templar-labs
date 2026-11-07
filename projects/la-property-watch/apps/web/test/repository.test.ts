@@ -63,7 +63,7 @@ describe("refresh persistence", () => {
     const secondJob = await requestRefreshJob(
       database.binding,
       "manual",
-      new Date("2026-11-07T12:00:00.000Z"),
+      new Date(Date.now() + 60_000),
     );
     await runRefreshJob(database.binding, secondJob.job.id, "manual", [
       {
@@ -248,7 +248,7 @@ describe("refresh persistence", () => {
     const partialJob = await requestRefreshJob(
       database.binding,
       "manual",
-      new Date("2026-11-07T12:00:00.000Z"),
+      new Date(Date.now() + 60_000),
     );
     await runRefreshJob(database.binding, partialJob.job.id, "manual", [
       {

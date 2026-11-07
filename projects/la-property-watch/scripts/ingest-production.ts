@@ -8,7 +8,11 @@ declare global {
 
 import { pathToFileURL } from "node:url";
 import type { IngestionTrigger } from "../apps/web/src/lib/model.ts";
-import { requestRefreshJob, runRefreshJob } from "../apps/web/src/lib/repository.ts";
+import {
+  defaultSources,
+  requestRefreshJob,
+  runRefreshJob,
+} from "../apps/web/src/lib/repository.ts";
 
 // Run with Node 24: node scripts/ingest-production.ts [--queued-only]
 // Requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (D1 read/write).
@@ -371,11 +375,27 @@ export async function runOnce(
   return { skipped, job, runs, counts, sourceCounts, recovered };
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  if (args.some((arg) => arg !== "--queued-only")) {
-    throw new Error("Usage: node scripts/ingest-production.ts [--queued-only]");
+export function parseIngestionArgs(args: string[]) {
+  const usage = "Usage: node scripts/ingest-production.ts [--queued-only | --source=SOURCE_ID]";
+  if (args.length > 1) {
+    throw new Error(usage);
   }
+  const arg = args[0];
+  if (arg === undefined || arg === "--queued-only") {
+    return { queuedOnly: arg === "--queued-only", sources: undefined };
+  }
+  if (!arg.startsWith("--source=")) {
+    throw new Error(usage);
+  }
+  const sources = defaultSources().filter((source) => source.id === arg.slice(9));
+  if (sources.length !== 1) {
+    throw new Error(`Unknown source ID. ${usage}`);
+  }
+  return { queuedOnly: false, sources };
+}
+
+async function main() {
+  const options = parseIngestionArgs(process.argv.slice(2));
   const accountId = process.env["CLOUDFLARE_ACCOUNT_ID"];
   const apiToken = process.env["CLOUDFLARE_API_TOKEN"];
   if (!accountId || !apiToken) {
@@ -386,7 +406,7 @@ async function main() {
   // This intentionally implements only the repository's prepare/bind/run/first/all
   // and batch surface, not D1 exec/dump/raw/sessions. Keep the cast at this boundary.
   const summary = await runOnce(adapter as unknown as D1Database, {
-    queuedOnly: args.includes("--queued-only"),
+    ...options,
   });
   console.log(JSON.stringify(summary, null, 2));
   if (summary.job?.status === "failed" || summary.runs.some((run) => run.status === "failed")) {

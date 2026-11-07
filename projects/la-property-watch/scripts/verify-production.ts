@@ -137,36 +137,40 @@ await verifyGoogleRedirect();
 const initial = await request("/api/research/data", { cookie: authorized });
 check(initial.status === 200, `Authorized data request returned ${initial.status}.`);
 
-const refresh = await request("/api/research/refresh", {
-  method: "POST",
-  cookie: authorized,
-  headers: { origin: baseUrl.origin },
-});
-check(refresh.status === 200 || refresh.status === 202, `Refresh returned ${refresh.status}.`);
-const refreshBody = (await refresh.json()) as { job?: { id?: string } };
-const jobId = refreshBody.job?.id;
-check(jobId, "Refresh did not return a job ID.");
-
-if (environment("CLOUDFLARE_API_TOKEN")) {
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      process.execPath,
-      [
-        "--experimental-strip-types",
-        fileURLToPath(new URL("./ingest-production.ts", import.meta.url).href),
-        "--queued-only",
-      ],
-      { stdio: "inherit", timeout: 10 * 60_000 },
-    );
-    child.once("error", reject);
-    child.once("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Production ingestion runner exited ${code}.`));
-      }
-    });
+const readOnly = process.argv.includes("--read-only");
+let jobId: string | undefined;
+if (!readOnly) {
+  const refresh = await request("/api/research/refresh", {
+    method: "POST",
+    cookie: authorized,
+    headers: { origin: baseUrl.origin },
   });
+  check(refresh.status === 200 || refresh.status === 202, `Refresh returned ${refresh.status}.`);
+  const refreshBody = (await refresh.json()) as { job?: { id?: string } };
+  jobId = refreshBody.job?.id;
+  check(jobId, "Refresh did not return a job ID.");
+
+  if (environment("CLOUDFLARE_API_TOKEN")) {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        [
+          "--experimental-strip-types",
+          fileURLToPath(new URL("./ingest-production.ts", import.meta.url).href),
+          "--queued-only",
+        ],
+        { stdio: "inherit", timeout: 10 * 60_000 },
+      );
+      child.once("error", reject);
+      child.once("exit", (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Production ingestion runner exited ${code}.`));
+        }
+      });
+    });
+  }
 }
 
 type DashboardPayload = {
@@ -188,8 +192,13 @@ type DashboardPayload = {
 };
 
 const deadline = Date.now() + 12 * 60_000;
-let dashboard: DashboardPayload | undefined;
+let dashboard: DashboardPayload | undefined = readOnly
+  ? ((await initial.json()) as DashboardPayload)
+  : undefined;
 while (Date.now() < deadline) {
+  if (readOnly) {
+    break;
+  }
   await new Promise((resolve) => setTimeout(resolve, 5_000));
   const response = await request("/api/research/data", { cookie: authorized });
   check(response.status === 200, `Refresh polling returned ${response.status}.`);
@@ -202,9 +211,10 @@ while (Date.now() < deadline) {
 }
 check(dashboard, "No dashboard payload was returned while polling.");
 check(
-  dashboard.refreshJobs.some(
-    (job) => job.id === jobId && ["success", "partial"].includes(job.status),
-  ),
+  readOnly ||
+    dashboard.refreshJobs.some(
+      (job) => job.id === jobId && ["success", "partial"].includes(job.status),
+    ),
   "Refresh did not finish before the verification deadline.",
 );
 

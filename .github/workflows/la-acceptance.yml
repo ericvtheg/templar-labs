@@ -1,0 +1,42 @@
+name: Property Watch production acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      import_nyc:
+        description: Import only NYC ACRIS before read-only acceptance
+        type: boolean
+        default: false
+        required: true
+concurrency:
+  group: la-property-ingestion
+  cancel-in-progress: false
+jobs:
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Targeted NYC import
+        if: inputs.import_nyc
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node --experimental-strip-types projects/la-property-watch/scripts/ingest-production.ts --source=nyc-acris-common-charge-liens
+      - name: Verify persisted production API and CSV
+        env:
+          TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+        run: node --experimental-strip-types projects/la-property-watch/scripts/verify-production.ts --read-only
+      - name: Install browser
+        run: pnpm --filter la-property-watch-web exec playwright install --with-deps chromium
+      - name: Verify authenticated desktop and mobile
+        env:
+          TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+        run: pnpm --filter la-property-watch-web exec node --experimental-strip-types scripts/verify-browser.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: property-watch-production-evidence
+          path: projects/la-property-watch/apps/web/test/.results/production/
+          if-no-files-found: ignore
+          retention-days: 7

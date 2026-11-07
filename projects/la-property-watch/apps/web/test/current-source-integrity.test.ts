@@ -53,11 +53,13 @@ function acrisFetch(masters: readonly AcrisMasterRow[]) {
       });
     }
     if (url.includes("/resource/8h5j-fqxa")) {
-      const rows = masters.map((master, index) => ({
-        ...validLegal,
-        document_id: master.document_id,
-        block: String(123 + index),
-      }));
+      const rows = [...new Set(masters.map((master) => master.document_id))].map(
+        (documentId, index) => ({
+          ...validLegal,
+          document_id: documentId,
+          block: String(123 + index),
+        }),
+      );
       return new Response(JSON.stringify(rows), {
         status: 200,
         headers: { "content-type": "application/json" },
@@ -176,12 +178,24 @@ describe("current source integrity contracts", () => {
     assert.match(new URL(request).searchParams.get("$where") ?? "", /2024-11-01T00:00:00/);
   });
 
-  it("paginates ACRIS master events beyond one 5000-row page", async () => {
-    const rows = Array.from({ length: 5001 }, (_, index) => ({
+  it("paginates ACRIS beyond 5000 rows and selects a revision split across pages", async () => {
+    const uniqueRows = Array.from({ length: 5001 }, (_, index) => ({
       ...validMaster,
       document_id: String(2026000000000000 + index),
     }));
+    const revised = uniqueRows[4999] as AcrisMasterRow;
+    const rows = [
+      ...uniqueRows.slice(0, 4999),
+      {
+        ...revised,
+        modified_date: "2026-09-15T12:00:00.000",
+        good_through_date: "2026-09-30T00:00:00.000",
+      },
+      revised,
+      ...uniqueRows.slice(5000),
+    ];
     const offsets: number[] = [];
+    const orders: string[] = [];
     const fetchImpl = (async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname.includes("/api/views/")) {
@@ -190,6 +204,7 @@ describe("current source integrity contracts", () => {
       if (url.pathname.includes("bnx9-e6tj")) {
         const offset = Number(url.searchParams.get("$offset") ?? 0);
         offsets.push(offset);
+        orders.push(url.searchParams.get("$order") ?? "");
         return Response.json(rows.slice(offset, offset + 5000));
       }
       return Response.json([]);
@@ -198,6 +213,61 @@ describe("current source integrity contracts", () => {
     assert.deepEqual(offsets, [0, 5000]);
     assert.equal(result.records.length, 5001);
     assert.equal(result.snapshotComplete, false);
+    assert.ok(
+      orders.every(
+        (order) => order === "recorded_datetime,document_id,modified_date,good_through_date",
+      ),
+    );
+    const selected = result.records.find((record) => record.sourceRecordId === revised.document_id);
+    assert.equal(selected?.evidenceUpdatedAt, validMaster.modified_date);
+    assert.equal(selected?.sourceGoodThrough, "2026-10-31");
+  });
+
+  it("selects the newest legitimate ACRIS revision and retains its declared coverage", async () => {
+    const documentId = "2024111800182001";
+    const result = await fetchAcrisCommonChargeLiens(
+      acrisFetch([
+        {
+          ...validMaster,
+          document_id: documentId,
+          crfn: "2024000302793",
+          document_date: "2024-11-13T00:00:00.000",
+          recorded_datetime: "2024-11-19T00:00:00.000",
+          modified_date: "2024-11-19T00:00:00.000",
+          good_through_date: "2024-11-30T00:00:00.000",
+        },
+        {
+          ...validMaster,
+          document_id: documentId,
+          crfn: "2024000302793",
+          document_date: "2024-11-13T00:00:00.000",
+          recorded_datetime: "2024-11-19T00:00:00.000",
+          modified_date: "2024-12-02T00:00:00.000",
+          good_through_date: "2024-12-31T00:00:00.000",
+        },
+      ]).fetchImpl,
+      new Date(context.observedAt),
+    );
+    assert.equal(result.records.length, 1);
+    assert.equal(result.records[0]?.evidenceUpdatedAt, "2024-12-02T00:00:00.000");
+    assert.equal(result.records[0]?.sourceGoodThrough, "2024-12-31");
+  });
+
+  it("rejects conflicting or repeated ACRIS rows at one revision timestamp", async () => {
+    await assert.rejects(
+      fetchAcrisCommonChargeLiens(
+        acrisFetch([validMaster, { ...validMaster, crfn: "2026000999999" }]).fetchImpl,
+        new Date(context.observedAt),
+      ),
+      /conflicting master rows at one revision timestamp/,
+    );
+    await assert.rejects(
+      fetchAcrisCommonChargeLiens(
+        acrisFetch([validMaster, { ...validMaster }]).fetchImpl,
+        new Date(context.observedAt),
+      ),
+      /repeated an identical master row while paging/,
+    );
   });
 
   it("preserves monthly ACRIS coverage per row and fails invalid coverage or malformed masters", async () => {

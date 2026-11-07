@@ -15,6 +15,7 @@ import {
   parseNorfolkViolations,
   parseTravisTaxCsv,
   travisTaxCsvUrl,
+  validateAcrisMasterRow,
 } from "./current-parsers.ts";
 import { fetchDenverForeclosureInitiations } from "./denver-source.ts";
 import { isCalendarDate } from "./model.ts";
@@ -155,7 +156,7 @@ export async function fetchAcrisCommonChargeLiens(
     .slice(0, 10);
   const params = new URLSearchParams({
     $where: `doc_type in('LOCC','TOLCC') AND recorded_datetime >= '${windowStart}T00:00:00'`,
-    $order: "recorded_datetime,document_id",
+    $order: "recorded_datetime,document_id,modified_date,good_through_date",
     $limit: "5000",
   });
   const masters: AcrisMasterRow[] = [];
@@ -181,17 +182,15 @@ export async function fetchAcrisCommonChargeLiens(
   if (masters.length === 0) {
     throw new Error("ACRIS event window was empty.");
   }
-  if (new Set(masters.map((row) => row.document_id)).size !== masters.length) {
-    throw new Error("ACRIS repeated document IDs while paging; retry a stable event window.");
-  }
+  const selectedMasters = selectAcrisMasterRevisions(masters);
   const coverage = [
-    ...new Set(masters.map((row) => row.good_through_date?.slice(0, 10) ?? "")),
+    ...new Set(selectedMasters.map((row) => row.good_through_date?.slice(0, 10) ?? "")),
   ].toSorted();
   if (coverage.some((value) => !isCalendarDate(value))) {
     throw new Error("ACRIS rows lacked valid declared good-through dates.");
   }
   const latestGoodThrough = coverage.at(-1) as string;
-  const documentIds = [...new Set(masters.map((row) => row.document_id ?? ""))];
+  const documentIds = [...new Set(selectedMasters.map((row) => row.document_id ?? ""))];
   if (documentIds.some((id) => !/^\d{16}$/.test(id))) {
     throw new Error("ACRIS master rows contained invalid document IDs.");
   }
@@ -214,7 +213,7 @@ export async function fetchAcrisCommonChargeLiens(
     }
     legals.push(...page);
   }
-  const records = parseAcrisCommonChargeLiens(masters, legals, {
+  const records = parseAcrisCommonChargeLiens(selectedMasters, legals, {
     observedAt: now.toISOString(),
     sourceUpdatedAt,
   });
@@ -233,6 +232,63 @@ export async function fetchAcrisCommonChargeLiens(
       "A filing is not proof that a lien remains outstanding; terminations are separate events and are not applied to every lien on a BBL.",
     ],
   };
+}
+
+function selectAcrisMasterRevisions(rows: readonly AcrisMasterRow[]): AcrisMasterRow[] {
+  const byDocument = new Map<string, Array<{ row: AcrisMasterRow; modifiedAt: string | null }>>();
+  for (const row of rows) {
+    const { documentId, modifiedAt } = validateAcrisMasterRow(row);
+    byDocument.set(documentId, [...(byDocument.get(documentId) ?? []), { row, modifiedAt }]);
+  }
+
+  const selected: AcrisMasterRow[] = [];
+  for (const [documentId, revisions] of byDocument) {
+    const only = revisions[0];
+    if (revisions.length === 1 && only) {
+      selected.push(only.row);
+      continue;
+    }
+
+    const byTimestamp = new Map<string, string>();
+    let latest: { row: AcrisMasterRow; modifiedAt: string } | null = null;
+    for (const revision of revisions) {
+      const modifiedAt = comparableAcrisRevisionTimestamp(revision.modifiedAt);
+      if (!modifiedAt) {
+        throw new Error(`ACRIS ${documentId} revisions lacked comparable modified timestamps.`);
+      }
+      const fingerprint = masterFingerprint(revision.row);
+      const prior = byTimestamp.get(modifiedAt);
+      if (prior === fingerprint) {
+        throw new Error(
+          `ACRIS repeated an identical master row while paging for ${documentId}; retry a stable event window.`,
+        );
+      }
+      if (prior !== undefined) {
+        throw new Error(
+          `ACRIS ${documentId} had conflicting master rows at one revision timestamp.`,
+        );
+      }
+      byTimestamp.set(modifiedAt, fingerprint);
+      if (!latest || modifiedAt > latest.modifiedAt) {
+        latest = { row: revision.row, modifiedAt };
+      }
+    }
+    if (!latest) {
+      throw new Error(`ACRIS ${documentId} had no selectable master revision.`);
+    }
+    selected.push(latest.row);
+  }
+  return selected;
+}
+
+function comparableAcrisRevisionTimestamp(value: string | null): string | null {
+  return value && /^20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value) ? value : null;
+}
+
+function masterFingerprint(row: AcrisMasterRow): string {
+  return JSON.stringify(
+    Object.entries(row).toSorted(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
 async function fetchJson<T>(fetchImpl: typeof fetch, url: string, limit: number): Promise<T> {

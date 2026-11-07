@@ -387,6 +387,34 @@ export type AcrisLegalRow = {
   property_type?: string;
 };
 
+export function validateAcrisMasterRow(master: AcrisMasterRow): {
+  documentId: string;
+  modifiedAt: string | null;
+} {
+  const documentId = clean(master.document_id);
+  const docType = clean(master.doc_type);
+  if (!documentId || !/^\d{16}$/.test(documentId)) {
+    throw new Error("ACRIS master row had an invalid document ID.");
+  }
+  if (docType !== "LOCC" && docType !== "TOLCC") {
+    throw new Error("ACRIS returned a row outside the requested document types.");
+  }
+  if (!dateOnly(master.recorded_datetime)) {
+    throw new Error(`ACRIS ${documentId} had an invalid recorded date.`);
+  }
+  if (!dateOnly(master.good_through_date)) {
+    throw new Error(`ACRIS ${documentId} lacked a valid declared good-through date.`);
+  }
+  if (master.document_date && !dateOnly(master.document_date)) {
+    throw new Error(`ACRIS ${documentId} had an invalid document date.`);
+  }
+  const modifiedAt = localTimestamp(master.modified_date);
+  if (master.modified_date && !modifiedAt) {
+    throw new Error(`ACRIS ${documentId} had an invalid modified timestamp.`);
+  }
+  return { documentId, modifiedAt };
+}
+
 export function parseAcrisCommonChargeLiens(
   masters: readonly AcrisMasterRow[],
   legals: readonly AcrisLegalRow[],
@@ -409,26 +437,7 @@ export function parseAcrisCommonChargeLiens(
     }
   };
   for (const master of masters) {
-    const documentId = clean(master.document_id);
-    const docType = clean(master.doc_type);
-    if (!documentId || !/^\d{16}$/.test(documentId)) {
-      throw new Error("ACRIS master row had an invalid document ID.");
-    }
-    if (docType !== "LOCC" && docType !== "TOLCC") {
-      throw new Error("ACRIS returned a row outside the requested document types.");
-    }
-    if (!dateOnly(master.recorded_datetime)) {
-      throw new Error(`ACRIS ${documentId} had an invalid recorded date.`);
-    }
-    if (!dateOnly(master.good_through_date)) {
-      throw new Error(`ACRIS ${documentId} lacked a valid declared good-through date.`);
-    }
-    if (master.document_date && !dateOnly(master.document_date)) {
-      throw new Error(`ACRIS ${documentId} had an invalid document date.`);
-    }
-    if (master.modified_date && !localTimestamp(master.modified_date)) {
-      throw new Error(`ACRIS ${documentId} had an invalid modified timestamp.`);
-    }
+    const { documentId } = validateAcrisMasterRow(master);
     const properties = byDocument.get(documentId) ?? [];
     if (properties.length === 0) {
       add(acrisRecord(master, null, null, context));

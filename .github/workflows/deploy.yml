@@ -30,7 +30,8 @@ jobs:
     name: Deploy projects
     runs-on: ubuntu-24.04
     concurrency:
-      group: la-property-ingestion
+      # Shared-auth-only releases do not touch Property Watch's ingestion DB.
+      group: ${{ inputs.project == 'templar-auth' && 'deploy-templar-auth' || 'la-property-ingestion' }}
       cancel-in-progress: false
 
     steps:

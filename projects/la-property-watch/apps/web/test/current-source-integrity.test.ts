@@ -176,6 +176,30 @@ describe("current source integrity contracts", () => {
     assert.match(new URL(request).searchParams.get("$where") ?? "", /2024-11-01T00:00:00/);
   });
 
+  it("paginates ACRIS master events beyond one 5000-row page", async () => {
+    const rows = Array.from({ length: 5001 }, (_, index) => ({
+      ...validMaster,
+      document_id: String(2026000000000000 + index),
+    }));
+    const offsets: number[] = [];
+    const fetchImpl = (async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname.includes("/api/views/")) {
+        return Response.json({ id: "bnx9-e6tj", rowsUpdatedAt: 1_799_000_000 });
+      }
+      if (url.pathname.includes("bnx9-e6tj")) {
+        const offset = Number(url.searchParams.get("$offset") ?? 0);
+        offsets.push(offset);
+        return Response.json(rows.slice(offset, offset + 5000));
+      }
+      return Response.json([]);
+    }) as typeof fetch;
+    const result = await fetchAcrisCommonChargeLiens(fetchImpl, new Date(context.observedAt));
+    assert.deepEqual(offsets, [0, 5000]);
+    assert.equal(result.records.length, 5001);
+    assert.equal(result.snapshotComplete, false);
+  });
+
   it("preserves monthly ACRIS coverage per row and fails invalid coverage or malformed masters", async () => {
     const mixed = acrisFetch([
       validMaster,

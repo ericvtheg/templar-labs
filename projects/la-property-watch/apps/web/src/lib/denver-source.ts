@@ -68,7 +68,7 @@ export async function fetchDenverForeclosureInitiations(
     `${windowEnd} inclusive, across all source statuses. Completeness refers only to every ` +
     "row declared by this bounded search; a missing case or changed registry status does not establish current debt resolution.";
   const warnings = [
-    "Denver's Terms of Use state that commercial use of site materials requires written permission; confirm authorization before commercial or sustained operation.",
+    "Denver's Terms of Use state that commercial use of site materials requires written permission; confirm authorization before commercial use.",
     "Denver's search-row Balance Due is stored as principalAmountCents, not as arrears, cure, reinstatement, or current payoff. Its as-of date is unavailable without a bounded case-detail lookup.",
     "Raw registry status is preserved exactly. Property status and disappearance from this rolling window must not be equated with current debt status.",
     "Exact NED recorded dates and reception numbers are not present in search rows, so they remain null rather than triggering hundreds of sequential detail requests.",

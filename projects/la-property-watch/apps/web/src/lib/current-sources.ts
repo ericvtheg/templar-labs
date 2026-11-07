@@ -158,13 +158,31 @@ export async function fetchAcrisCommonChargeLiens(
     $order: "recorded_datetime,document_id",
     $limit: "5000",
   });
-  const masters = await fetchJson<AcrisMasterRow[]>(
-    fetchImpl,
-    `${acrisMasterUrl}?${params}`,
-    jsonLimit,
-  );
-  if (!Array.isArray(masters) || masters.length === 0 || masters.length >= 5_000) {
-    throw new Error("ACRIS event window was empty or exceeded its completeness limit.");
+  const masters: AcrisMasterRow[] = [];
+  for (let offset = 0; ; offset += 5_000) {
+    if (offset >= 20_000) {
+      throw new Error("ACRIS event window exceeded its bounded pagination limit.");
+    }
+    params.set("$offset", String(offset));
+    // eslint-disable-next-line no-await-in-loop
+    const page = await fetchJson<AcrisMasterRow[]>(
+      fetchImpl,
+      `${acrisMasterUrl}?${params}`,
+      jsonLimit,
+    );
+    if (!Array.isArray(page) || page.length > 5_000) {
+      throw new Error("ACRIS returned an invalid master page.");
+    }
+    masters.push(...page);
+    if (page.length < 5_000) {
+      break;
+    }
+  }
+  if (masters.length === 0) {
+    throw new Error("ACRIS event window was empty.");
+  }
+  if (new Set(masters.map((row) => row.document_id)).size !== masters.length) {
+    throw new Error("ACRIS repeated document IDs while paging; retry a stable event window.");
   }
   const coverage = [
     ...new Set(masters.map((row) => row.good_through_date?.slice(0, 10) ?? "")),

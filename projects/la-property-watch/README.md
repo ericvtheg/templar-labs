@@ -20,7 +20,7 @@ Production starts empty. Real-derived fixtures are used only by tests and local 
 - NYC ACRIS common-charge liens and terminations: rolling two-year recording-event window. Every master row must provide a valid document ID, event date, and row-level `good_through_date`. This is append/update event evidence, never a complete outstanding-lien snapshot. A termination on a BBL does not release every lien on that BBL.
 - Denver Public Trustee foreclosure search: explicit rolling 90-day NED window across all source statuses. Withdrawn, cured, and “to be withdrawn” cases remain evidence but receive zero active priority. Published principal is separate from arrears and tax delinquency. Search rows do not publish a parcel ID or publisher-update timestamp, so neither is invented.
 
-Denver Terms of Use state that commercial use of site materials requires written permission. Authorization must be confirmed before commercialization or sustained production operation; the application and persisted source warning keep that blocker visible.
+Denver Terms of Use state that commercial use of site materials requires written permission. Written permission has not been obtained for commercial use. The private research app preserves that warning; deployment is not a determination that commercial reuse is authorized.
 
 Orange County published delinquency/power-to-sell records and Los Angeles tax/trustee sale publications remain a secondary historical archive. They do not drive the default current watchlist.
 

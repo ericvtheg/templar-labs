@@ -57,7 +57,7 @@ Read-only live checks were run on 2026-11-07 UTC. Counts below are parser observ
 - Identity: search rows do not publish an authoritative parcel number. The case ID remains an explicit unmatched property identity; no APN is fabricated or address-fuzzy-joined.
 - Money: published principal is stored separately from tax delinquency, arrears, cure, reinstatement, and payoff. It never enters reported delinquent-tax totals.
 - Freshness: the registry does not publish a dataset update timestamp, so `sourceUpdatedAt` remains null. Fetch observation time is not relabeled as publisher freshness.
-- Access constraint: Denver Terms of Use state that commercial use requires written permission. Permission is an unresolved production/commercialization blocker and is visible in source warnings and the UI.
+- Access constraint: Denver Terms of Use state that commercial use requires written permission. Written permission for commercial reuse has not been obtained and is visible in source warnings and the UI. Private research deployment does not establish commercial-use authorization.
 - Adapter safety: verification challenges stop the run. The adapter does not populate, solve, or bypass a challenge.
 
 ## Secondary historical archive

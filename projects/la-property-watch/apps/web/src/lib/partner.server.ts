@@ -1,3 +1,4 @@
+import { loadDecisionSupport } from "./decision-support.server.ts";
 import { allowedEmails, canonicalPartnerEmail, type SignalType } from "./model.ts";
 import { loadPropertyDetail } from "./repository.ts";
 
@@ -461,7 +462,12 @@ export async function addValueAssumption(
 export async function updateAlertPreferences(
   db: D1Database,
   actor: string,
-  input: { newActivity: boolean; worseningActivity: boolean; dueFollowUps: boolean },
+  input: {
+    newActivity: boolean;
+    worseningActivity: boolean;
+    dueFollowUps: boolean;
+    expectedVersion?: number;
+  },
   now = new Date(),
 ) {
   const actorEmail = requirePartnerEmail(actor);
@@ -475,19 +481,58 @@ export async function updateAlertPreferences(
   ) {
     throw new PartnerValidationError("Alert preferences must be booleans.");
   }
-  await db
-    .prepare(
-      "INSERT INTO user_alert_preferences (user_email,new_activity,worsening_activity,due_follow_ups,updated_at) VALUES (?,?,?,?,?) ON CONFLICT DO UPDATE SET user_email=excluded.user_email,new_activity=excluded.new_activity,worsening_activity=excluded.worsening_activity,due_follow_ups=excluded.due_follow_ups,updated_at=excluded.updated_at",
-    )
-    .bind(
-      actorEmail,
-      input.newActivity ? 1 : 0,
-      input.worseningActivity ? 1 : 0,
-      input.dueFollowUps ? 1 : 0,
-      now.toISOString(),
-    )
-    .run();
-  return { ...input, externalDelivery: "not_configured" as const };
+  if (
+    input.expectedVersion !== undefined &&
+    (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0)
+  ) {
+    throw new PartnerValidationError("Alert preference version is invalid.");
+  }
+  const updatedAt = now.toISOString();
+  const values = [
+    input.newActivity ? 1 : 0,
+    input.worseningActivity ? 1 : 0,
+    input.dueFollowUps ? 1 : 0,
+  ] as const;
+  let version: number;
+  if (input.expectedVersion === undefined) {
+    await db
+      .prepare(
+        "INSERT INTO user_alert_preferences (user_email,new_activity,worsening_activity,due_follow_ups,updated_at,version) VALUES (?,?,?,?,?,1) ON CONFLICT DO UPDATE SET user_email=excluded.user_email,new_activity=excluded.new_activity,worsening_activity=excluded.worsening_activity,due_follow_ups=excluded.due_follow_ups,updated_at=excluded.updated_at,version=user_alert_preferences.version+1",
+      )
+      .bind(actorEmail, ...values, updatedAt)
+      .run();
+    const row = await db
+      .prepare("SELECT version FROM user_alert_preferences WHERE user_email=? COLLATE NOCASE")
+      .bind(actorEmail)
+      .first<{ version: number }>();
+    version = Number(row?.version ?? 1);
+  } else {
+    version = input.expectedVersion + 1;
+    const state =
+      input.expectedVersion === 0
+        ? db
+            .prepare(
+              "INSERT OR IGNORE INTO user_alert_preferences (user_email,new_activity,worsening_activity,due_follow_ups,updated_at,version) VALUES (?,?,?,?,?,1)",
+            )
+            .bind(actorEmail, ...values, updatedAt)
+        : db
+            .prepare(
+              "UPDATE user_alert_preferences SET new_activity=?,worsening_activity=?,due_follow_ups=?,updated_at=?,version=? WHERE user_email=? COLLATE NOCASE AND version=?",
+            )
+            .bind(...values, updatedAt, version, actorEmail, input.expectedVersion);
+    const result = await state.run();
+    if (!result.meta.changes) {
+      throw new PartnerConflictError("Alert preferences changed; reload before saving.");
+    }
+  }
+  return {
+    newActivity: input.newActivity,
+    worseningActivity: input.worseningActivity,
+    dueFollowUps: input.dueFollowUps,
+    version,
+    updatedAt,
+    externalDelivery: "not_configured" as const,
+  };
 }
 
 export async function markAlertsRead(
@@ -596,6 +641,7 @@ export async function loadPartnerWorkspace(
           newActivity: true,
           worseningActivity: true,
           dueFollowUps: true,
+          version: 0,
           externalDelivery: "not_configured" as const,
         },
     dueFollowUps: pipelineRows.results
@@ -689,6 +735,7 @@ export async function loadDealBrief(
     "Current mortgage payoff and net equity are unknown without verified current balances",
     "Physical condition, asking price, and market value are unknown",
   ].filter(Boolean) as string[];
+  const decisionSupport = await loadDecisionSupport(db, propertyKey, buyingFit);
   return {
     property: detail.property,
     evidence: detail.evidence,
@@ -698,6 +745,7 @@ export async function loadDealBrief(
     distressStrength,
     evidenceConfidence,
     buyingFit,
+    decisionSupport,
     pipeline,
     notes: notes.results.map((row) => ({
       id: row.id,
@@ -1303,6 +1351,7 @@ function mapPreferences(row: PreferenceRow) {
     newActivity: Boolean(row.new_activity),
     worseningActivity: Boolean(row.worsening_activity),
     dueFollowUps: Boolean(row.due_follow_ups),
+    version: row.version,
     externalDelivery: "not_configured" as const,
   };
 }
@@ -1361,6 +1410,8 @@ function mapSale(row: SaleRow) {
   return {
     id: row.id,
     candidateParcelId: row.candidate_parcel_id,
+    candidatePropertyKey: row.candidate_property_key,
+    identityStatus: row.identity_status,
     candidateAddress: row.candidate_address,
     saleDate: row.sale_date,
     salePriceCents: row.sale_price_cents,
@@ -1453,7 +1504,12 @@ type AlertRow = {
   available_at: string;
   read_at: string | null;
 };
-type PreferenceRow = { new_activity: number; worsening_activity: number; due_follow_ups: number };
+type PreferenceRow = {
+  new_activity: number;
+  worsening_activity: number;
+  due_follow_ups: number;
+  version: number;
+};
 type NoteRow = {
   id: string;
   property_key: string;
@@ -1519,6 +1575,8 @@ type ExtensionRow = {
 type SaleRow = {
   id: string;
   candidate_parcel_id: string;
+  candidate_property_key: string | null;
+  identity_status: string;
   candidate_address: string | null;
   sale_date: string;
   sale_price_cents: number;

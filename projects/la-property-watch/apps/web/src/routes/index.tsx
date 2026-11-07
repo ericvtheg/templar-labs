@@ -21,7 +21,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authFailure } from "../lib/auth-errors.ts";
 import { loadApp } from "../lib/functions.ts";
 import {
@@ -144,12 +144,22 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const [buyBoxId, setBuyBoxId] = useState(initial.partner.buyBoxes[0]?.id ?? "");
   const [fit, setFit] = useState<"all" | "match" | "unknown" | "no_match">("all");
-  const [sort, setSort] = useState<"distress" | "confidence" | "fit" | "recent">("distress");
+  const [qualification, setQualification] = useState<
+    "all" | "qualified" | "needs_research" | "deprioritized"
+  >("all");
+  const [sort, setSort] = useState<"distress" | "confidence" | "fit" | "recent" | "adjusted">(
+    "distress",
+  );
   const [detailLoading, setDetailLoading] = useState(false);
   const [listLoading, setListLoading] = useState(false);
   const [refreshState, setRefreshState] = useState<"idle" | "queueing" | "running">("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const detailRequest = useRef<{
+    generation: number;
+    propertyKey: string | null;
+    controller: AbortController | null;
+  }>({ generation: 0, propertyKey: null, controller: null });
   useEffect(() => setHydrated(true), []);
 
   const pageEvidence = data.properties.reduce((sum, property) => sum + property.evidenceCount, 0);
@@ -162,7 +172,8 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       jurisdiction: string;
       buyBoxId: string;
       fit: "all" | "match" | "unknown" | "no_match";
-      sort: "distress" | "confidence" | "fit" | "recent";
+      qualification: "all" | "qualified" | "needs_research" | "deprioritized";
+      sort: "distress" | "confidence" | "fit" | "recent" | "adjusted";
     }> = {},
   ) {
     setListLoading(true);
@@ -171,6 +182,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       const selectedJurisdiction = overrides.jurisdiction ?? jurisdiction;
       const selectedBuyBox = overrides.buyBoxId ?? buyBoxId;
       const selectedFit = overrides.fit ?? fit;
+      const selectedQualification = overrides.qualification ?? qualification;
       const selectedSort = overrides.sort ?? sort;
       const params = new URLSearchParams({
         page: String(page),
@@ -179,6 +191,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
         signal: selectedSignal,
         jurisdiction: selectedJurisdiction,
         fit: selectedFit,
+        qualification: selectedQualification,
         sort: selectedSort,
       });
       if (selectedBuyBox) {
@@ -198,23 +211,50 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
     }
   }
 
-  async function loadEvidencePage(propertyKey: string, page = 1) {
+  function currentDetailRequest(propertyKey: string) {
+    const request = detailRequest.current;
+    return request.propertyKey === propertyKey ? request : null;
+  }
+
+  function isCurrentDetailRequest(propertyKey: string, generation: number) {
+    const request = detailRequest.current;
+    return request.propertyKey === propertyKey && request.generation === generation;
+  }
+
+  async function loadEvidencePage(
+    propertyKey: string,
+    page = 1,
+    request = currentDetailRequest(propertyKey),
+  ) {
+    if (!request) {
+      return;
+    }
     setDetailLoading(true);
     setNotice(null);
     try {
       const params = new URLSearchParams({ evidencePage: String(page), evidencePageSize: "50" });
       const response = await fetch(
         `/api/research/properties/${encodeURIComponent(propertyKey)}?${params}`,
-        { credentials: "same-origin" },
+        { credentials: "same-origin", signal: request.controller?.signal ?? null },
       );
       if (!response.ok) {
         throw new Error("Could not load property evidence.");
       }
-      setSelected((await response.json()) as PropertyDetailData);
+      const payload = (await response.json()) as PropertyDetailData;
+      if (
+        payload.property.propertyKey === propertyKey &&
+        isCurrentDetailRequest(propertyKey, request.generation)
+      ) {
+        setSelected(payload);
+      }
     } catch (cause) {
-      setNotice(cause instanceof Error ? cause.message : "Could not load property evidence.");
+      if (!(cause instanceof DOMException && cause.name === "AbortError")) {
+        setNotice(cause instanceof Error ? cause.message : "Could not load property evidence.");
+      }
     } finally {
-      setDetailLoading(false);
+      if (isCurrentDetailRequest(propertyKey, request.generation)) {
+        setDetailLoading(false);
+      }
     }
   }
 
@@ -223,23 +263,51 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   }
 
   async function openPropertyKey(propertyKey: string) {
+    detailRequest.current.controller?.abort();
+    const request = {
+      generation: detailRequest.current.generation + 1,
+      propertyKey,
+      controller: new AbortController(),
+    };
+    detailRequest.current = request;
+    setSelected(null);
     setBrief(null);
-    await Promise.all([loadEvidencePage(propertyKey, 1), loadBrief(propertyKey)]);
+    await Promise.allSettled([
+      loadEvidencePage(propertyKey, 1, request),
+      loadBrief(propertyKey, request),
+    ]);
   }
 
-  async function loadBrief(propertyKey: string) {
+  async function loadBrief(propertyKey: string, request = currentDetailRequest(propertyKey)) {
+    if (!request) {
+      return;
+    }
     const params = new URLSearchParams();
     if (buyBoxId) {
       params.set("buyBoxId", buyBoxId);
     }
-    const response = await fetch(
-      `/api/research/deal-briefs/${encodeURIComponent(propertyKey)}?${params}`,
-      { credentials: "same-origin" },
-    );
+    let response: Response;
+    try {
+      response = await fetch(
+        `/api/research/deal-briefs/${encodeURIComponent(propertyKey)}?${params}`,
+        { credentials: "same-origin", signal: request.controller?.signal ?? null },
+      );
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") {
+        return;
+      }
+      throw cause;
+    }
     if (!response.ok) {
       throw new Error("Could not load the source-backed deal brief.");
     }
-    setBrief((await response.json()) as DealBriefData);
+    const payload = (await response.json()) as DealBriefData;
+    if (
+      payload.property.propertyKey === propertyKey &&
+      isCurrentDetailRequest(propertyKey, request.generation)
+    ) {
+      setBrief(payload);
+    }
   }
 
   async function reloadWorkspace() {
@@ -251,6 +319,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   }
 
   async function mutate(path: string, body: unknown) {
+    const mutationPropertyKey = detailRequest.current.propertyKey;
     setNotice(null);
     const response = await fetch(path, {
       method: "POST",
@@ -265,8 +334,8 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       throw new Error(message);
     }
     await reloadWorkspace();
-    if (selected) {
-      await loadBrief(selected.property.propertyKey);
+    if (mutationPropertyKey && detailRequest.current.propertyKey === mutationPropertyKey) {
+      await loadBrief(mutationPropertyKey);
     }
     return payload;
   }
@@ -647,6 +716,23 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
               </select>
             </label>
             <label>
+              <span className="sr-only">Lead qualification</span>
+              <select
+                aria-label="Lead qualification"
+                value={qualification}
+                onChange={(event) => {
+                  const value = event.target.value as typeof qualification;
+                  setQualification(value);
+                  void loadPage(1, { qualification: value });
+                }}
+              >
+                <option value="all">All lead states</option>
+                <option value="qualified">Qualified</option>
+                <option value="needs_research">Needs research</option>
+                <option value="deprioritized">Deprioritized</option>
+              </select>
+            </label>
+            <label>
               <span className="sr-only">Shortlist sort</span>
               <select
                 aria-label="Shortlist sort"
@@ -661,6 +747,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                 <option value="confidence">Evidence confidence</option>
                 <option value="fit">Buying fit</option>
                 <option value="recent">Recently observed</option>
+                <option value="adjusted">Optional feedback-adjusted priority</option>
               </select>
             </label>
             <button className="button secondary" type="submit" disabled={listLoading}>
@@ -687,7 +774,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                   key={property.propertyKey}
                   property={property}
                   onOpen={() => void openProperty(property)}
-                  loading={detailLoading}
+                  loading={listLoading}
                   selected={selectedKeys.has(property.propertyKey)}
                   onSelect={(checked) =>
                     setSelectedKeys((current) => {
@@ -772,7 +859,16 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
           brief={brief}
           viewerEmail={initial.viewerEmail}
           loading={detailLoading}
-          onClose={() => setSelected(null)}
+          onClose={() => {
+            detailRequest.current.controller?.abort();
+            detailRequest.current = {
+              generation: detailRequest.current.generation + 1,
+              propertyKey: null,
+              controller: null,
+            };
+            setSelected(null);
+            setBrief(null);
+          }}
           onEvidencePage={(page) => void loadEvidencePage(selected.property.propertyKey, page)}
           onMutate={(path, body) => mutate(path, body)}
         />
@@ -798,7 +894,7 @@ function PropertyRow({
 }) {
   const dimensions = shortlistDimensions(property, buyBox);
   return (
-    <div className="property-row-wrap">
+    <div className="property-row-wrap" data-property-key={property.propertyKey}>
       <label className="property-select">
         <input
           type="checkbox"
@@ -841,6 +937,13 @@ function PropertyRow({
         <div className="property-reasons">
           <span>Evidence: {dimensions.confidence.value}</span>
           <span>Buy box: {dimensions.fit.value}</span>
+          <span>Lead: {property.qualificationStatus.replaceAll("_", " ")}</span>
+          {property.priorityAdjustment !== 0 ? (
+            <small>
+              Optional review adjustment {property.priorityAdjustment > 0 ? "+" : ""}
+              {property.priorityAdjustment} · adjusted {property.adjustedPriorityScore}
+            </small>
+          ) : null}
           <small>{dimensions.fit.reason}</small>
         </div>
         <ArrowUpRight size={18} />
@@ -1100,6 +1203,7 @@ function PartnerWorkspacePanel({
               event.preventDefault();
               const form = new FormData(event.currentTarget);
               void onMutate("/api/research/alert-preferences", {
+                expectedVersion: workspace.alertPreferences.version,
                 newActivity: form.has("newActivity"),
                 worseningActivity: form.has("worseningActivity"),
                 dueFollowUps: form.has("dueFollowUps"),
@@ -1390,6 +1494,42 @@ function DealBriefSections({
   onMutate: (path: string, body: unknown) => Promise<unknown>;
 }) {
   const propertyKey = brief.property.propertyKey;
+  const support = brief.decisionSupport;
+  const viewerFeedback = support.feedback.find(
+    (entry) => entry.reviewerEmail.toLowerCase() === viewerEmail.toLowerCase(),
+  );
+  const [researchAction, setResearchAction] = useState<
+    "idle" | "assessing" | "rechecking" | "success" | "failed"
+  >("idle");
+  const [researchResult, setResearchResult] = useState<string | null>(null);
+
+  async function runResearchAction(kind: "assessment" | "recheck") {
+    setResearchAction(kind === "assessment" ? "assessing" : "rechecking");
+    setResearchResult(null);
+    try {
+      const result = (await onMutate(
+        `/api/research/${kind === "assessment" ? "assessments" : "rechecks"}/${encodeURIComponent(propertyKey)}`,
+        {},
+      )) as { status?: string; error?: string; summary?: string };
+      if (result.status === "failed") {
+        setResearchAction("failed");
+        setResearchResult(
+          result.error ?? "The public source recheck failed without advancing verification.",
+        );
+      } else {
+        setResearchAction("success");
+        setResearchResult(
+          result.summary ??
+            (kind === "recheck"
+              ? "Source-scoped tax, code, and assessor findings were persisted with their own clocks and boundaries."
+              : "Attributed assessment persisted."),
+        );
+      }
+    } catch (cause) {
+      setResearchAction("failed");
+      setResearchResult(cause instanceof Error ? cause.message : "The research action failed.");
+    }
+  }
   return (
     <>
       <section className="qualification-grid" aria-label="Qualification dimensions">
@@ -1424,6 +1564,249 @@ function DealBriefSections({
               "All configured criteria have sourced inputs"}
           </small>
         </article>
+      </section>
+      <section className="brief-section decision-section" aria-label="Active lead qualification">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Active bad-lead filtering</p>
+            <h3>Qualification: {support.qualification.status.replaceAll("_", " ")}</h3>
+          </div>
+          <span>
+            Override version {support.qualification.override?.version ?? 0} · source truth retained
+          </span>
+        </div>
+        <div className="reason-ledger">
+          {support.qualification.reasons.map((reason) => (
+            <article
+              className={`reason-row ${reason.effect}`}
+              key={`${reason.code}:${reason.sourceRecordId ?? reason.sourceUrl ?? reason.label}`}
+            >
+              <strong>{reason.code.replaceAll("_", " ")}</strong>
+              <p>{reason.label}</p>
+              <small>
+                Effect: {reason.effect.replaceAll("_", " ")}
+                {reason.sourceDate ? ` · source date ${formatCalendarDate(reason.sourceDate)}` : ""}
+              </small>
+              {reason.sourceUrl ? (
+                <a href={reason.sourceUrl} target="_blank" rel="noreferrer">
+                  Source evidence <ExternalLink size={13} />
+                </a>
+              ) : null}
+            </article>
+          ))}
+        </div>
+        <form
+          className="inline-form qualification-override-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            void onMutate(
+              `/api/research/qualification-overrides/${encodeURIComponent(propertyKey)}`,
+              {
+                expectedVersion: support.qualification.override?.version ?? 0,
+                action: form.get("action"),
+                reason: form.get("reason"),
+              },
+            );
+          }}
+        >
+          <label>
+            <span>Partner qualification override</span>
+            <select
+              name="action"
+              defaultValue={support.qualification.override?.action ?? "source_only"}
+            >
+              <option value="source_only">Use sourced reasons only</option>
+              <option value="qualify">Keep qualified for review</option>
+              <option value="deprioritize">Deprioritize lead</option>
+            </select>
+          </label>
+          <label className="wide">
+            <span>Attributed reason</span>
+            <input
+              name="reason"
+              required
+              minLength={3}
+              maxLength={1000}
+              defaultValue={
+                support.qualification.override?.reason ?? "Return to sourced qualification"
+              }
+            />
+          </label>
+          <button className="button secondary" type="submit">
+            Save reversible override
+          </button>
+        </form>
+        {support.qualification.overrideHistory.length > 0 ? (
+          <details>
+            <summary>{support.qualification.overrideHistory.length} override audit entries</summary>
+            {support.qualification.overrideHistory.map((entry) => (
+              <p key={entry.id}>
+                {entry.action.replaceAll("_", " ")} · {entry.reason} · {entry.actorEmail} ·{" "}
+                {formatTimestamp(entry.createdAt)}
+              </p>
+            ))}
+          </details>
+        ) : null}
+      </section>
+      <section
+        className="brief-section investigation-section"
+        aria-label="Investigation assessment"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Evidence-backed investigation</p>
+            <h3>Reusable attributed brief</h3>
+          </div>
+          <span>
+            Latest verified{" "}
+            {support.latestVerifiedAt ? formatTimestamp(support.latestVerifiedAt) : "never"}
+          </span>
+        </div>
+        <div className="source-links">
+          <button
+            className="button primary"
+            type="button"
+            disabled={researchAction === "assessing" || researchAction === "rechecking"}
+            onClick={() => void runResearchAction("assessment")}
+          >
+            {researchAction === "assessing" ? <LoaderCircle className="spin" size={15} /> : null}
+            Create attributed assessment
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={
+              !/^norfolk-va:\d{8}$/.test(propertyKey) ||
+              researchAction === "assessing" ||
+              researchAction === "rechecking"
+            }
+            onClick={() => void runResearchAction("recheck")}
+          >
+            {researchAction === "rechecking" ? <LoaderCircle className="spin" size={15} /> : null}
+            Recheck official tax, code, and parcel sources
+          </button>
+        </div>
+        {researchResult ? (
+          <div
+            className={`notice ${researchAction === "failed" ? "source-warning" : ""}`}
+            role="status"
+          >
+            {researchAction === "failed" ? <TriangleAlert size={17} /> : <CheckCircle2 size={17} />}
+            {researchResult}
+          </div>
+        ) : null}
+        <p className="fine-print">
+          Dataset publication, record event, network fetch, and partner review clocks remain
+          separate. Source presence is not independent payoff verification, and a failed fetch never
+          advances that source's clock.
+        </p>
+        {support.rechecks.slice(0, 5).map((entry) => (
+          <article className="recheck-row" key={entry.id}>
+            <strong>
+              {entry.status === "success"
+                ? "Exact tax/code recheck succeeded"
+                : entry.status === "partial"
+                  ? "Recheck completed with source boundaries"
+                  : "Recheck failed"}
+            </strong>
+            <span>Attempted {formatTimestamp(entry.attemptedAt)}</span>
+            <small>
+              Dataset as-of{" "}
+              {entry.datasetAsOf ? formatTimestamp(entry.datasetAsOf) : "not obtained"} · fetched{" "}
+              {entry.fetchedAt ? formatTimestamp(entry.fetchedAt) : "not advanced"} · independent
+              current payoff verification not established
+            </small>
+            {entry.findings
+              ? Object.values(entry.findings.sources).map((finding) => (
+                  <p key={finding.sourceId}>
+                    {finding.sourceName}: {finding.status} · {finding.presence} ·{" "}
+                    {finding.recordCount} record(s) · source as-of{" "}
+                    {finding.sourceAsOf ? formatTimestamp(finding.sourceAsOf) : "not advanced"}.{" "}
+                    {finding.boundary}
+                  </p>
+                ))
+              : null}
+            {entry.error ? <p>{entry.error}</p> : null}
+          </article>
+        ))}
+        {support.assessments.length === 0 ? (
+          <p>No persisted assessment yet. Source evidence remains available below.</p>
+        ) : (
+          support.assessments.map((assessment) => (
+            <details
+              className="assessment"
+              key={assessment.id}
+              open={assessment.version === support.assessments[0]?.version}
+            >
+              <summary>
+                Assessment v{assessment.version} · reviewed {formatTimestamp(assessment.reviewedAt)}
+              </summary>
+              <p>{assessment.summary}</p>
+              <dl className="detail-grid">
+                <Detail
+                  label="Dataset as-of"
+                  value={
+                    assessment.datasetAsOf
+                      ? formatTimestamp(assessment.datasetAsOf)
+                      : "Not published"
+                  }
+                />
+                <Detail
+                  label="Fetched"
+                  value={
+                    assessment.fetchedAt ? formatTimestamp(assessment.fetchedAt) : "Not available"
+                  }
+                />
+                <Detail label="Reviewed" value={formatTimestamp(assessment.reviewedAt)} />
+                <Detail
+                  label="Independent current verification"
+                  value="Not established; review source-scoped findings"
+                />
+                <Detail
+                  label="Evidence ledger"
+                  value={`${assessment.evidenceIncluded} of ${assessment.evidenceTotal} included · ${assessment.evidenceOmitted} omitted`}
+                />
+              </dl>
+              <h4>What happened and publication status</h4>
+              {assessment.assertions.map((assertion) => (
+                <article className="assertion" key={String(assertion["id"])}>
+                  <p>{String(assertion["statement"])}</p>
+                  <small>
+                    Record date {formatCalendarDate(String(assertion["recordDate"]))} · fetched{" "}
+                    {formatTimestamp(String(assertion["fetchedAt"]))} ·{" "}
+                    {String(assertion["currentVerification"])}
+                  </small>
+                  <a href={String(assertion["sourceUrl"])} target="_blank" rel="noreferrer">
+                    {String(assertion["sourceLinkKind"]) === "exact_record"
+                      ? "Exact record"
+                      : String(assertion["sourceLinkKind"]) === "dataset"
+                        ? "Dataset metadata/documentation"
+                        : "Publisher source"}
+                    : {String(assertion["sourceName"])} · record{" "}
+                    {String(assertion["sourceRecordId"])} <ExternalLink size={13} />
+                  </a>
+                </article>
+              ))}
+              <h4>Contradictions retained</h4>
+              {assessment.contradictions.length === 0 ? (
+                <p>No explicit cross-source contradiction was detected in this snapshot.</p>
+              ) : (
+                assessment.contradictions.map((entry) => (
+                  <p key={`${String(entry["code"])}:${String(entry["description"])}`}>
+                    {String(entry["description"])}
+                  </p>
+                ))
+              )}
+              <h4>Outstanding questions</h4>
+              <ul>
+                {assessment.outstandingQuestions.map((question) => (
+                  <li key={question}>{question}</li>
+                ))}
+              </ul>
+            </details>
+          ))
+        )}
       </section>
       <PipelineEditor propertyKey={propertyKey} pipeline={brief.pipeline} onMutate={onMutate} />
       <section className="brief-section">
@@ -1517,6 +1900,12 @@ function DealBriefSections({
                 {formatCalendarDate(sale.saleDate)} ·{" "}
                 {sale.qualificationStatus.replaceAll("_", " ")}
               </span>
+              <small>
+                Identity: {sale.identityStatus.replaceAll("_", " ")}
+                {sale.candidatePropertyKey
+                  ? ` · ${sale.candidatePropertyKey}`
+                  : " · no canonical join"}
+              </small>
               <p>{sale.selectionReason}</p>
               <small>{sale.exclusionReason}</small>
               <a href={sale.sourceUrl} target="_blank" rel="noreferrer">
@@ -1529,6 +1918,183 @@ function DealBriefSections({
           Candidates are not qualified comparables or an appraisal. Package allocations, arms-length
           status, condition, exact units, rent and NOI remain unverified.
         </p>
+      </section>
+      <section
+        className="brief-section feedback-section"
+        aria-label="Partner feedback and outcomes"
+      >
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Real partner feedback only</p>
+            <h3>Review judgment and known outcome</h3>
+          </div>
+          <span>Current label version {viewerFeedback?.version ?? 0}</span>
+        </div>
+        <form
+          className="feedback-form"
+          key={`${propertyKey}:${viewerFeedback?.version ?? 0}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const minutes = String(form.get("researchMinutes") ?? "");
+            void onMutate(`/api/research/feedback/${encodeURIComponent(propertyKey)}`, {
+              expectedVersion: viewerFeedback?.version ?? 0,
+              usefulness: form.get("usefulness"),
+              verification: form.get("verification"),
+              interest: form.get("interest"),
+              outcome: form.get("outcome"),
+              researchMinutes: minutes ? Number(minutes) : null,
+              reason: form.get("reason"),
+            });
+          }}
+        >
+          <label>
+            <span>Lead usefulness</span>
+            <select name="usefulness" defaultValue={viewerFeedback?.usefulness ?? "unknown"}>
+              <option value="unknown">Unknown / not reviewed</option>
+              <option value="useful">Useful lead</option>
+              <option value="not_useful">Not useful</option>
+            </select>
+          </label>
+          <label>
+            <span>Verified state</span>
+            <select name="verification" defaultValue={viewerFeedback?.verification ?? "unknown"}>
+              <option value="unknown">Unknown</option>
+              <option value="unresolved">Verified unresolved</option>
+              <option value="resolved">Verified resolved</option>
+              <option value="wrong_match">Wrong identity match</option>
+              <option value="stale">Stale source</option>
+            </select>
+          </label>
+          <label>
+            <span>Interest</span>
+            <select name="interest" defaultValue={viewerFeedback?.interest ?? "unknown"}>
+              <option value="unknown">Unknown</option>
+              <option value="investigate">Worth investigating</option>
+              <option value="not_interested">Not interested</option>
+            </select>
+          </label>
+          <label>
+            <span>Known result</span>
+            <select name="outcome" defaultValue={viewerFeedback?.outcome ?? "none"}>
+              <option value="none">No offer or close known</option>
+              <option value="unknown">Outcome unknown</option>
+              <option value="offer_made">Offer made</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label>
+            <span>Research minutes</span>
+            <input
+              name="researchMinutes"
+              type="number"
+              min={0}
+              max={1440}
+              defaultValue={viewerFeedback?.researchMinutes ?? ""}
+            />
+          </label>
+          <label className="wide">
+            <span>Reason / evidence reviewed</span>
+            <textarea
+              name="reason"
+              required
+              minLength={3}
+              maxLength={1000}
+              defaultValue={
+                viewerFeedback?.reason ?? "Review pending; current state remains unknown"
+              }
+            />
+          </label>
+          <button className="button primary" type="submit">
+            Save my current review label
+          </button>
+        </form>
+        <p className="fine-print">
+          {support.performance.dataBoundary} Revisions update one reviewer/property sample and
+          remain in audit; they never become extra independent samples.
+        </p>
+        <div className="performance-summary">
+          <strong>{support.performance.judgmentCount} reviewer judgments</strong>
+          <span>{support.performance.uniquePropertyCount} unique properties</span>
+        </div>
+        {support.performance.groups.length === 0 ? (
+          <p>No real review labels yet. Sparse feedback does not produce an adjustment.</p>
+        ) : (
+          support.performance.groups.map((group) => (
+            <article className="performance-row" key={`${group.market}:${group.signalCombination}`}>
+              <strong>
+                {group.market} · {group.signalCombination.replaceAll(",", " + ")}
+              </strong>
+              <span>
+                {group.sampleCount} judgments / {group.uniquePropertyCount} properties ·{" "}
+                {group.usefulCount} useful · {group.notUsefulCount} not useful ·{" "}
+                {group.unknownCount} unknown
+              </span>
+              <small>
+                Offers {group.offerCount} · closes {group.closedCount} · {group.researchMinutes}{" "}
+                minutes across {group.timedReviewCount} timed reviews
+              </small>
+              <p>
+                {group.adjustmentStatus.replaceAll("_", " ")} · adjustment{" "}
+                {group.priorityAdjustment >= 0 ? "+" : ""}
+                {group.priorityAdjustment} · {group.rationale}
+              </p>
+            </article>
+          ))
+        )}
+        <form
+          className="inline-form ranking-profile-form"
+          key={`ranking:${support.rankingProfile.version}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            void onMutate("/api/research/ranking-profile", {
+              expectedVersion: support.rankingProfile.version,
+              enabled: form.has("enabled"),
+              minimumSamples: Number(form.get("minimumSamples")),
+              maximumAdjustment: Number(form.get("maximumAdjustment")),
+              reason: form.get("reason"),
+            });
+          }}
+        >
+          <label>
+            <input name="enabled" type="checkbox" defaultChecked={support.rankingProfile.enabled} />{" "}
+            Enable optional bounded adjustment
+          </label>
+          <label>
+            <span>Minimum labeled samples</span>
+            <input
+              name="minimumSamples"
+              type="number"
+              min={3}
+              max={100}
+              defaultValue={support.rankingProfile.minimumSamples}
+            />
+          </label>
+          <label>
+            <span>Maximum points</span>
+            <input
+              name="maximumAdjustment"
+              type="number"
+              min={1}
+              max={20}
+              defaultValue={support.rankingProfile.maximumAdjustment}
+            />
+          </label>
+          <label className="wide">
+            <span>Versioned rationale / reset reason</span>
+            <input
+              name="reason"
+              required
+              minLength={3}
+              maxLength={1000}
+              defaultValue={support.rankingProfile.reason}
+            />
+          </label>
+          <button className="button secondary" type="submit">
+            Save toggle / reset to baseline
+          </button>
+        </form>
       </section>
       <section className="brief-two-column">
         <div>
@@ -1751,7 +2317,7 @@ function EvidenceCard({ record }: { record: ResearchRecord }) {
       {record.evidenceDetail ? <p className="evidence-detail">{record.evidenceDetail}</p> : null}
       <div className="source-links">
         <a className="button primary" href={record.sourceUrl} target="_blank" rel="noreferrer">
-          Open source <ExternalLink size={16} />
+          Open source evidence <ExternalLink size={16} />
         </a>
         {record.sourceDocumentUrl ? (
           <a
@@ -1760,7 +2326,7 @@ function EvidenceCard({ record }: { record: ResearchRecord }) {
             target="_blank"
             rel="noreferrer"
           >
-            Source documentation
+            Dataset metadata / documentation
           </a>
         ) : null}
       </div>

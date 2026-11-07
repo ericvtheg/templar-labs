@@ -227,22 +227,56 @@ export function parseNorfolkTaxCsv(text: string, context: ParseContext): Researc
     ],
     "Norfolk tax",
   );
+  return parseNorfolkTaxRows(
+    rows.map((row) => ({
+      pin: row["PIN"],
+      year: row["YEAR"],
+      installment: row["QUARTER"],
+      address: row["PROPERTY ADDRESS"],
+      ownerName: row["PROPERTY OWNER"],
+      taxDue: row["TAX DUE"],
+      penaltyDue: row["PENALTY DUE"],
+      interestDue: row["INTEREST DUE"],
+      total: row["TOTAL"],
+      account: row["ACCOUNT NUMBER"],
+    })),
+    context,
+  );
+}
+
+export type NorfolkTaxRow = {
+  readonly pin: string | undefined;
+  readonly year: string | undefined;
+  readonly installment: string | undefined;
+  readonly address: string | undefined;
+  readonly ownerName: string | undefined;
+  readonly taxDue: string | undefined;
+  readonly penaltyDue: string | undefined;
+  readonly interestDue: string | undefined;
+  readonly total: string | undefined;
+  readonly account: string | undefined;
+};
+
+export function parseNorfolkTaxRows(
+  rows: readonly NorfolkTaxRow[],
+  context: ParseContext,
+): ResearchRecord[] {
   const records = rows.map((row) => {
-    const pin = String(row["PIN"] ?? "").trim();
+    const pin = String(row.pin ?? "").trim();
     const apn = normalizeParcelId(pin, "norfolk-va");
     if (!apn) {
       throw new Error("Norfolk tax row had an invalid PIN.");
     }
-    const year = integerOrThrow(row["YEAR"], 1900, 2100, "Norfolk tax year");
-    const quarter = integerOrThrow(row["QUARTER"], 1, 4, "Norfolk tax quarter");
-    const account = clean(row["ACCOUNT NUMBER"]);
+    const year = integerOrThrow(row.year, 1900, 2100, "Norfolk tax year");
+    const quarter = integerOrThrow(row.installment, 1, 4, "Norfolk tax quarter");
+    const account = clean(row.account);
     if (!account) {
       throw new Error("Norfolk tax row had no account number.");
     }
-    const tax = moneyToCents(row["TAX DUE"]);
-    const penalty = moneyToCents(row["PENALTY DUE"]);
-    const interest = moneyToCents(row["INTEREST DUE"]);
-    const total = moneyToCents(row["TOTAL"]);
+    const tax = moneyToCents(row.taxDue);
+    const penalty = moneyToCents(row.penaltyDue);
+    const interest = moneyToCents(row.interestDue);
+    const total = moneyToCents(row.total);
     if (tax + penalty + interest !== total) {
       throw new Error(
         `Norfolk installment ${pin}/${year}/${quarter} components did not equal TOTAL.`,
@@ -265,11 +299,11 @@ export function parseNorfolkTaxCsv(text: string, context: ParseContext): Researc
       eventDate: null,
       apn,
       propertyKey: `norfolk-va:${apn}`,
-      address: clean(row["PROPERTY ADDRESS"]),
+      address: clean(row.address),
       city: "Norfolk",
       state: "VA",
       zip: null,
-      ownerName: clean(row["PROPERTY OWNER"]),
+      ownerName: clean(row.ownerName),
       propertyType: "Real estate",
       taxYear: year,
       taxInstallment: quarter,

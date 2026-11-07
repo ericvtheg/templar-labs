@@ -316,6 +316,14 @@ const watchlistSql = watchlist
   )
   .join("\n");
 const sql = `
+DELETE FROM ranking_adjustment_audit;
+DELETE FROM ranking_adjustment_profile;
+DELETE FROM property_feedback_audit;
+DELETE FROM property_feedback;
+DELETE FROM property_qualification_override_audit;
+DELETE FROM property_qualification_overrides;
+DELETE FROM property_assessments;
+DELETE FROM property_rechecks;
 DELETE FROM property_alerts;
 DELETE FROM user_alert_preferences;
 DELETE FROM property_notes;

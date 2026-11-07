@@ -260,6 +260,96 @@
   resize: vertical;
 }
 
+.decision-section,
+.investigation-section,
+.feedback-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.reason-ledger,
+.assessment,
+.performance-summary,
+.performance-row,
+.recheck-row,
+.assertion {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--paper) 92%, var(--ink) 8%);
+}
+
+.reason-row,
+.recheck-row,
+.assertion,
+.performance-row {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+}
+
+.reason-row + .reason-row {
+  border-top: 1px solid var(--line);
+}
+
+.reason-row.deprioritize {
+  border-left: 3px solid #a64b36;
+}
+
+.reason-row.needs_research {
+  border-left: 3px solid #b58222;
+}
+
+.reason-row.supports_active {
+  border-left: 3px solid #34765a;
+}
+
+.reason-row a,
+.assertion a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+}
+
+.assessment {
+  padding: 0.9rem;
+}
+
+.assessment > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.assessment h4 {
+  margin: 1rem 0 0.5rem;
+}
+
+.feedback-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.feedback-form label,
+.qualification-override-form label,
+.ranking-profile-form label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.feedback-form .wide,
+.ranking-profile-form .wide,
+.qualification-override-form .wide {
+  grid-column: 1 / -1;
+}
+
+.performance-summary {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.8rem;
+}
+
 @media (max-width: 760px) {
   .workspace-nav {
     margin-inline: -0.25rem;
@@ -273,6 +363,21 @@
 
   .buy-box-form .wide {
     grid-column: auto;
+  }
+
+  .feedback-form {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-form .wide,
+  .ranking-profile-form .wide,
+  .qualification-override-form .wide {
+    grid-column: auto;
+  }
+
+  .performance-summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .property-row-wrap {

@@ -4,7 +4,9 @@ This document is the durable delivery ledger for the approved partner workflow. 
 
 Status legend: `PENDING`, `IMPLEMENTED`, `LOCALLY VERIFIED`, `PRODUCTION GATE`.
 
-Supervisor checkpoint: independently reran the actual web-workspace typecheck, 88 unit/integration tests, build, and 9 built-Worker desktop/mobile tests successfully after correcting strict-TypeScript failures missed by the worker's parent-workspace check. Scoped Biome has zero errors (warnings/info remain). This is not a release/completion claim. Before production, correct Norfolk pre-2000 transfer handling, exclude subject transfers from comparison candidates, explicitly label non-eight-digit candidate identities unresolved, and repair atomic cleanup/concurrent-preference guards in the opt-in production mutation verifier. That verifier must not run until those guards are tested. Quantitative helpers are ready at `/tmp/property-watch-decision-support/handoff.md`; A–E app integration remains pending.
+Deployment checkpoint: foundation commit `2339cfa18e03bdec6948c791106cd1277b17d8fc` was scoped-deployed with `refresh_sources=false` in [workflow run 42402700375](https://github.com/ericvtheg/templar-labs/actions/runs/42402700375). Migrations 0004/0005, protected data/export, Google PKCE, and account choice passed; the run failed only because the read-only browser verifier clicked a stale pre-search row. That verifier now waits for the exact requested property response and asserts property identity before source assertions. The A/B/D changes and additive migration 0006 in this working tree are not deployed.
+
+Supervisor checkpoint: parent workspace check, strict child web typecheck, **107 unit/API/integration tests**, production Worker build, and **10 built-Worker desktop/mobile tests** were independently rerun successfully after the A/B/D review corrections. Actual live Norfolk recheck now parses two tax records plus eighteen code records (twelve explicitly closed/corrected, six active); local persistence of real assessor/sale data also passed. Regressions cover explicit status vocabulary, dashboard/detail parity, source-scoped clocks, independent-property feedback thresholds, same-actor stale audits, preference CAS, complete ledgers and reordered detail responses. A prior implementation-worker local run logged `SQLITE_NOMEM` on a dashboard request; the supervisor's fresh ten-test run passed, but query-boundary/production verification remains required. Lint/commit hooks are checked separately. This is local evidence, not production acceptance; C/E integration and all final production gates remain open.
 
 ## 1. Qualified shortlist
 
@@ -63,31 +65,32 @@ Supervisor checkpoint: independently reran the actual web-workspace typecheck, 8
 | --- | --- | --- | --- |
 | Preserve literal verified-email allowlist and existing account-switch/login behavior | Existing auth architecture retained; canonicalization occurs after allowlist authentication | Existing auth/API/browser regressions | LOCALLY VERIFIED |
 | All reads, mutations, alerts, buy boxes, briefs, and exports require auth; mutations require exact same origin and validated bounded payloads | Protected routes in `research.server.ts` | Auth, CSRF, table-driven wrong-type/extra-field/zero-write regressions | LOCALLY VERIFIED |
-| Production acceptance mutations are explicit opt-in, use real existing properties, restore state, and clean attributed test notes separately | `verify-production-mutations.ts` and manual `la-partner-mutation-acceptance.yml` | Guarded cleanup/static review; supervisor production run outstanding | PRODUCTION GATE |
+| Production acceptance mutations are explicit opt-in, select an unused real exact Norfolk property, verify two authorized sessions, retain real official enrichment, and atomically clean only exact synthetic IDs/versions | `verify-production-mutations.ts`, `mutation-acceptance-cleanup.ts`, and manual `la-partner-mutation-acceptance.yml` | SQL guard rollback tests for preference and ranking-token conflicts; supervisor production run outstanding | PRODUCTION GATE |
 | Normal read-only acceptance remains read-only; deployment stays scoped and is not performed by this implementation task | Existing read-only verifier plus separate mutation workflow | Workflow review and local build | LOCALLY VERIFIED |
+| Read-only browser acceptance waits for the exact filtered property and cannot click stale rows while search is pending | `apps/web/scripts/verify-browser.ts` and disabled pending shortlist rows | Existing production verifier plus built-Worker ranked search flows; production rerun outstanding | PRODUCTION GATE |
 
 ## A. Evidence-backed investigation and contradictions
 
 | Requirement | Implementation handle | Test handle | Status |
 | --- | --- | --- | --- |
-| Concise sourced brief answers what happened, what remains unresolved as of which date, contradictions, and next checks; every fact retains record/date/link provenance | Pending investigation ledger and deterministic summary | Provenance/contradiction/unknown-boundary unit and E2E flow | PENDING |
-| Reconcile explicit legal releases/withdrawals/cures/stays, tax/code state, ownership transfers, and identity conflicts without broad lien release or debt-extinguishment inference | Pending evidence reconciliation | Exact-link/status/transfer conflict regressions | PENDING |
-| Safe selected-property recheck preserves dataset-as-of, event, fetched, reviewed, and verified clocks separately; failures/cache hits never refresh verification | Pending targeted recheck action | Recheck success/cache/failure clock regressions | PENDING |
-| Reusable assessment workflow includes evidence ledger and outstanding questions rather than unsupported sales claims | Pending assessment state/UI | Desktop/mobile assessment flow | PENDING |
+| Concise sourced brief answers what happened, what remains unresolved as of which date, contradictions, and next checks; every fact retains record/date/link provenance | `decision-support.server.ts` append-only `property_assessments` ledger and attributed assessment UI in `index.tsx` | `decision-support.test.ts` provenance/contradiction/no-unsupported-claim regression; built-Worker assessment flow | LOCALLY VERIFIED |
+| Reconcile explicit legal releases/withdrawals/cures/stays, tax/code state, ownership transfers, and identity conflicts without broad lien release or debt-extinguishment inference | Signal-record-specific reconciliation in `qualificationSummary` and deterministic assessment contradictions | Exact cured-plus-active-code/lien-release/owner-conflict regressions | LOCALLY VERIFIED |
+| Safe selected-property recheck preserves dataset-as-of, event, fetched, reviewed, and verified clocks separately; failures/cache hits never refresh verification | Fresh Norfolk Socrata `recheckSelectedProperty`, `property_rechecks`, and recheck status UI | Fresh stable-fetch success and HTTP failure clock regression; production fresh fetch outstanding | PRODUCTION GATE |
+| Reusable assessment workflow includes evidence ledger and outstanding questions rather than unsupported sales claims | Protected `/api/research/assessments/:key`, persisted history, linked assertion ledger, contradictions and open questions UI | API protection/validation plus desktop built-Worker create/reload/second-partner visibility | LOCALLY VERIFIED |
 
 ## B. Active bad-lead filtering
 
 | Requirement | Implementation handle | Test handle | Status |
 | --- | --- | --- | --- |
-| Visible reversible deprioritization reasons cover sourced resolution, ownership/sale review, duplicate/unmatched identity, staleness, buy-box mismatch, and research unknowns | Pending qualification/deprioritization model | Multi-reason qualification and reversal regressions | PENDING |
-| Negative evidence changes active qualification without deleting raw evidence, notes, or audit; concurrent signals remain independent | Pending evidence ledger and pipeline audit | History/notes/multi-signal retention regressions | PENDING |
-| Overrides store actor, reason, and date without modifying sourced truth | Pending append-only qualification override | Auth/concurrency/audit/E2E regressions | PENDING |
+| Visible reversible deprioritization reasons cover sourced resolution, ownership/sale review, duplicate/unmatched identity, staleness, buy-box mismatch, and research unknowns | `qualificationSummary`, server-side `qualification` shortlist filter, reason ledger and override controls | Multi-reason and server filter regressions; desktop/mobile filter/detail E2E | LOCALLY VERIFIED |
+| Negative evidence changes active qualification without deleting raw evidence, notes, or audit; concurrent signals remain independent | Record-specific active/negative classification; source evidence and research tables remain untouched | Cured-tax plus active code/lien retention and note/evidence-count regressions | LOCALLY VERIFIED |
+| Overrides store actor, reason, and date without modifying sourced truth | Versioned `property_qualification_overrides` plus append-only audit in migration 0006 | Optimistic conflict, reversal, protected API, and second-partner E2E visibility | LOCALLY VERIFIED |
 
 ## C. Named flip and rental economics
 
 | Requirement | Implementation handle | Test handle | Status |
 | --- | --- | --- | --- |
-| Persist multiple named flip and rental/hold scenarios with explicit sourced vs dated user-assumption inputs | Pending decision-support helper handoff and scenario persistence | Helper arithmetic plus route/persistence tests | PENDING |
+| Persist multiple named flip and rental/hold scenarios with explicit sourced vs dated user-assumption inputs | Decision-support helpers delivered; scenario persistence/integration pending | Helper arithmetic plus route/persistence tests | PENDING |
 | Line-item profit, cash invested, return, break-even/maximum purchase price, and sensitivity math is complete when inputs exist and missing-input when they do not | Pending quantitative helper integration | Thorough boundary/missing-input/sensitivity tests | PENDING |
 | Actual sale candidates show criteria/exclusions; no invented condition, rehab, market value, payoff, lien priority, equity, or forecast guarantee | Pending Norfolk transfer candidate integration | Package-sale/unit/provenance/label regressions and E2E | PENDING |
 
@@ -95,10 +98,10 @@ Supervisor checkpoint: independently reran the actual web-workspace typecheck, 8
 
 | Requirement | Implementation handle | Test handle | Status |
 | --- | --- | --- | --- |
-| Capture useful/not useful, verified unresolved/wrong match/stale, investigation vs opportunity, known offer/close, reason, and research time | Pending attributed review/outcome model | Validation/persistence/audit/E2E tests | PENDING |
-| Report transparent performance by signal combination and market with versioned baseline rationale using real reviews only | Pending aggregate report | Denominator/grouping/version regressions | PENDING |
-| Optional bounded adjustments expose sample counts/minimum thresholds; sparse data is insufficient, never learned confidence | Pending bounded prioritization helper | Threshold/reversal/no-held-out-leakage tests | PENDING |
-| Baseline ranking remains available; adjustments can be toggled/reset with audit and buy box remains authoritative | Pending ranking profile state | Toggle/reset/audit/filter regressions | PENDING |
+| Capture useful/not useful/unknown, unresolved/wrong match/stale/resolved/unknown, investigation interest, known offer/close, reason, and research time | Versioned per-property/reviewer `property_feedback`, append-only audit, protected API and property feedback UI | Validation, optimistic version, dedup/revision, API and desktop E2E regressions | LOCALLY VERIFIED |
+| Report transparent performance by signal combination and market with versioned baseline rationale using real reviews only | Stored review-time market/signal context and transparent grouped performance in `loadDecisionSupport`/UI | Judgment-vs-unique-property denominators, revision context, offer/close/time grouping tests | LOCALLY VERIFIED |
+| Optional bounded adjustments expose sample counts/minimum thresholds; sparse data is insufficient, never learned confidence | Shared versioned ranking profile, 3–100 minimum samples, 1–20 bounded points, `adjusted` sort | Threshold/bound/reversal regression and built-Worker insufficient-evidence display | LOCALLY VERIFIED |
+| Baseline ranking remains available; adjustments can be toggled/reset with audit and buy box remains authoritative | Default distress sort unchanged; optional adjusted sort; profile/audit UI; fit remains an independent server filter | Toggle/reset audit, adjusted-order score, fit regression, and desktop E2E | LOCALLY VERIFIED |
 
 ## E. Blind CSV benchmark
 
@@ -110,12 +113,14 @@ Supervisor checkpoint: independently reran the actual web-workspace typecheck, 8
 | Review captures correctness/unknown, worthwhile yes/no/unknown, time, reason; metrics distinguish missing reviews and overlap and show denominators/agreement | Pending review model and decision-support metrics handoff | Metrics and reviewer-flow tests | PENDING |
 | Post-reveal comparison/export reports useful proportion, verified-state correctness, and time per useful lead without unsupported significance/outperformance claims | Pending reveal metrics/export | Calculation/export/label regressions | PENDING |
 
-The quantitative helper worker is restricted to `/tmp/property-watch-decision-support/`. Its tested scenario and benchmark helpers will be reviewed and integrated when its `handoff.md` appears; the application will not grow a competing math implementation in the meantime.
+The separate quantitative helper package remains under `/tmp/property-watch-decision-support/`; its tested scenario and benchmark helpers were deliberately not integrated in this A/B/D phase, and the application did not grow a competing math implementation.
 
 ## Production gates and truthful limitations
 
-- Production OAuth, D1 migration, live targeted Norfolk enrichment, controlled mutation/restoration, screenshots, and deployment are `PRODUCTION GATE` items for the supervisor; this implementation task must not deploy.
+- Foundation production OAuth and migrations 0004/0005 are verified in run 42402700375. Migration 0006, A/B/D deployment, fresh selected-property recheck, controlled synthetic-state mutation/restoration, and updated production screenshots remain `PRODUCTION GATE` items for the supervisor; this implementation task must not deploy.
 - Overall completion requires the original five features and additive A–E. Finishing the foundation alone is an intermediate milestone, not task completion.
 - Assessed value is not market value. Sales candidates are not an appraisal. Current mortgage payoff and equity are unknown without verified current balances.
 - Publication refresh proves what a publisher delivered at that publication, not that every property status was reconfirmed at refresh time.
 - Complete-snapshot disappearance means verification is required; it never proves paid, cured, withdrawn, or otherwise resolved.
+- C integration hook: copy/review `/tmp/property-watch-decision-support/src/economics.ts` plus its `validation.ts`/`index.ts` exports, then add named scenario persistence, provenance/versioned routes, and UI; do not reinterpret assessor values or invent inputs.
+- E integration hook: copy/review `/tmp/property-watch-decision-support/src/benchmark.ts` and `csv.ts` plus private Dataset/BlindState boundaries documented in `/tmp/property-watch-decision-support/README.md`; keep held-out benchmark reviews out of `partner_review` performance and ranking.

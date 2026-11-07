@@ -323,6 +323,7 @@ export const userAlertPreferences = sqliteTable(
     newActivity: integer("new_activity", { mode: "boolean" }).notNull().default(true),
     worseningActivity: integer("worsening_activity", { mode: "boolean" }).notNull().default(true),
     dueFollowUps: integer("due_follow_ups", { mode: "boolean" }).notNull().default(true),
+    version: integer("version").notNull().default(1),
     updatedAt: text("updated_at").notNull(),
   },
   (table) => [
@@ -371,6 +372,8 @@ export const propertySales = sqliteTable(
     id: text("id").primaryKey(),
     subjectPropertyKey: text("subject_property_key").notNull(),
     candidateParcelId: text("candidate_parcel_id").notNull(),
+    candidatePropertyKey: text("candidate_property_key"),
+    identityStatus: text("identity_status").notNull().default("exact_literal_pin"),
     candidateAddress: text("candidate_address"),
     saleDate: text("sale_date").notNull(),
     salePriceCents: integer("sale_price_cents").notNull(),
@@ -422,3 +425,159 @@ export const propertyValueAssumptions = sqliteTable(
     index("property_assumptions_property_created_idx").on(table.propertyKey, table.createdAt),
   ],
 );
+
+export const propertyRechecks = sqliteTable(
+  "property_rechecks",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    sourceId: text("source_id").notNull(),
+    status: text("status").notNull(),
+    attemptedAt: text("attempted_at").notNull(),
+    fetchedAt: text("fetched_at"),
+    datasetAsOf: text("dataset_as_of"),
+    verifiedAt: text("verified_at"),
+    findingsJson: text("findings_json").notNull().default("{}"),
+    actorEmail: text("actor_email").notNull(),
+    error: text("error"),
+  },
+  (table) => [
+    index("property_rechecks_property_attempted_idx").on(table.propertyKey, table.attemptedAt),
+  ],
+);
+
+export const propertyAssessments = sqliteTable(
+  "property_assessments",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    version: integer("version").notNull(),
+    summary: text("summary").notNull(),
+    evidenceTotal: integer("evidence_total").notNull(),
+    evidenceIncluded: integer("evidence_included").notNull(),
+    evidenceOmitted: integer("evidence_omitted").notNull(),
+    assertionsJson: text("assertions_json").notNull(),
+    contradictionsJson: text("contradictions_json").notNull(),
+    outstandingQuestionsJson: text("outstanding_questions_json").notNull(),
+    datasetAsOf: text("dataset_as_of"),
+    fetchedAt: text("fetched_at"),
+    reviewedAt: text("reviewed_at").notNull(),
+    verifiedAt: text("verified_at"),
+    createdBy: text("created_by").notNull(),
+  },
+  (table) => [
+    uniqueIndex("property_assessments_property_version_unique").on(
+      table.propertyKey,
+      table.version,
+    ),
+    index("property_assessments_property_reviewed_idx").on(table.propertyKey, table.reviewedAt),
+  ],
+);
+
+export const propertyQualificationOverrides = sqliteTable("property_qualification_overrides", {
+  propertyKey: text("property_key").primaryKey(),
+  action: text("action").notNull(),
+  reason: text("reason").notNull(),
+  version: integer("version").notNull(),
+  createdAt: text("created_at").notNull(),
+  createdBy: text("created_by").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  operationToken: text("operation_token").notNull().default(""),
+});
+
+export const propertyQualificationOverrideAudit = sqliteTable(
+  "property_qualification_override_audit",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    action: text("action").notNull(),
+    reason: text("reason").notNull(),
+    version: integer("version").notNull(),
+    actorEmail: text("actor_email").notNull(),
+    createdAt: text("created_at").notNull(),
+    operationToken: text("operation_token").notNull().default(""),
+  },
+  (table) => [
+    index("qualification_override_audit_property_idx").on(table.propertyKey, table.createdAt),
+  ],
+);
+
+export const propertyFeedback = sqliteTable(
+  "property_feedback",
+  {
+    propertyKey: text("property_key").notNull(),
+    reviewerEmail: text("reviewer_email").notNull(),
+    dataSource: text("data_source").notNull().default("partner_review"),
+    usefulness: text("usefulness").notNull(),
+    verification: text("verification").notNull(),
+    interest: text("interest").notNull(),
+    outcome: text("outcome").notNull(),
+    researchMinutes: integer("research_minutes"),
+    reason: text("reason").notNull(),
+    marketContext: text("market_context").notNull(),
+    signalCombinationContext: text("signal_combination_context").notNull(),
+    version: integer("version").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    operationToken: text("operation_token").notNull().default(""),
+  },
+  (table) => [
+    uniqueIndex("property_feedback_identity_unique").on(
+      table.propertyKey,
+      table.reviewerEmail,
+      table.dataSource,
+    ),
+    index("property_feedback_performance_idx").on(
+      table.dataSource,
+      table.marketContext,
+      table.signalCombinationContext,
+    ),
+  ],
+);
+
+export const propertyFeedbackAudit = sqliteTable(
+  "property_feedback_audit",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    reviewerEmail: text("reviewer_email").notNull(),
+    dataSource: text("data_source").notNull(),
+    usefulness: text("usefulness").notNull(),
+    verification: text("verification").notNull(),
+    interest: text("interest").notNull(),
+    outcome: text("outcome").notNull(),
+    researchMinutes: integer("research_minutes"),
+    reason: text("reason").notNull(),
+    marketContext: text("market_context").notNull(),
+    signalCombinationContext: text("signal_combination_context").notNull(),
+    version: integer("version").notNull(),
+    createdAt: text("created_at").notNull(),
+    operationToken: text("operation_token").notNull().default(""),
+  },
+  (table) => [index("property_feedback_audit_property_idx").on(table.propertyKey, table.createdAt)],
+);
+
+export const rankingAdjustmentProfile = sqliteTable("ranking_adjustment_profile", {
+  id: text("id").primaryKey(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  minimumSamples: integer("minimum_samples").notNull(),
+  maximumAdjustment: integer("maximum_adjustment").notNull(),
+  reason: text("reason").notNull(),
+  version: integer("version").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  operationToken: text("operation_token").notNull().default(""),
+});
+
+export const rankingAdjustmentAudit = sqliteTable("ranking_adjustment_audit", {
+  id: text("id").primaryKey(),
+  enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  minimumSamples: integer("minimum_samples").notNull(),
+  maximumAdjustment: integer("maximum_adjustment").notNull(),
+  reason: text("reason").notNull(),
+  version: integer("version").notNull(),
+  actorEmail: text("actor_email").notNull(),
+  createdAt: text("created_at").notNull(),
+  operationToken: text("operation_token").notNull().default(""),
+});

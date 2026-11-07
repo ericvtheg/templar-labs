@@ -1,5 +1,15 @@
 import { canAccessResearch, sameOrigin } from "./access.ts";
 import { type Bindings, getAuth } from "./auth.server.ts";
+import {
+  createPropertyAssessment,
+  DecisionConflictError,
+  DecisionValidationError,
+  type FeedbackInput,
+  recheckSelectedProperty,
+  updateQualificationOverride,
+  updateRankingProfile,
+  upsertPropertyFeedback,
+} from "./decision-support.server.ts";
 import { enqueueRefresh } from "./jobs.ts";
 import {
   addPropertyNote,
@@ -55,6 +65,7 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
           signalType: signal && signal !== "all" ? (signal as never) : "all",
           buyBoxId: url.searchParams.get("buyBoxId"),
           fit: (url.searchParams.get("fit") ?? "all") as never,
+          qualification: (url.searchParams.get("qualification") ?? "all") as never,
           sort: (url.searchParams.get("sort") ?? "distress") as never,
         }),
       );
@@ -134,6 +145,97 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
         ),
       );
     }
+    if (request.method === "POST" && pathname.startsWith("/api/research/assessments/")) {
+      const key = decodeURIComponent(pathname.slice("/api/research/assessments/".length));
+      const body = await jsonBody(request);
+      exactKeys(body, []);
+      return json(await createPropertyAssessment(env.DB, session.user.email, key), 201);
+    }
+    if (request.method === "POST" && pathname.startsWith("/api/research/rechecks/")) {
+      const key = decodeURIComponent(pathname.slice("/api/research/rechecks/".length));
+      const body = await jsonBody(request);
+      exactKeys(body, []);
+      return json(await recheckSelectedProperty(env.DB, session.user.email, key));
+    }
+    if (
+      request.method === "POST" &&
+      pathname.startsWith("/api/research/qualification-overrides/")
+    ) {
+      const key = decodeURIComponent(
+        pathname.slice("/api/research/qualification-overrides/".length),
+      );
+      const body = await jsonBody(request);
+      exactKeys(body, ["expectedVersion", "action", "reason"]);
+      if (
+        !Number.isInteger(body["expectedVersion"]) ||
+        typeof body["action"] !== "string" ||
+        typeof body["reason"] !== "string"
+      ) {
+        throw new DecisionValidationError("Qualification override request is invalid.");
+      }
+      return json(
+        await updateQualificationOverride(env.DB, session.user.email, key, {
+          expectedVersion: body["expectedVersion"] as number,
+          action: body["action"] as never,
+          reason: body["reason"],
+        }),
+      );
+    }
+    if (request.method === "POST" && pathname.startsWith("/api/research/feedback/")) {
+      const key = decodeURIComponent(pathname.slice("/api/research/feedback/".length));
+      const body = await jsonBody(request);
+      exactKeys(body, [
+        "expectedVersion",
+        "usefulness",
+        "verification",
+        "interest",
+        "outcome",
+        "researchMinutes",
+        "reason",
+      ]);
+      if (
+        !Number.isInteger(body["expectedVersion"]) ||
+        typeof body["usefulness"] !== "string" ||
+        typeof body["verification"] !== "string" ||
+        typeof body["interest"] !== "string" ||
+        typeof body["outcome"] !== "string" ||
+        (body["researchMinutes"] !== null && !Number.isInteger(body["researchMinutes"])) ||
+        typeof body["reason"] !== "string"
+      ) {
+        throw new DecisionValidationError("Feedback request is invalid.");
+      }
+      return json(
+        await upsertPropertyFeedback(env.DB, session.user.email, key, body as FeedbackInput),
+      );
+    }
+    if (request.method === "POST" && pathname === "/api/research/ranking-profile") {
+      const body = await jsonBody(request);
+      exactKeys(body, [
+        "expectedVersion",
+        "enabled",
+        "minimumSamples",
+        "maximumAdjustment",
+        "reason",
+      ]);
+      if (
+        !Number.isInteger(body["expectedVersion"]) ||
+        typeof body["enabled"] !== "boolean" ||
+        !Number.isInteger(body["minimumSamples"]) ||
+        !Number.isInteger(body["maximumAdjustment"]) ||
+        typeof body["reason"] !== "string"
+      ) {
+        throw new DecisionValidationError("Ranking profile request is invalid.");
+      }
+      return json(
+        await updateRankingProfile(env.DB, session.user.email, {
+          expectedVersion: body["expectedVersion"] as number,
+          enabled: body["enabled"],
+          minimumSamples: body["minimumSamples"] as number,
+          maximumAdjustment: body["maximumAdjustment"] as number,
+          reason: body["reason"],
+        }),
+      );
+    }
     if (request.method === "POST" && pathname.startsWith("/api/research/notes/")) {
       const key = decodeURIComponent(pathname.slice("/api/research/notes/".length));
       const body = await jsonBody(request);
@@ -171,7 +273,7 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
     }
     if (request.method === "POST" && pathname === "/api/research/alert-preferences") {
       const body = await jsonBody(request);
-      exactKeys(body, ["newActivity", "worseningActivity", "dueFollowUps"]);
+      exactKeys(body, ["newActivity", "worseningActivity", "dueFollowUps"], ["expectedVersion"]);
       if (
         [body["newActivity"], body["worseningActivity"], body["dueFollowUps"]].some(
           (value) => typeof value !== "boolean",
@@ -179,11 +281,22 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
       ) {
         throw new PartnerValidationError("Alert preferences must be booleans.");
       }
+      if (
+        body["expectedVersion"] !== undefined &&
+        (!Number.isInteger(body["expectedVersion"]) || Number(body["expectedVersion"]) < 0)
+      ) {
+        throw new PartnerValidationError("Alert preference version is invalid.");
+      }
       return json(
         await updateAlertPreferences(
           env.DB,
           session.user.email,
-          body as { newActivity: boolean; worseningActivity: boolean; dueFollowUps: boolean },
+          body as {
+            newActivity: boolean;
+            worseningActivity: boolean;
+            dueFollowUps: boolean;
+            expectedVersion?: number;
+          },
         ),
       );
     }
@@ -224,6 +337,12 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
     if (cause instanceof PartnerConflictError) {
       return json({ error: cause.message, code: "version_conflict" }, 409);
     }
+    if (cause instanceof DecisionValidationError) {
+      return json({ error: cause.message }, 400);
+    }
+    if (cause instanceof DecisionConflictError) {
+      return json({ error: cause.message, code: "version_conflict" }, 409);
+    }
     console.error(
       "LA Property Watch request failed",
       cause instanceof Error ? cause.message : "Unknown failure",
@@ -260,10 +379,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function exactKeys(value: Record<string, unknown>, expected: readonly string[]) {
+function exactKeys(
+  value: Record<string, unknown>,
+  expected: readonly string[],
+  optional: readonly string[] = [],
+) {
   const actual = Object.keys(value).toSorted();
-  const wanted = [...expected].toSorted();
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+  const allowed = new Set([...expected, ...optional]);
+  if (expected.some((key) => !(key in value)) || actual.some((key) => !allowed.has(key))) {
     throw new PartnerValidationError("Request body fields are invalid.");
   }
 }

@@ -191,6 +191,8 @@ describe("private research API", () => {
       "/api/research/data?pageSize=101",
       "/api/research/data?signal=made_up",
       "/api/research/data?jurisdiction=Norfolk",
+      "/api/research/data?qualification=invented",
+      "/api/research/data?sort=propensity",
       `/api/research/data?query=${encodeURIComponent("a".repeat(49))}`,
       `/api/research/data?query=${encodeURIComponent("🙂".repeat(13))}`,
       "/api/research/properties/missing?evidencePage=abc",
@@ -306,6 +308,53 @@ describe("private research API", () => {
     assert.equal(brief.status, 200);
     assert.equal(((await brief.json()) as { notes: unknown[] }).notes.length, 2);
 
+    const assessment = await handleResearch(
+      new Request(
+        `${origin}/api/research/assessments/${encodeURIComponent("norfolk-va:15834200")}`,
+        {
+          method: "POST",
+          headers: { cookie, origin, "content-type": "application/json" },
+          body: "{}",
+        },
+      ),
+      env,
+    );
+    assert.equal(assessment.status, 201);
+    assert.ok(((await assessment.json()) as { assertions: unknown[] }).assertions.length > 0);
+    const override = await handleResearch(
+      new Request(
+        `${origin}/api/research/qualification-overrides/${encodeURIComponent("norfolk-va:15834200")}`,
+        {
+          method: "POST",
+          headers: { cookie, origin, "content-type": "application/json" },
+          body: JSON.stringify({
+            expectedVersion: 0,
+            action: "deprioritize",
+            reason: "API attributed bad-lead review",
+          }),
+        },
+      ),
+      env,
+    );
+    assert.equal(override.status, 200);
+    const feedback = await handleResearch(
+      new Request(`${origin}/api/research/feedback/${encodeURIComponent("norfolk-va:15834200")}`, {
+        method: "POST",
+        headers: { cookie, origin, "content-type": "application/json" },
+        body: JSON.stringify({
+          expectedVersion: 0,
+          usefulness: "useful",
+          verification: "unresolved",
+          interest: "investigate",
+          outcome: "none",
+          researchMinutes: 12,
+          reason: "API real review label",
+        }),
+      }),
+      env,
+    );
+    assert.equal(feedback.status, 200);
+
     const exportResponse = await handleResearch(
       new Request(`${origin}/api/research/export-selected.csv`, {
         method: "POST",
@@ -326,6 +375,11 @@ describe("private research API", () => {
       ["/api/research/deal-briefs/norfolk-va%3A15834200", "GET"],
       ["/api/research/export-selected.csv", "POST"],
       ["/api/research/buy-boxes", "POST"],
+      ["/api/research/assessments/norfolk-va%3A15834200", "POST"],
+      ["/api/research/rechecks/norfolk-va%3A15834200", "POST"],
+      ["/api/research/qualification-overrides/norfolk-va%3A15834200", "POST"],
+      ["/api/research/feedback/norfolk-va%3A15834200", "POST"],
+      ["/api/research/ranking-profile", "POST"],
     ] as const) {
       const response = await handleResearch(
         new Request(`${origin}${path}`, {
@@ -417,6 +471,34 @@ describe("private research API", () => {
       ["/api/research/export-selected.csv", { propertyKeys: null }],
       ["/api/research/export-selected.csv", { propertyKeys: [1] }],
       ["/api/research/export-selected.csv", { propertyKeys: [], extra: true }],
+      [`/api/research/assessments/${property}`, { extra: true }],
+      [`/api/research/rechecks/${property}`, { extra: true }],
+      [
+        `/api/research/qualification-overrides/${property}`,
+        { expectedVersion: 0, action: "invented", reason: "invalid action" },
+      ],
+      [
+        `/api/research/feedback/${property}`,
+        {
+          expectedVersion: 0,
+          usefulness: "synthetic",
+          verification: "unknown",
+          interest: "unknown",
+          outcome: "unknown",
+          researchMinutes: null,
+          reason: "invalid label",
+        },
+      ],
+      [
+        "/api/research/ranking-profile",
+        {
+          expectedVersion: 0,
+          enabled: true,
+          minimumSamples: 1,
+          maximumAdjustment: 100,
+          reason: "unsafe threshold",
+        },
+      ],
     ];
     const writeCount = () =>
       Number(
@@ -424,7 +506,12 @@ describe("private research API", () => {
           .prepare(`SELECT
       (SELECT COUNT(*) FROM partner_properties)+(SELECT COUNT(*) FROM property_notes)+
       (SELECT COUNT(*) FROM property_value_assumptions)+(SELECT COUNT(*) FROM buy_boxes)+
-      (SELECT COUNT(*) FROM user_alert_preferences)+(SELECT COUNT(*) FROM property_alerts) total`)
+      (SELECT COUNT(*) FROM user_alert_preferences)+(SELECT COUNT(*) FROM property_alerts)+
+      (SELECT COUNT(*) FROM property_assessments)+(SELECT COUNT(*) FROM property_rechecks)+
+      (SELECT COUNT(*) FROM property_qualification_overrides)+
+      (SELECT COUNT(*) FROM property_qualification_override_audit)+
+      (SELECT COUNT(*) FROM property_feedback)+(SELECT COUNT(*) FROM property_feedback_audit)+
+      (SELECT COUNT(*) FROM ranking_adjustment_profile)+(SELECT COUNT(*) FROM ranking_adjustment_audit) total`)
           .get()?.["total"] ?? 0,
       );
     for (const [path, body] of cases) {

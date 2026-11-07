@@ -89,6 +89,8 @@ export type NorfolkSaleCandidate = {
   id: string;
   subjectPropertyKey: string;
   candidateParcelId: string;
+  candidatePropertyKey: string | null;
+  identityStatus: "exact_literal_pin" | "unresolved_raw_identifier";
   candidateAddress: string | null;
   saleDate: string;
   salePriceCents: number;
@@ -97,7 +99,7 @@ export type NorfolkSaleCandidate = {
   buildingAreaSourceValue: number | null;
   buildingAreaUnitStatus: "unverified";
   documentParcelCount: number | null;
-  qualificationStatus: "unqualified_candidate" | "requires_package_review";
+  qualificationStatus: "unqualified_candidate" | "requires_package_review" | "unresolved_identity";
   exclusionReason: string | null;
   selectionReason: string;
   sourceUrl: string;
@@ -175,7 +177,7 @@ export async function fetchNorfolkDealData(
   const windowStart = `${now.getUTCFullYear() - 2}-01-01T00:00:00`;
   const candidateParams = new URLSearchParams({
     $select: "parcel_id,document_number,transfer_date",
-    $where: `property_class_description='${(classDescription ?? "").replaceAll("'", "''")}' AND transfer_date >= '${windowStart}' AND consideration>0`,
+    $where: `property_class_description='${(classDescription ?? "").replaceAll("'", "''")}' AND parcel_id!='${parcelId}' AND transfer_date >= '${windowStart}' AND consideration>0`,
     $group: "parcel_id,document_number,transfer_date",
     $order: "transfer_date DESC,parcel_id,document_number",
     $limit: String(candidateSelectionLimit),
@@ -190,6 +192,7 @@ export async function fetchNorfolkDealData(
   const candidateParcels = [
     ...new Set(
       selectedCandidates
+        .filter((row) => row.parcel_id !== parcelId)
         .map((row) => row.parcel_id)
         .filter((value): value is string => /^\d{1,8}$/.test(value ?? "")),
     ),
@@ -206,6 +209,7 @@ export async function fetchNorfolkDealData(
   const documents = [
     ...new Set(
       selectedCandidates
+        .filter((row) => row.parcel_id !== parcelId)
         .map((row) => row.document_number)
         .filter((value): value is string => /^\d{1,30}$/.test(value ?? "")),
     ),
@@ -394,12 +398,14 @@ export async function persistNorfolkDealData(db: D1Database, data: NorfolkDealDa
     statements.push(
       db
         .prepare(
-          "INSERT INTO property_sales (id,subject_property_key,candidate_parcel_id,candidate_address,sale_date,sale_price_cents,document_number,normalized_property_type,building_area_source_value,building_area_unit_status,document_parcel_count,qualification_status,exclusion_reason,selection_reason,source_url,source_updated_at,observed_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          "INSERT INTO property_sales (id,subject_property_key,candidate_parcel_id,candidate_property_key,identity_status,candidate_address,sale_date,sale_price_cents,document_number,normalized_property_type,building_area_source_value,building_area_unit_status,document_parcel_count,qualification_status,exclusion_reason,selection_reason,source_url,source_updated_at,observed_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         )
         .bind(
           sale.id,
           sale.subjectPropertyKey,
           sale.candidateParcelId,
+          sale.candidatePropertyKey,
+          sale.identityStatus,
           sale.candidateAddress,
           sale.saleDate,
           sale.salePriceCents,
@@ -464,7 +470,13 @@ function saleCandidates(
     const parcel = row.parcel_id;
     const date = calendarDate(row.transfer_date);
     const price = dollarsToCents(row.consideration);
-    if (!parcel || !date || price === null || price <= 0) {
+    if (
+      !parcel ||
+      `norfolk-va:${parcel}` === subjectPropertyKey ||
+      !date ||
+      price === null ||
+      price <= 0
+    ) {
       continue;
     }
     const key = `${parcel}:${row.document_number ?? "no-document"}:${date}`;
@@ -483,6 +495,7 @@ function saleCandidates(
         candidate.parcel_id !== row.parcel_id && dollarsToCents(candidate.consideration) === 0,
     );
     const packageReview = parcels.size > 1 || hasZeroCompanion;
+    const exactIdentity = /^\d{8}$/.test(row.parcel_id ?? "");
     const areaValues = group.map((candidate) => integer(candidate.commercial_building_area));
     const buildingAreaSourceValue = areaValues.every((value) => value !== null)
       ? (areaValues as number[]).reduce((sum, value) => sum + value, 0)
@@ -491,6 +504,8 @@ function saleCandidates(
       id: `norfolk-sale:${subjectPropertyKey}:${key}`,
       subjectPropertyKey,
       candidateParcelId: row.parcel_id!,
+      candidatePropertyKey: exactIdentity ? `norfolk-va:${row.parcel_id}` : null,
+      identityStatus: exactIdentity ? "exact_literal_pin" : "unresolved_raw_identifier",
       candidateAddress: address(row),
       saleDate: calendarDate(row.transfer_date)!,
       salePriceCents: dollarsToCents(row.consideration)!,
@@ -502,10 +517,16 @@ function saleCandidates(
       buildingAreaSourceValue,
       buildingAreaUnitStatus: "unverified",
       documentParcelCount: related.length > 0 ? parcels.size : null,
-      qualificationStatus: packageReview ? "requires_package_review" : "unqualified_candidate",
-      exclusionReason: packageReview
-        ? "Document appears across multiple parcels or includes a zero-consideration companion; allocation and instrument require review."
-        : "No arms-length or sale-qualification flag is published; treat as an unqualified same-class transfer candidate.",
+      qualificationStatus: !exactIdentity
+        ? "unresolved_identity"
+        : packageReview
+          ? "requires_package_review"
+          : "unqualified_candidate",
+      exclusionReason: !exactIdentity
+        ? "The publisher returned a raw candidate identifier that is not an eight-digit literal PIN. It remains unresolved and is not padded or joined to a canonical property."
+        : packageReview
+          ? "Document appears across multiple parcels or includes a zero-consideration companion; allocation and instrument require review."
+          : "No arms-length or sale-qualification flag is published; treat as an unqualified same-class transfer candidate.",
       selectionReason: `Selected from the most recent ${candidateSelectionLimit} distinct same-official-class positive transfers in the bounded two-year window; all extension rows and document companions for the selected set were fetched. Geography, condition, units, tenure and arms-length status are not qualified.`,
       sourceUrl,
       sourceUpdatedAt,
@@ -635,7 +656,7 @@ function dollarsToCents(value: string | undefined): number | null {
 }
 function calendarDate(value: string | undefined): string | null {
   const date = value?.slice(0, 10) ?? "";
-  if (!/^20\d{2}-\d{2}-\d{2}$/.test(date)) {
+  if (!/^(?:1[6-9]\d{2}|20\d{2}|2100)-\d{2}-\d{2}$/.test(date)) {
     return null;
   }
   const parsed = new Date(`${date}T12:00:00Z`);

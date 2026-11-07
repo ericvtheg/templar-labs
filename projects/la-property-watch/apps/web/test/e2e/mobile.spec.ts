@@ -33,9 +33,20 @@ test("mobile partner review can update shared stage and append a note without ho
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
   await page.getByLabel("Search properties").fill("15834200");
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  const qualificationResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/research/data" &&
+      url.searchParams.get("qualification") === "needs_research"
+    );
+  });
+  await page.getByLabel("Lead qualification").selectOption("needs_research");
+  expect((await qualificationResponse).status()).toBe(200);
+  await page.getByLabel("Lead qualification").selectOption("all");
   await page.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(/Shared review controls/)).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: /Qualification:/ })).toBeVisible();
   await dialog.getByLabel("Saved / followed").check();
   await dialog.getByLabel("Stage").selectOption("Qualified");
   await dialog.getByLabel("Assign").selectOption("Rhwcreative@gmail.com");

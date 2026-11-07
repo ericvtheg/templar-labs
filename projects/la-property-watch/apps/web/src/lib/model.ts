@@ -141,6 +141,9 @@ export type RankedProperty = {
   readonly assessedValueCents: number | null;
   readonly lastReportedConsiderationCents: number | null;
   readonly userAssumptionCents: number | null;
+  readonly qualificationStatus: "qualified" | "needs_research" | "deprioritized";
+  readonly priorityAdjustment: number;
+  readonly adjustedPriorityScore: number;
 };
 
 export type PropertyPage = {

@@ -145,6 +145,113 @@ describe("Norfolk official deal data", () => {
     );
   });
 
+  it("retains legitimate pre-2000 subject transfer history", async () => {
+    const historicalTarget = {
+      ...target,
+      transfer_date: "1997-08-14T00:00:00.000",
+      consideration: "245000",
+      document_number: "970123456",
+    };
+    const fetchImpl = async (input: string | URL | Request) => {
+      const url = String(input);
+      const parsed = new URL(url);
+      if (url.includes("/api/views/")) {
+        return json(metadata);
+      }
+      if (parsed.searchParams.get("parcel_id") === "32464650") {
+        return json([historicalTarget]);
+      }
+      if (parsed.searchParams.has("$select")) {
+        return json([]);
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+    const data = await fetchNorfolkDealData(fetchImpl as typeof fetch, "32464650");
+    assert.equal(data.enrichment.lastTransferDate, "1997-08-14");
+    assert.equal(data.enrichment.lastTransferConsiderationCents, 24_500_000);
+  });
+
+  it("keeps the subject transfer only in own history, never among comparison candidates", async () => {
+    const comparison = {
+      ...target,
+      parcel_id: "30989800",
+      transfer_date: "2026-05-01T00:00:00.000",
+      consideration: "10000000",
+      document_number: "260008345",
+    };
+    const fetchImpl = async (input: string | URL | Request) => {
+      const url = String(input);
+      const parsed = new URL(url);
+      if (url.includes("/api/views/")) {
+        return json(metadata);
+      }
+      if (parsed.searchParams.get("parcel_id") === "32464650") {
+        return json([target]);
+      }
+      if (parsed.searchParams.get("$select")?.startsWith("parcel_id")) {
+        return json([
+          {
+            parcel_id: target.parcel_id,
+            document_number: target.document_number,
+            transfer_date: target.transfer_date,
+          },
+          comparison,
+        ]);
+      }
+      if (parsed.searchParams.get("$where")?.startsWith("parcel_id in")) {
+        return json([target, comparison]);
+      }
+      if (parsed.searchParams.get("$where")?.startsWith("document_number in")) {
+        return json([target, comparison]);
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+    const data = await fetchNorfolkDealData(fetchImpl as typeof fetch, "32464650");
+    assert.deepEqual(
+      data.sales.map((sale) => sale.candidateParcelId),
+      ["30989800"],
+    );
+    assert.equal(data.enrichment.lastTransferDocumentNumber, target.document_number);
+  });
+
+  it("retains non-eight-digit raw candidate identifiers as explicitly unresolved", async () => {
+    const unresolved = {
+      ...target,
+      parcel_id: "2812690",
+      transfer_date: "2026-02-26T00:00:00.000",
+      consideration: "8650000",
+      document_number: "260003641",
+    };
+    const fetchImpl = async (input: string | URL | Request) => {
+      const url = String(input);
+      const parsed = new URL(url);
+      if (url.includes("/api/views/")) {
+        return json(metadata);
+      }
+      if (parsed.searchParams.get("parcel_id") === "32464650") {
+        return json([target]);
+      }
+      if (parsed.searchParams.get("$select")?.startsWith("parcel_id")) {
+        return json([unresolved]);
+      }
+      if (parsed.searchParams.get("$where")?.startsWith("parcel_id in")) {
+        assert.match(parsed.searchParams.get("$where") ?? "", /'2812690'/);
+        assert.doesNotMatch(parsed.searchParams.get("$where") ?? "", /'02812690'/);
+        return json([unresolved]);
+      }
+      if (parsed.searchParams.get("$where")?.startsWith("document_number in")) {
+        return json([unresolved]);
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+    const data = await fetchNorfolkDealData(fetchImpl as typeof fetch, "32464650");
+    assert.equal(data.sales[0]?.candidateParcelId, "2812690");
+    assert.equal(data.sales[0]?.candidatePropertyKey, null);
+    assert.equal(data.sales[0]?.identityStatus, "unresolved_raw_identifier");
+    assert.equal(data.sales[0]?.qualificationStatus, "unresolved_identity");
+    assert.match(data.sales[0]?.exclusionReason ?? "", /not an eight-digit literal PIN/i);
+  });
+
   it("flags multi-parcel or zero-consideration companion documents as unqualified", async () => {
     const candidate = {
       ...target,

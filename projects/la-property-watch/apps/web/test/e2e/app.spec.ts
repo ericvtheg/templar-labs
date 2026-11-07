@@ -106,6 +106,60 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
   );
 });
 
+test("reordered property detail, brief, and post-save responses never mix two properties", async ({
+  page,
+}) => {
+  await signInLocally(page.context(), { email: allowedEmail });
+  let delayInitialA = true;
+  let delayPostSaveA = false;
+  const postSaveStarted = Promise.withResolvers<void>();
+  const postSaveRelease = Promise.withResolvers<void>();
+  await page.route(
+    /\/api\/research\/(?:properties|deal-briefs)\/norfolk-va%3A15834200/,
+    async (route) => {
+      const isBrief = new URL(route.request().url()).pathname.includes("deal-briefs");
+      if (delayInitialA) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      } else if (delayPostSaveA && isBrief) {
+        postSaveStarted.resolve();
+        await postSaveRelease.promise;
+      }
+      try {
+        await route.continue();
+      } catch {
+        // AbortController intentionally cancels stale A requests after B is selected.
+      }
+    },
+  );
+  await page.goto("/");
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  const a = page.locator('[data-property-key="norfolk-va:15834200"] .property-row');
+  const b = page.locator('[data-property-key="norfolk-va:00000218"] .property-row');
+  await a.click();
+  await b.click({ force: true });
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("norfolk-va:00000218", { exact: true })).toBeVisible();
+  await page.waitForTimeout(450);
+  await expect(dialog.getByText("norfolk-va:00000218", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("norfolk-va:15834200", { exact: true })).toHaveCount(0);
+
+  delayInitialA = false;
+  await page.getByRole("button", { name: "Close details" }).click();
+  await a.click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("norfolk-va:15834200", { exact: true })).toBeVisible();
+  delayPostSaveA = true;
+  await dialog.getByPlaceholder("Add a sourced research note…").fill("Race regression note");
+  await dialog.getByRole("button", { name: /Add note as/ }).click();
+  await postSaveStarted.promise;
+  await dialog.getByRole("button", { name: "Close details" }).click();
+  await b.click();
+  postSaveRelease.resolve();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("norfolk-va:00000218", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("norfolk-va:15834200", { exact: true })).toHaveCount(0);
+});
+
 test("wrong-email, unverified, and admin sessions cannot enter", async ({ browser }) => {
   for (const identity of [
     { email: "wrong@example.com" },
@@ -182,6 +236,37 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   await expect(
     dialog.getByText("Confirmed exact parcel; tax status still needs current verification."),
   ).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: /Qualification: needs research/ }),
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Create attributed assessment" }).click();
+  await expect(dialog.getByText(/Assessment v1/)).toBeVisible();
+  await dialog.getByLabel("Partner qualification override").selectOption("deprioritize");
+  await dialog
+    .getByLabel("Attributed reason")
+    .fill("Fixture review: identity needs partner follow-up");
+  await dialog.getByRole("button", { name: "Save reversible override" }).click();
+  await expect(dialog.getByRole("heading", { name: /Qualification: deprioritized/ })).toBeVisible();
+
+  await dialog.getByLabel("Lead usefulness").selectOption("useful");
+  await dialog.getByLabel("Verified state").selectOption("unresolved");
+  await dialog.getByLabel("Interest").selectOption("investigate");
+  await dialog.getByLabel("Known result").selectOption("offer_made");
+  await dialog.getByLabel("Research minutes").fill("14");
+  await dialog
+    .getByLabel("Reason / evidence reviewed")
+    .fill("Fixture review of exact tax and code evidence");
+  await dialog.getByRole("button", { name: "Save my current review label" }).click();
+  await expect(dialog.getByText("Current label version 1")).toBeVisible();
+  await expect(dialog.getByText(/1 reviewer judgments/)).toBeVisible();
+  await expect(dialog.getByText(/insufficient evidence/).first()).toBeVisible();
+
+  await dialog.getByLabel("Enable optional bounded adjustment").check();
+  await dialog
+    .getByLabel("Versioned rationale / reset reason")
+    .fill("Fixture toggle verifies reversible baseline priority");
+  await dialog.getByRole("button", { name: "Save toggle / reset to baseline" }).click();
+  await expect(dialog.getByLabel("Enable optional bounded adjustment")).toBeChecked();
   await page.getByRole("button", { name: "Close details" }).click();
 
   await page.getByRole("button", { name: "Pipeline" }).click();
@@ -210,5 +295,15 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   ).toBeAttached();
   await partnerPage.getByRole("button", { name: "Pipeline" }).click();
   await expect(partnerPage.getByText(/Researching · Saved/)).toBeVisible();
+  await partnerPage.getByRole("button", { name: "Shortlist" }).click();
+  await partnerPage.getByLabel("Search properties").fill("15834200");
+  await partnerPage.getByRole("button", { name: "Search", exact: true }).click();
+  await partnerPage.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
+  const partnerDialog = partnerPage.getByRole("dialog");
+  await expect(partnerDialog.getByText(/Assessment v1/)).toBeVisible();
+  await expect(
+    partnerDialog.getByRole("heading", { name: /Qualification: deprioritized/ }),
+  ).toBeVisible();
+  await expect(partnerDialog.getByText(/1 reviewer judgments/)).toBeVisible();
   await partnerContext.close();
 });

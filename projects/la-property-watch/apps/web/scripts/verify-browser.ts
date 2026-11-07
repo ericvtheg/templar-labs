@@ -117,13 +117,29 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       };
       assert(detail.evidence[0]?.sourceUrl, "Ranked property evidence lacked source provenance");
       assert.equal(detail.evidence[0]?.snapshotPresence, "present");
-      await page
-        .getByLabel("Search properties")
-        .fill(property.parcelId ?? property.address ?? property.propertyKey);
+      const searchIdentity = property.parcelId ?? property.address ?? property.propertyKey;
+      await page.getByLabel("Search properties").fill(searchIdentity);
+      const filteredResponse = page.waitForResponse((candidate) => {
+        const url = new URL(candidate.url());
+        return (
+          url.pathname === "/api/research/data" &&
+          url.searchParams.get("query") === searchIdentity &&
+          candidate.ok()
+        );
+      });
       await page.getByRole("button", { name: "Search", exact: true }).click();
-      await page.locator(".property-row").first().click();
+      await filteredResponse;
+      const exactPropertyRow = page.locator(
+        `.property-row-wrap[data-property-key="${property.propertyKey}"] .property-row`,
+      );
+      await expect(exactPropertyRow).toBeVisible();
+      await expect(exactPropertyRow).toContainText(
+        property.parcelId ?? property.address ?? property.propertyKey,
+      );
+      await exactPropertyRow.click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
+      await expect(dialog.getByText(property.propertyKey, { exact: true })).toBeVisible();
       await expect(dialog.getByText("Present in latest source observation").first()).toBeVisible();
       await expect(dialog.getByText(/deterministic prioritization/)).toBeVisible();
       await expect(
@@ -141,9 +157,32 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       await page.screenshot({ path: `test/.results/production/evidence-${viewport.width}.png` });
       await page.getByRole("button", { name: "Close details" }).click();
       await page.getByLabel("Search properties").fill("");
+      const clearedResponse = page.waitForResponse((candidate) => {
+        const url = new URL(candidate.url());
+        return url.pathname === "/api/research/data" && url.searchParams.get("query") === "";
+      });
       await page.getByRole("button", { name: "Search", exact: true }).click();
+      await clearedResponse;
+      const marketResponse = page.waitForResponse((candidate) => {
+        const url = new URL(candidate.url());
+        return (
+          url.pathname === "/api/research/data" &&
+          url.searchParams.get("jurisdiction") === "norfolk-va"
+        );
+      });
       await page.getByLabel("Market jurisdiction").selectOption("norfolk-va");
+      await marketResponse;
+      const signalResponse = page.waitForResponse((candidate) => {
+        const url = new URL(candidate.url());
+        return (
+          url.pathname === "/api/research/data" &&
+          url.searchParams.get("jurisdiction") === "norfolk-va" &&
+          url.searchParams.get("signal") === "code_violation" &&
+          candidate.ok()
+        );
+      });
       await page.getByLabel("Signal type").selectOption("code_violation");
+      await signalResponse;
       await expect(page.locator(".property-row").first()).toBeVisible();
       await expect(page.locator(".property-row").first()).toContainText("Active code violation");
       const downloadPromise = page.waitForEvent("download");

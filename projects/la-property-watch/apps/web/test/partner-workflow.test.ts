@@ -363,11 +363,17 @@ describe("partner workflow", () => {
     await updatePipelineProperty(database.binding, actor, "norfolk-va:15834200", 0, {
       saved: true,
     });
-    await updateAlertPreferences(database.binding, actor, {
-      newActivity: true,
-      worseningActivity: false,
-      dueFollowUps: true,
-    });
+    const preferences = await updateAlertPreferences(
+      database.binding,
+      actor,
+      {
+        newActivity: true,
+        worseningActivity: false,
+        dueFollowUps: true,
+      },
+      new Date("2026-11-07T13:00:00.000Z"),
+    );
+    assert.equal(preferences.updatedAt, "2026-11-07T13:00:00.000Z");
     await publish(database, [evidence({ delinquentAmountCents: 125_000, taxDueCents: 125_000 })], {
       updated: "2026-11-08T12:00:00.000Z",
     });
@@ -375,6 +381,53 @@ describe("partner workflow", () => {
     const partnerWorkspace = await loadPartnerWorkspace(database.binding, partner);
     assert.equal(ownerWorkspace.alerts.length, 0, "disabled worsening alerts stay disabled");
     assert.equal(partnerWorkspace.alerts.length, 1, "preferences remain personal");
+  });
+
+  it("uses CAS for the first and later alert-preference writes without losing a human edit", async () => {
+    const first = await updateAlertPreferences(
+      database.binding,
+      actor,
+      {
+        expectedVersion: 0,
+        newActivity: true,
+        worseningActivity: true,
+        dueFollowUps: true,
+      },
+      new Date("2026-11-07T12:30:00.000Z"),
+    );
+    assert.equal(first.version, 1);
+    const results = await Promise.allSettled([
+      updateAlertPreferences(
+        database.binding,
+        actor,
+        {
+          expectedVersion: 1,
+          newActivity: false,
+          worseningActivity: true,
+          dueFollowUps: true,
+        },
+        new Date("2026-11-07T12:31:00.000Z"),
+      ),
+      updateAlertPreferences(
+        database.binding,
+        actor,
+        {
+          expectedVersion: 1,
+          newActivity: true,
+          worseningActivity: false,
+          dueFollowUps: false,
+        },
+        new Date("2026-11-07T12:31:00.000Z"),
+      ),
+    ]);
+    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+    assert.equal(results.filter((result) => result.status === "rejected").length, 1);
+    assert.equal(
+      database.sqlite
+        .prepare("SELECT version FROM user_alert_preferences WHERE user_email=? COLLATE NOCASE")
+        .get(actor)?.["version"],
+      2,
+    );
   });
 
   it("exports exactly selected keys from one coherent snapshot and neutralizes formulas", async () => {

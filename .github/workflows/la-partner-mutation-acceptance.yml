@@ -1,0 +1,38 @@
+name: Property Watch partner mutation acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type mutate-and-restore to run guarded production mutations
+        type: string
+        required: true
+      property_key:
+        description: Optional exact retained Norfolk property with no partner/research state; blank selects one safely
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: la-property-ingestion
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: inputs.confirm == 'mutate-and-restore'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Verify scoped code before production mutation
+        run: |
+          pnpm --filter la-property-watch check
+          pnpm --filter la-property-watch-web typecheck
+          pnpm exec oxlint projects/la-property-watch
+          pnpm exec biome check projects/la-property-watch .github/workflows/la-partner-mutation-acceptance.yml
+      - name: Exercise real partner state, retain official enrichment, and restore synthetic state
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
+          PROPERTY_KEY: ${{ inputs.property_key }}
+        run: pnpm --filter la-property-watch-web exec node --experimental-strip-types ../../scripts/verify-production-mutations.ts

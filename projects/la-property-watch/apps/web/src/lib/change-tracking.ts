@@ -1,3 +1,4 @@
+import { evidenceStatusSql } from "./evidence-semantics.ts";
 import { allowedEmails } from "./model.ts";
 
 type PublicationInput = {
@@ -153,12 +154,7 @@ export function publicationChangeStatements(
          JOIN source_publications p ON p.source_id=?
          JOIN foreclosure_records old ON old.id=s.id
          WHERE s.staging_run_id=? AND COALESCE(s.evidence_status,'')<>COALESCE(old.evidence_status,'')
-           AND (
-             (s.signal_type='tax_delinquency' AND LOWER(TRIM(COALESCE(s.evidence_status,''))) IN ('paid','cured','resolved'))
-             OR (s.signal_type IN ('notice_of_default','mortgage_foreclosure_initiated','scheduled_trustee_sale') AND LOWER(TRIM(COALESCE(s.evidence_status,''))) IN ('withdrawn','withdrawn (cured)','cured','stayed','released'))
-             OR (s.signal_type='recorded_lien' AND LOWER(TRIM(COALESCE(s.evidence_status,''))) IN ('released','satisfied','terminated'))
-             OR (s.signal_type='code_violation' AND LOWER(TRIM(COALESCE(s.evidence_status,''))) IN ('closed','complied','resolved'))
-           )`,
+           AND ${evidenceStatusSql("s", "resolved")}`,
       )
       .bind(
         input.sourceId,

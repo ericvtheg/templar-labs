@@ -6,6 +6,11 @@ import {
   fetchNorfolkTaxDelinquencies,
   fetchTravisTaxDelinquencies,
 } from "./current-sources.ts";
+import {
+  canonicalSignalCombinationSql,
+  evidenceLink,
+  evidenceStatusSql,
+} from "./evidence-semantics.ts";
 import type {
   DashboardData,
   IngestionTrigger,
@@ -42,7 +47,8 @@ export type DashboardQuery = {
   readonly signalType?: SignalType | "all";
   readonly buyBoxId?: string | null;
   readonly fit?: "all" | "match" | "unknown" | "no_match";
-  readonly sort?: "distress" | "confidence" | "fit" | "recent";
+  readonly qualification?: "all" | "qualified" | "needs_research" | "deprioritized";
+  readonly sort?: "distress" | "confidence" | "fit" | "recent" | "adjusted";
 };
 const refreshCooldownMs = 20_000;
 const refreshLease = "foreclosure-source-refresh";
@@ -569,8 +575,12 @@ function dashboardInput(query: DashboardQuery) {
     throw new DashboardQueryError("Unknown buy-box fit filter.");
   }
   const sort = query.sort ?? "distress";
-  if (!new Set(["distress", "confidence", "fit", "recent"]).has(sort)) {
+  if (!new Set(["distress", "confidence", "fit", "recent", "adjusted"]).has(sort)) {
     throw new DashboardQueryError("Unknown shortlist sort.");
+  }
+  const qualification = query.qualification ?? "all";
+  if (!new Set(["all", "qualified", "needs_research", "deprioritized"]).has(qualification)) {
+    throw new DashboardQueryError("Unknown lead qualification filter.");
   }
   const buyBoxId = query.buyBoxId ?? null;
   if (buyBoxId !== null && !/^[a-zA-Z0-9-]{1,100}$/.test(buyBoxId)) {
@@ -588,9 +598,13 @@ function dashboardInput(query: DashboardQuery) {
     escapedSearch,
     buyBoxId,
     fit: fit as "all" | "match" | "unknown" | "no_match",
-    sort: sort as "distress" | "confidence" | "fit" | "recent",
+    qualification: qualification as "all" | "qualified" | "needs_research" | "deprioritized",
+    sort: sort as "distress" | "confidence" | "fit" | "recent" | "adjusted",
   };
 }
+
+const normalizedOwner = (column: string) =>
+  `UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(${column},''),' ',''),'.',''),',',''),'-',''),'''',''),'&','AND'))`;
 
 export async function loadDashboard(
   db: D1Database,
@@ -606,6 +620,11 @@ export async function loadDashboard(
         .bind(input.buyBoxId)
         .first<FitBuyBoxRow>()
     : null;
+  const rankingProfile = await db
+    .prepare(
+      "SELECT enabled,minimum_samples,maximum_adjustment FROM ranking_adjustment_profile WHERE id='shared'",
+    )
+    .first<{ enabled: number; minimum_samples: number; maximum_adjustment: number }>();
   if (input.buyBoxId && !buyBox) {
     throw new DashboardQueryError("Buy box not found.");
   }
@@ -625,6 +644,103 @@ export async function loadDashboard(
     parameters.push(needle, needle, needle);
   }
   const fitSql = buyBox ? buyBoxFitSql(buyBox) : null;
+  const staleCutoff = new Date(new Date(generatedAt).getTime() - 180 * 86_400_000).toISOString();
+  const baseResolvedSql = evidenceStatusSql("r", "resolved");
+  const baseActiveSql = evidenceStatusSql("r", "active");
+  const latestFindingsSql = "pr.findings_json";
+  const sourceFinding = (source: "tax" | "code", field: string) =>
+    `json_extract(${latestFindingsSql},'$.sources.${source}.${field}')`;
+  const checkedState = (source: "tax" | "code", state: "active" | "resolved") =>
+    `EXISTS (SELECT 1 FROM json_each(COALESCE(${sourceFinding(source, "records")},'[]')) checked
+      WHERE json_extract(checked.value,'$.sourceRecordId')=r.source_record_id
+        AND json_extract(checked.value,'$.statusState')='${state}')`;
+  const effectiveStateSql = (state: "active" | "resolved") => `(
+    (r.source_id NOT IN ('norfolk-delinquent-property-tax','norfolk-code-violations') AND ${state === "active" ? baseActiveSql : baseResolvedSql})
+    OR (r.source_id='norfolk-delinquent-property-tax' AND
+      (CASE WHEN ${sourceFinding("tax", "status")}='success'
+        THEN ${checkedState("tax", state)} ELSE ${state === "active" ? baseActiveSql : baseResolvedSql} END))
+    OR (r.source_id='norfolk-code-violations' AND
+      (CASE WHEN ${sourceFinding("code", "status")}='success'
+        THEN ${checkedState("code", state)} ELSE ${state === "active" ? baseActiveSql : baseResolvedSql} END))
+  )`;
+  const effectiveActiveSql = effectiveStateSql("active");
+  const effectiveResolvedSql = effectiveStateSql("resolved");
+  const currentEvidence = "r.property_key=p.property_key AND r.snapshot_presence='present'";
+  const activeEvidenceSql = `(SELECT COUNT(*) FROM foreclosure_records r
+    WHERE ${currentEvidence} AND r.signal_type<>'lien_release' AND ${effectiveActiveSql})`;
+  const resolvedEvidenceSql = `EXISTS (SELECT 1 FROM foreclosure_records r
+    WHERE ${currentEvidence} AND ${effectiveResolvedSql})`;
+  const unknownEvidenceSql = `(SELECT COUNT(*) FROM foreclosure_records r
+    WHERE ${currentEvidence} AND r.signal_type<>'lien_release'
+      AND NOT ${effectiveActiveSql} AND NOT ${effectiveResolvedSql})`;
+  const identityMismatchSql = `(p.parcel_id IS NULL
+    OR (p.jurisdiction_id='norfolk-va' AND (LENGTH(p.parcel_id)<>8 OR p.parcel_id GLOB '*[^0-9]*'))
+    OR (SELECT COUNT(DISTINCT r.apn) FROM foreclosure_records r
+      WHERE ${currentEvidence} AND r.apn IS NOT NULL)>1)`;
+  const ownerConflictSql = `(SELECT COUNT(DISTINCT owner_key) FROM (
+    SELECT ${normalizedOwner("owners.owner_name")} owner_key FROM foreclosure_records owners
+      WHERE owners.property_key=p.property_key AND owners.snapshot_presence='present' AND owners.owner_name IS NOT NULL
+    UNION ALL SELECT ${normalizedOwner("e.owner_name")} WHERE e.owner_name IS NOT NULL
+  ) WHERE owner_key<>'')>1`;
+  const transferReviewSql = `((${ownerConflictSql}) OR
+    (e.last_transfer_date IS NOT NULL AND e.last_transfer_date>=COALESCE(
+      (SELECT MAX(r.event_date) FROM foreclosure_records r WHERE ${currentEvidence} AND r.event_date IS NOT NULL),
+      e.last_transfer_date)))`;
+  const staleSql = `EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence})
+    AND COALESCE((SELECT MAX(COALESCE(r.evidence_updated_at,r.source_updated_at,r.observed_at))
+      FROM foreclosure_records r WHERE ${currentEvidence}),'')<'${staleCutoff}'`;
+  const inlineFit = fitSql ? inlineFitSql(fitSql) : { mismatch: "0=1", unknown: "0=1" };
+  const supportedRecheckBoundarySql = `(
+    EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+      AND r.source_id='norfolk-delinquent-property-tax')
+      AND (COALESCE(${sourceFinding("tax", "status")},'')<>'success' OR COALESCE(${sourceFinding("tax", "presence")},'')<>'present')
+    OR EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+      AND r.source_id='norfolk-code-violations')
+      AND (COALESCE(${sourceFinding("code", "status")},'')<>'success' OR COALESCE(${sourceFinding("code", "presence")},'')<>'present')
+    OR EXISTS (SELECT 1 FROM foreclosure_records r WHERE ${currentEvidence} AND ${effectiveActiveSql}
+      AND (r.signal_type IN ('recorded_lien','notice_of_default','mortgage_foreclosure_initiated','scheduled_trustee_sale','scheduled_tax_sale')
+        OR r.source_id NOT IN ('norfolk-delinquent-property-tax','norfolk-code-violations')))
+  )`;
+  const qualificationSql = `CASE
+    WHEN qo.action='deprioritize'
+      OR ${identityMismatchSql}
+      OR (${inlineFit.mismatch})
+    THEN 'deprioritized'
+    WHEN qo.action='qualify' THEN 'qualified'
+    WHEN ${activeEvidenceSql}=0 AND ${unknownEvidenceSql}=0 THEN 'deprioritized'
+    WHEN ${staleSql}
+      OR (${inlineFit.unknown})
+      OR ${transferReviewSql}
+      OR ${resolvedEvidenceSql}
+      OR ${unknownEvidenceSql}>0
+      OR ${supportedRecheckBoundarySql}
+    THEN 'needs_research'
+    ELSE 'qualified' END`;
+  const qualificationParameters = input.qualification === "all" ? [] : [input.qualification];
+  const minimumSamples = Number.isInteger(rankingProfile?.minimum_samples)
+    ? Math.max(3, Math.min(100, Number(rankingProfile?.minimum_samples)))
+    : 5;
+  const maximumAdjustment = Number.isInteger(rankingProfile?.maximum_adjustment)
+    ? Math.max(1, Math.min(20, Number(rankingProfile?.maximum_adjustment)))
+    : 10;
+  const adjustmentSql = rankingProfile?.enabled
+    ? `CASE WHEN COALESCE(fb.labeled_properties,0)>=${minimumSamples}
+        THEN CAST(ROUND(${maximumAdjustment} * (fb.useful_count-fb.not_useful_count) * 1.0 / fb.labeled_samples) AS INTEGER)
+        ELSE 0 END`
+    : "0";
+  const joins = `LEFT JOIN property_enrichment e ON e.property_key=p.property_key
+    LEFT JOIN property_qualification_overrides qo ON qo.property_key=p.property_key
+    LEFT JOIN property_rechecks pr ON pr.id=(SELECT c.id FROM property_rechecks c
+      WHERE c.property_key=p.property_key ORDER BY c.attempted_at DESC,c.id DESC LIMIT 1)
+    LEFT JOIN (
+      SELECT market_context,signal_combination_context,
+        SUM(CASE WHEN usefulness IN ('useful','not_useful') THEN 1 ELSE 0 END) labeled_samples,
+        COUNT(DISTINCT CASE WHEN usefulness IN ('useful','not_useful') THEN property_key END) labeled_properties,
+        SUM(CASE WHEN usefulness='useful' THEN 1 ELSE 0 END) useful_count,
+        SUM(CASE WHEN usefulness='not_useful' THEN 1 ELSE 0 END) not_useful_count
+      FROM property_feedback WHERE data_source='partner_review'
+      GROUP BY market_context,signal_combination_context
+    ) fb ON fb.market_context=p.jurisdiction_id AND fb.signal_combination_context=${canonicalSignalCombinationSql("p.signal_types")}`;
   const assumptionSelect =
     buyBox?.value_basis === "user_assumption" && buyBox.value_assumption_label
       ? `(SELECT va.value_cents FROM property_value_assumptions va WHERE va.property_key=p.property_key AND va.label='${buyBox.value_assumption_label.replaceAll("'", "''")}' ORDER BY va.as_of_date DESC,va.created_at DESC,va.id DESC LIMIT 1)`
@@ -640,29 +756,41 @@ export async function loadDashboard(
     parameters.push(...fitSql.parameters);
   }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  const fitOrder = fitSql
-    ? `CASE WHEN ${fitSql.mismatch} THEN 2 WHEN ${fitSql.unknown} THEN 1 ELSE 0 END,`
-    : "";
+  const qualificationWhere = input.qualification === "all" ? "" : "WHERE qualification_status=?";
+  const fitOrderSelect =
+    input.sort === "fit" && fitSql
+      ? `CASE WHEN ${fitSql.mismatch} THEN 2 WHEN ${fitSql.unknown} THEN 1 ELSE 0 END`
+      : "0";
   const order = {
-    distress: "p.score DESC,p.property_key ASC",
+    distress: "score DESC,property_key ASC",
     confidence:
-      "p.parcel_id IS NULL,(LENGTH(p.source_names)-LENGTH(REPLACE(p.source_names,',',''))) DESC,p.property_key ASC",
-    recent: "p.last_seen_at DESC,p.property_key ASC",
-    fit: `${fitOrder}p.score DESC,p.property_key ASC`,
+      "parcel_id IS NULL,(LENGTH(source_names)-LENGTH(REPLACE(source_names,',',''))) DESC,property_key ASC",
+    recent: "last_seen_at DESC,property_key ASC",
+    fit: "fit_order,score DESC,property_key ASC",
+    adjusted: "(score+priority_adjustment) DESC,score DESC,property_key ASC",
   }[input.sort];
-  const orderParameters = input.sort === "fit" && fitSql ? fitSql.parameters : [];
+  const fitOrderParameters = input.sort === "fit" && fitSql ? fitSql.parameters : [];
+  const qualifiedSelect = `SELECT p.*,e.normalized_property_type,e.neighborhood,e.lot_area_sqft,e.residential_finished_area_value,e.commercial_building_area_value,e.building_area_unit_status,e.assessed_total_cents,e.last_transfer_consideration_cents,${assumptionSelect} selected_user_assumption_cents,${qualificationSql} qualification_status,${adjustmentSql} priority_adjustment,${fitOrderSelect} fit_order FROM watchlist_properties p ${joins} ${where}`;
+  const countSql =
+    input.qualification === "all"
+      ? `SELECT COUNT(*) AS total FROM watchlist_properties p ${joins} ${where}`
+      : `WITH qualified AS MATERIALIZED (SELECT ${qualificationSql} qualification_status FROM watchlist_properties p ${joins} ${where}) SELECT COUNT(*) AS total FROM qualified ${qualificationWhere}`;
   const [count, propertyRows, runRows, refreshRows, archiveRows, archiveCount] = await Promise.all([
     db
-      .prepare(
-        `SELECT COUNT(*) AS total FROM watchlist_properties p LEFT JOIN property_enrichment e ON e.property_key=p.property_key ${where}`,
-      )
-      .bind(...parameters)
+      .prepare(countSql)
+      .bind(...parameters, ...qualificationParameters)
       .first<{ total: number }>(),
     db
       .prepare(
-        `SELECT p.*,e.normalized_property_type,e.neighborhood,e.lot_area_sqft,e.residential_finished_area_value,e.commercial_building_area_value,e.building_area_unit_status,e.assessed_total_cents,e.last_transfer_consideration_cents,${assumptionSelect} selected_user_assumption_cents FROM watchlist_properties p LEFT JOIN property_enrichment e ON e.property_key=p.property_key ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,
+        `WITH qualified AS MATERIALIZED (${qualifiedSelect}) SELECT * FROM qualified ${qualificationWhere} ORDER BY ${order} LIMIT ? OFFSET ?`,
       )
-      .bind(...parameters, ...orderParameters, input.pageSize, (input.page - 1) * input.pageSize)
+      .bind(
+        ...fitOrderParameters,
+        ...parameters,
+        ...qualificationParameters,
+        input.pageSize,
+        (input.page - 1) * input.pageSize,
+      )
       .all<PropertyRow>(),
     db.prepare("SELECT * FROM ingestion_runs ORDER BY started_at DESC LIMIT 100").all<RunRow>(),
     db
@@ -973,6 +1101,9 @@ function mapProperty(row: PropertyRow): RankedProperty {
     assessedValueCents: row.assessed_total_cents ?? null,
     lastReportedConsiderationCents: row.last_transfer_consideration_cents ?? null,
     userAssumptionCents: row.selected_user_assumption_cents ?? null,
+    qualificationStatus: row.qualification_status ?? "needs_research",
+    priorityAdjustment: row.priority_adjustment ?? 0,
+    adjustedPriorityScore: Math.max(0, Math.min(120, row.score + (row.priority_adjustment ?? 0))),
   };
 }
 
@@ -1045,7 +1176,35 @@ function buyBoxFitSql(row: FitBuyBoxRow) {
     parameters,
   };
 }
+
+function inlineFitSql(fit: ReturnType<typeof buyBoxFitSql>) {
+  let index = 0;
+  const mismatch = fit.mismatch .replaceAll("?", () => sqlLiteral(fit.parameters[index++]));
+  if (index !== fit.parameters.length) {
+    throw new DashboardQueryError("Buy-box SQL parameters were inconsistent.");
+  }
+  return { mismatch, unknown: fit.unknown };
+}
+
+function sqlLiteral(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "string") {
+    return `'${value.replaceAll("'", "''")}'`;
+  }
+  throw new DashboardQueryError("Buy-box SQL value was invalid.");
+}
 function mapRecord(row: RecordRow): ResearchRecord {
+  const displayLink = evidenceLink({
+    source_id: row.source_id,
+    source_record_id: row.source_record_id,
+    source_url: row.source_url,
+    source_document_url: row.source_document_url,
+    apn: row.apn,
+    tax_year: row.tax_year,
+    tax_installment: row.tax_installment,
+  });
   const record = {
     id: row.id,
     saleType: row.sale_type,
@@ -1056,7 +1215,7 @@ function mapRecord(row: RecordRow): ResearchRecord {
     sourceKey: row.source_key,
     sourceId: row.source_id,
     sourceName: row.source_name,
-    sourceUrl: row.source_url,
+    sourceUrl: displayLink.sourceUrl,
     sourceDocumentUrl: row.source_document_url,
     sourcePublishedAt: row.source_published_at,
     sourceAsOfDate: row.source_as_of_date,
@@ -1204,6 +1363,8 @@ type PropertyRow = {
   assessed_total_cents?: number | null;
   last_transfer_consideration_cents?: number | null;
   selected_user_assumption_cents?: number | null;
+  qualification_status?: RankedProperty["qualificationStatus"];
+  priority_adjustment?: number;
 };
 type FitBuyBoxRow = {
   property_types_json: string;

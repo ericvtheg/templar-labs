@@ -316,6 +316,12 @@ const watchlistSql = watchlist
   )
   .join("\n");
 const sql = `
+DELETE FROM blind_benchmark_review_audit;
+DELETE FROM blind_benchmark_reviews;
+DELETE FROM blind_benchmark_imports;
+DELETE FROM blind_benchmarks;
+DELETE FROM property_deal_scenario_candidates;
+DELETE FROM property_deal_scenarios;
 DELETE FROM ranking_adjustment_audit;
 DELETE FROM ranking_adjustment_profile;
 DELETE FROM property_feedback_audit;

@@ -42,7 +42,11 @@ async function mockApi(
   };
 }
 
-const result = { success: true, results: [{ value: 42 }], meta: { changes: 1 } };
+const result = {
+  success: true,
+  results: [{ value: 42 }],
+  meta: { changes: 1, rows_read: 3, rows_written: 0 },
+};
 
 test("REST adapter discovers exact name across pages and implements binding/query/batch", async () => {
   const mock = await mockApi((url, body) => {
@@ -78,6 +82,14 @@ test("REST adapter discovers exact name across pages and implements binding/quer
         { sql: "SELECT ? AS value", params: [42] },
         { sql: "SELECT ? AS value", params: [42] },
       ],
+    });
+    assert.deepEqual(mock.api.usageSummary(), {
+      requests: 4,
+      statements: 5,
+      rowsRead: 15,
+      rowsWritten: 0,
+      metadataStatements: 5,
+      providerRowMetadata: "complete",
     });
   } finally {
     await mock.close();

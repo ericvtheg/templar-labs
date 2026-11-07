@@ -75,6 +75,13 @@ export function safeD1ErrorSummary(errors: unknown): string {
 export class CloudflareD1 {
   private readonly options: ApiOptions;
   private databaseId: string | undefined;
+  private readonly usage = {
+    requests: 0,
+    statements: 0,
+    rowsRead: 0,
+    rowsWritten: 0,
+    metadataStatements: 0,
+  };
 
   constructor(options: ApiOptions) {
     this.options = options;
@@ -198,7 +205,30 @@ export class CloudflareD1 {
     ) {
       throw new Error("Cloudflare D1 query failed or returned incomplete results.");
     }
+    this.usage.requests++;
+    this.usage.statements += data.result.length;
+    for (const result of data.result) {
+      const rowsRead = result.meta["rows_read"];
+      const rowsWritten = result.meta["rows_written"];
+      if (typeof rowsRead === "number" && typeof rowsWritten === "number") {
+        this.usage.rowsRead += rowsRead;
+        this.usage.rowsWritten += rowsWritten;
+        this.usage.metadataStatements++;
+      }
+    }
     return data.result;
+  }
+
+  usageSummary() {
+    return {
+      ...this.usage,
+      providerRowMetadata:
+        this.usage.metadataStatements === this.usage.statements
+          ? "complete"
+          : this.usage.metadataStatements === 0
+            ? "unavailable"
+            : "partial",
+    } as const;
   }
 
   batch<T = Record<string, unknown>>(statements: RestStatement[]): Promise<QueryResult<T>[]> {

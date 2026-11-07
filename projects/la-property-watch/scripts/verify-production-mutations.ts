@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID, webcrypto } from "node:crypto";
 import { CloudflareD1 } from "./ingest-production.ts";
 import { acceptanceCleanupGuard } from "./mutation-acceptance-cleanup.ts";
+import { verifyProductionQueries } from "./verify-production-queries.ts";
 
 const baseUrl = new URL(
   process.env["LA_PROPERTY_WATCH_URL"] ?? "https://la-property-watch.breli.app",
@@ -13,6 +14,10 @@ const partner = "Rhwcreative@gmail.com";
 const runId = randomUUID();
 const label = `Production acceptance ${runId}`;
 const noteBody = `${label}: temporary source-verification workflow note; remove after acceptance.`;
+const dated = (value: number | null) => ({
+  value,
+  asOf: value === null ? null : new Date().toISOString().slice(0, 10),
+});
 
 type PipelineRow = {
   property_key: string;
@@ -122,9 +127,58 @@ async function partnerJsonRequest<T>(path: string): Promise<T> {
   check(response.ok, `${path} returned ${response.status}: ${payload.error ?? "private error"}`);
   return payload;
 }
+async function partnerPostJsonRequest<T>(path: string, body: unknown): Promise<T> {
+  const response = await requestWithCookie(partnerCookie, path, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: baseUrl.origin },
+    body: JSON.stringify(body),
+  });
+  const payload = (await response.json()) as T & { error?: string };
+  check(response.ok, `${path} returned ${response.status}: ${payload.error ?? "private error"}`);
+  return payload;
+}
 
 const db = new CloudflareD1({ accountId, apiToken });
 await db.discover();
+const rollbackSentinelId = `acceptance-rollback-${runId}`;
+let rollbackFailedAsIntended = false;
+try {
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO property_notes (id,property_key,body,author_email,created_at) VALUES (?,?,?,?,?)",
+      )
+      .bind(
+        rollbackSentinelId,
+        `__acceptance_rollback__:${runId}`,
+        `${label}: disposable rollback sentinel`,
+        actor,
+        new Date().toISOString(),
+      ),
+    db.prepare(
+      "INSERT INTO partner_properties (property_key,saved,dismissed,stage,version,created_at,created_by,updated_at,updated_by) VALUES ('__acceptance_intentional_failure__',NULL,0,'New',1,'guard','guard','guard','guard')",
+    ),
+  ]);
+} catch {
+  rollbackFailedAsIntended = true;
+}
+const leakedSentinel = await db
+  .prepare("SELECT id FROM property_notes WHERE id=? AND author_email=?")
+  .bind(rollbackSentinelId, actor)
+  .first<{ id: string }>();
+if (leakedSentinel) {
+  await db
+    .prepare("DELETE FROM property_notes WHERE id=? AND author_email=?")
+    .bind(rollbackSentinelId, actor)
+    .run();
+  throw new Error(
+    "Actual D1 batch rollback leaked the exact acceptance sentinel; it was removed and meaningful mutations were stopped.",
+  );
+}
+check(
+  rollbackFailedAsIntended,
+  "Actual D1 rollback guard did not fail as intended; meaningful mutations were stopped.",
+);
 const requestedKey = process.env["PROPERTY_KEY"];
 const targetSql = `SELECT r.property_key propertyKey,MAX(r.jurisdiction_id) jurisdictionId,MAX(r.apn) apn
   FROM foreclosure_records r
@@ -134,6 +188,7 @@ const targetSql = `SELECT r.property_key propertyKey,MAX(r.jurisdiction_id) juri
     AND NOT EXISTS (SELECT 1 FROM property_alerts a WHERE a.property_key=r.property_key)
     AND NOT EXISTS (SELECT 1 FROM property_notes n WHERE n.property_key=r.property_key)
     AND NOT EXISTS (SELECT 1 FROM property_value_assumptions v WHERE v.property_key=r.property_key)
+    AND NOT EXISTS (SELECT 1 FROM property_deal_scenarios s WHERE s.property_key=r.property_key)
     AND NOT EXISTS (SELECT 1 FROM property_enrichment e WHERE e.property_key=r.property_key)
     AND NOT EXISTS (SELECT 1 FROM property_sales s WHERE s.subject_property_key=r.property_key)
     AND NOT EXISTS (SELECT 1 FROM property_assessments a WHERE a.property_key=r.property_key)
@@ -185,6 +240,7 @@ let preferenceUpdatedAt: string | null = null;
 let preferenceVersion: number | null = null;
 let noteId: string | null = null;
 let buyBoxId: string | null = null;
+let buyBoxVersion: number | null = null;
 let assessmentId: string | null = null;
 let recheckId: string | null = null;
 let overrideVersion: number | null = null;
@@ -193,6 +249,11 @@ let overrideAuditId: string | null = null;
 let feedbackAuditId: string | null = null;
 let rankingAuditId: string | null = null;
 let rankingToken: { version: number; updatedAt: string } | null = null;
+let scenarioToken: { id: string; version: number; operationToken: string } | null = null;
+let benchmarkToken: { id: string; version: number } | null = null;
+let benchmarkReviewVersion: number | null = null;
+let scenarioCandidateAcceptance = "not_checked";
+let providerQueryDiagnostics: Awaited<ReturnType<typeof verifyProductionQueries>> | null = null;
 let dueAlertIds: string[] = [];
 let retainedOfficialData: {
   enrichmentRows: number;
@@ -228,7 +289,7 @@ try {
     },
   );
   noteId = note.id;
-  const buyBox = await jsonRequest<{ id: string }>("/api/research/buy-boxes", {
+  const buyBox = await jsonRequest<{ id: string; version: number }>("/api/research/buy-boxes", {
     id: null,
     expectedVersion: 0,
     name: label,
@@ -246,6 +307,277 @@ try {
     distressPhases: [],
   });
   buyBoxId = buyBox.id;
+  buyBoxVersion = buyBox.version;
+  providerQueryDiagnostics = await verifyProductionQueries({
+    db,
+    buyBoxId,
+    baseUrl,
+    authSecret: secret,
+  });
+
+  const scenarioPath = `/api/research/scenarios/${encodeURIComponent(propertyKey)}`;
+  const scenario = await jsonRequest<{
+    id: string;
+    version: number;
+    result: { evaluation: { status: string; value?: { profit?: number } } };
+  }>(scenarioPath, {
+    id: null,
+    expectedVersion: 0,
+    name: `${label} test-only flip`,
+    kind: "flip",
+    financing: null,
+    inputs: {
+      purchasePrice: dated(100_000),
+      acquisitionFixed: dated(0),
+      acquisitionRate: dated(0),
+      rehab: dated(0),
+      contingencyRate: dated(0),
+      holdingMonths: dated(0),
+      holdingMonthly: dated(0),
+      loanToPurchase: dated(0),
+      annualInterestRate: dated(0),
+      originationRate: dated(0),
+      financingFixed: dated(0),
+      salePrice: dated(110_000),
+      sellingRate: dated(0),
+      sellingFixed: dated(0),
+      targetProfit: dated(5_000),
+    },
+    sensitivity: [
+      { name: "Explicit acceptance downside", overrides: { salePrice: dated(105_000) } },
+    ],
+    candidateSelections: [],
+  });
+  check(
+    scenario.result.evaluation.status === "ok" &&
+      scenario.result.evaluation.value?.profit === 10_000,
+    "Acceptance scenario did not persist the expected calculated output.",
+  );
+  const captureScenarioToken = async (id: string, version: number) => {
+    const persisted = await db
+      .prepare(
+        "SELECT operation_token operationToken FROM property_deal_scenarios WHERE id=? AND property_key=? AND version=? AND created_by=? COLLATE NOCASE",
+      )
+      .bind(id, propertyKey, version, actor)
+      .first<{ operationToken: string }>();
+    check(
+      persisted,
+      `Acceptance scenario ownership token was not persisted at version ${version}.`,
+    );
+    return { id, version, operationToken: persisted.operationToken };
+  };
+  scenarioToken = await captureScenarioToken(scenario.id, scenario.version);
+  const firstScenarioRead = await jsonRequest<{
+    scenarios: Array<{ id: string; version: number; name: string }>;
+  }>(scenarioPath);
+  const firstPartnerScenarioRead = await partnerJsonRequest<typeof firstScenarioRead>(scenarioPath);
+  check(
+    firstScenarioRead.scenarios.some(
+      (entry) => entry.id === scenario.id && entry.version === scenario.version,
+    ) &&
+      firstPartnerScenarioRead.scenarios.some(
+        (entry) => entry.id === scenario.id && entry.version === scenario.version,
+      ),
+    "Fresh scenario GET was not durable across both authorized sessions.",
+  );
+
+  const rentalScenario = await jsonRequest<{
+    id: string;
+    version: number;
+    kind: string;
+    result: {
+      evaluation: {
+        status: string;
+        value?: {
+          annualCashFlow?: number;
+          breakEvenMonthlyRent?: { status: string; amount: number | null };
+        };
+      };
+    };
+  }>(scenarioPath, {
+    id: scenario.id,
+    expectedVersion: scenario.version,
+    name: `${label} test-only rental`,
+    kind: "rental",
+    financing: "cash",
+    inputs: {
+      purchasePrice: dated(100_000),
+      acquisitionFixed: dated(0),
+      acquisitionRate: dated(0),
+      rehab: dated(0),
+      contingencyRate: dated(0),
+      stabilizationMonths: dated(0),
+      stabilizationMonthly: dated(0),
+      loanToPurchase: dated(0),
+      annualInterestRate: dated(0),
+      originationRate: dated(0),
+      financingFixed: dated(0),
+      loanTermMonths: dated(0),
+      elapsedLoanMonths: dated(0),
+      monthlyRent: dated(1_000),
+      otherMonthlyIncome: dated(0),
+      vacancyRate: dated(0),
+      monthlyTaxes: dated(0),
+      monthlyInsurance: dated(0),
+      monthlyHoa: dated(0),
+      otherMonthlyOperating: dated(0),
+      maintenanceRate: dated(0),
+      managementRate: dated(0),
+      monthlyCapex: dated(0),
+      targetAllInYield: dated(0.08),
+    },
+    sensitivity: [],
+    candidateSelections: [],
+  });
+  check(
+    rentalScenario.kind === "rental" &&
+      rentalScenario.result.evaluation.status === "ok" &&
+      rentalScenario.result.evaluation.value?.annualCashFlow === 12_000 &&
+      rentalScenario.result.evaluation.value.breakEvenMonthlyRent?.status === "feasible" &&
+      rentalScenario.result.evaluation.value.breakEvenMonthlyRent.amount === 0,
+    "Explicit rental scenario result did not persist with the expected calculated output.",
+  );
+  scenarioToken = await captureScenarioToken(rentalScenario.id, rentalScenario.version);
+  const rentalReadback = await partnerJsonRequest<{
+    scenarios: Array<{ id: string; version: number; kind: string }>;
+  }>(scenarioPath);
+  check(
+    rentalReadback.scenarios.some(
+      (entry) =>
+        entry.id === rentalScenario.id &&
+        entry.version === rentalScenario.version &&
+        entry.kind === "rental",
+    ),
+    "Rental revision was not durable in a fresh second-partner GET.",
+  );
+
+  const benchmark = await jsonRequest<{
+    id: string;
+    version: number;
+    cards: Array<{ cardId: string }>;
+    status: string;
+    canReveal: boolean;
+    frozenCriteria: { zips: string[] } | null;
+  }>("/api/research/benchmarks", {
+    privateName: `${label} internal test-only comparison`,
+    market: "norfolk-va",
+    asOfDate: new Date().toISOString().slice(0, 10),
+    buyBoxId,
+    propertyKeys: [propertyKey],
+    competitorCsv: `parcel,score\n${target.apn},1\n`,
+    tokenHeader: "parcel",
+    competitorLabel: `${label} internal test fixture`,
+    fileName: `${runId}.csv`,
+    mode: "test-only",
+    licenseAcknowledged: true,
+  });
+  check(
+    benchmark.status === "reviewing" &&
+      !benchmark.canReveal &&
+      benchmark.cards.length > 0 &&
+      benchmark.frozenCriteria?.zips.length === 0,
+    "Blind benchmark was not created with frozen criteria and a closed early-reveal gate.",
+  );
+  benchmarkToken = { id: benchmark.id, version: benchmark.version };
+  const benchmarkPath = `/api/research/benchmarks/${encodeURIComponent(benchmark.id)}`;
+  const creatorBenchmarkRead = await jsonRequest<typeof benchmark>(benchmarkPath);
+  const partnerBenchmarkRead = await partnerJsonRequest<typeof benchmark>(benchmarkPath);
+  check(
+    creatorBenchmarkRead.id === benchmark.id &&
+      partnerBenchmarkRead.id === benchmark.id &&
+      JSON.stringify(creatorBenchmarkRead.cards) === JSON.stringify(partnerBenchmarkRead.cards),
+    "Fresh benchmark GET did not preserve one blind order across sessions.",
+  );
+  const earlyReveal = await request(`${benchmarkPath}/reveal`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      expectedVersion: benchmark.version,
+      confirmation: "REVEAL SOURCES",
+    }),
+  });
+  const earlyRevealPayload = (await earlyReveal.json()) as { error?: string };
+  check(
+    earlyReveal.status === 400 && /every assigned reviewer/i.test(earlyRevealPayload.error ?? ""),
+    "Benchmark did not reject reveal before complete immutable reviewer×card coverage.",
+  );
+
+  const editedBuyBox = await jsonRequest<{ id: string; version: number }>(
+    "/api/research/buy-boxes",
+    {
+      id: buyBoxId,
+      expectedVersion: buyBoxVersion,
+      name: `${label} edited live criteria`,
+      propertyTypes: [],
+      jurisdictions: [target.jurisdictionId],
+      neighborhoods: [],
+      zips: ["23509"],
+      sizeBasis: "none",
+      minSizeValue: null,
+      maxSizeValue: null,
+      minValueCents: null,
+      maxValueCents: null,
+      valueBasis: "assessed_value",
+      valueAssumptionLabel: null,
+      distressPhases: [],
+    },
+  );
+  buyBoxVersion = editedBuyBox.version;
+  const frozenAfterLiveEdit = await partnerJsonRequest<typeof benchmark>(benchmarkPath);
+  check(
+    frozenAfterLiveEdit.frozenCriteria?.zips.length === 0,
+    "Frozen benchmark criteria changed after the live buy box was edited.",
+  );
+
+  for (const card of benchmark.cards) {
+    const reviewed = await partnerPostJsonRequest<{
+      ownReviews: Array<{ cardId: string; version: number }>;
+    }>(`${benchmarkPath}/reviews`, {
+      cardId: card.cardId,
+      expectedVersion: 0,
+      useful: "unknown",
+      correctness: "unknown",
+      researchSeconds: null,
+      reason: `${label}: test-only undetermined blind review`,
+    });
+    check(
+      reviewed.ownReviews.find((entry) => entry.cardId === card.cardId)?.version === 1,
+      `Blind review for card ${card.cardId} was not persisted.`,
+    );
+  }
+  benchmarkReviewVersion = 1;
+  check(benchmarkReviewVersion === 1, "Blind review version was not persisted.");
+  const completeCoverage = await jsonRequest<{
+    canReveal: boolean;
+    metrics: { union: { missingJudgments: number } };
+  }>(benchmarkPath);
+  check(
+    completeCoverage.canReveal && completeCoverage.metrics.union.missingJudgments === 0,
+    "Benchmark reveal gate did not open after complete assigned reviewer×card coverage.",
+  );
+  const revealed = await jsonRequest<{ revealed: boolean; metrics: unknown; version: number }>(
+    `${benchmarkPath}/reveal`,
+    { expectedVersion: benchmark.version, confirmation: "REVEAL SOURCES" },
+  );
+  check(revealed.metrics, "Blind benchmark did not reveal metrics.");
+  benchmarkToken.version = revealed.version;
+  const revealedPartnerRead = await partnerJsonRequest<{ status: string; version: number }>(
+    benchmarkPath,
+  );
+  check(
+    revealedPartnerRead.status === "revealed" &&
+      revealedPartnerRead.version === benchmarkToken.version,
+    "Revealed benchmark was not durable in a fresh second-partner GET.",
+  );
+  const benchmarkExport = await request(`${benchmarkPath}/export.csv`);
+  check(benchmarkExport.ok, `Benchmark export returned ${benchmarkExport.status}.`);
+  const benchmarkCsv = await benchmarkExport.text();
+  check(
+    benchmarkCsv.includes("test-only") &&
+      benchmarkCsv.includes("TEST-ONLY / SYNTHETIC TEST FIXTURE") &&
+      !/superior|outperform/i.test(benchmarkCsv),
+    "Test-only benchmark export lacked explicit synthetic classification or made a performance claim.",
+  );
   const preferences = await jsonRequest<{ updatedAt: string; version: number }>(
     "/api/research/alert-preferences",
     {
@@ -278,6 +610,99 @@ try {
       recheck.findings.sources.code.status === "success",
     "Fresh exact tax/code recheck did not complete; no global verification claim is allowed.",
   );
+  const enrichedBrief = await jsonRequest<{
+    saleCandidates: Array<{ id: string; qualificationStatus: string }>;
+  }>(
+    `/api/research/deal-briefs/${encodeURIComponent(propertyKey)}?buyBoxId=${encodeURIComponent(buyBoxId)}`,
+  );
+  const actualSaleCandidate = enrichedBrief.saleCandidates[0] ?? null;
+  scenarioCandidateAcceptance = actualSaleCandidate
+    ? "selected_actual_official_candidate"
+    : "honest_no_official_candidate_available";
+  const finalFlipScenario = await jsonRequest<{
+    id: string;
+    version: number;
+    kind: string;
+    result: { evaluation: { status: string; value?: { profit?: number } } };
+    saleCandidateReferences: Array<{
+      saleId: string;
+      savedEvidenceStatus: string;
+      currentSourceStatus: string;
+    }>;
+  }>(scenarioPath, {
+    id: rentalScenario.id,
+    expectedVersion: rentalScenario.version,
+    name: `${label} test-only final flip`,
+    kind: "flip",
+    financing: null,
+    inputs: {
+      purchasePrice: dated(100_000),
+      acquisitionFixed: dated(0),
+      acquisitionRate: dated(0),
+      rehab: dated(0),
+      contingencyRate: dated(0),
+      holdingMonths: dated(0),
+      holdingMonthly: dated(0),
+      loanToPurchase: dated(0),
+      annualInterestRate: dated(0),
+      originationRate: dated(0),
+      financingFixed: dated(0),
+      salePrice: dated(110_000),
+      sellingRate: dated(0),
+      sellingFixed: dated(0),
+      targetProfit: dated(5_000),
+    },
+    sensitivity: [
+      { name: "Explicit acceptance downside", overrides: { salePrice: dated(105_000) } },
+    ],
+    candidateSelections: actualSaleCandidate
+      ? [
+          {
+            saleId: actualSaleCandidate.id,
+            disposition: "selected_support",
+            reason: `${label}: persisted official candidate reviewed only as supporting transfer evidence.`,
+          },
+        ]
+      : [],
+  });
+  check(
+    finalFlipScenario.kind === "flip" &&
+      finalFlipScenario.result.evaluation.status === "ok" &&
+      finalFlipScenario.result.evaluation.value?.profit === 10_000,
+    "Safe flip revision did not preserve the expected calculated output.",
+  );
+  if (actualSaleCandidate) {
+    check(
+      finalFlipScenario.saleCandidateReferences.some(
+        (reference) =>
+          reference.saleId === actualSaleCandidate.id &&
+          reference.savedEvidenceStatus === "captured" &&
+          reference.currentSourceStatus === "unchanged",
+      ),
+      "Actual official candidate was not persisted with an unchanged frozen evidence snapshot.",
+    );
+  } else {
+    check(
+      finalFlipScenario.saleCandidateReferences.length === 0,
+      "Scenario fabricated a sale candidate when official enrichment returned none.",
+    );
+  }
+  scenarioToken = await captureScenarioToken(finalFlipScenario.id, finalFlipScenario.version);
+  const finalCreatorRead = await jsonRequest<{
+    scenarios: Array<{ id: string; version: number; kind: string }>;
+  }>(scenarioPath);
+  const finalPartnerRead = await partnerJsonRequest<typeof finalCreatorRead>(scenarioPath);
+  for (const readback of [finalCreatorRead, finalPartnerRead]) {
+    check(
+      readback.scenarios.some(
+        (entry) =>
+          entry.id === finalFlipScenario.id &&
+          entry.version === finalFlipScenario.version &&
+          entry.kind === "flip",
+      ),
+      "Final safe scenario edit was not durable in a fresh cross-session GET.",
+    );
+  }
   const assessment = await jsonRequest<{ id: string; assertions: unknown[] }>(
     `/api/research/assessments/${encodeURIComponent(propertyKey)}`,
     {},
@@ -474,6 +899,23 @@ try {
             rankingProfileUpdatedAt: rankingToken.updatedAt,
           }
         : {}),
+      ...(scenarioToken
+        ? {
+            scenarioId: scenarioToken.id,
+            scenarioVersion: scenarioToken.version,
+            scenarioOperationToken: scenarioToken.operationToken,
+          }
+        : {}),
+      ...(buyBoxId && buyBoxVersion !== null
+        ? { buyBoxId, buyBoxVersion, buyBoxCreatedBy: actor }
+        : {}),
+      ...(benchmarkToken
+        ? {
+            benchmarkId: benchmarkToken.id,
+            benchmarkVersion: benchmarkToken.version,
+            benchmarkCreatedBy: actor,
+          }
+        : {}),
     }) as unknown as ReturnType<typeof db.prepare>,
   ];
   if (noteId) {
@@ -485,7 +927,47 @@ try {
   }
   if (buyBoxId) {
     statements.push(
-      db.prepare("DELETE FROM buy_boxes WHERE id=? AND created_by=?").bind(buyBoxId, actor),
+      db
+        .prepare("DELETE FROM buy_boxes WHERE id=? AND version=? AND created_by=? COLLATE NOCASE")
+        .bind(buyBoxId, buyBoxVersion, actor),
+    );
+  }
+  if (scenarioToken) {
+    statements.push(
+      db
+        .prepare("DELETE FROM property_deal_scenario_candidates WHERE scenario_id=?")
+        .bind(scenarioToken.id),
+      db
+        .prepare(
+          "DELETE FROM property_deal_scenarios WHERE id=? AND property_key=? AND version=? AND operation_token=? AND created_by=?",
+        )
+        .bind(
+          scenarioToken.id,
+          propertyKey,
+          scenarioToken.version,
+          scenarioToken.operationToken,
+          actor,
+        ),
+    );
+  }
+  if (benchmarkToken) {
+    statements.push(
+      db
+        .prepare("DELETE FROM blind_benchmark_review_audit WHERE benchmark_id=?")
+        .bind(benchmarkToken.id),
+      db
+        .prepare(
+          "DELETE FROM blind_benchmark_reviews WHERE benchmark_id=? AND reviewer_email=? COLLATE NOCASE AND version=?",
+        )
+        .bind(benchmarkToken.id, partner, benchmarkReviewVersion),
+      db
+        .prepare("DELETE FROM blind_benchmark_imports WHERE benchmark_id=?")
+        .bind(benchmarkToken.id),
+      db
+        .prepare(
+          "DELETE FROM blind_benchmarks WHERE id=? AND version=? AND created_by=? COLLATE NOCASE",
+        )
+        .bind(benchmarkToken.id, benchmarkToken.version, actor),
     );
   }
   for (const alertId of dueAlertIds) {
@@ -645,6 +1127,22 @@ try {
     !(await db.prepare("SELECT 1 present FROM buy_boxes WHERE id=?").bind(buyBoxId).first()),
     "Temporary buy box was not removed.",
   );
+  check(
+    !scenarioToken ||
+      !(await db
+        .prepare("SELECT 1 present FROM property_deal_scenarios WHERE id=?")
+        .bind(scenarioToken.id)
+        .first()),
+    "Temporary scenario was not removed.",
+  );
+  check(
+    !benchmarkToken ||
+      !(await db
+        .prepare("SELECT 1 present FROM blind_benchmarks WHERE id=?")
+        .bind(benchmarkToken.id)
+        .first()),
+    "Temporary benchmark was not removed.",
+  );
   for (const alertId of dueAlertIds) {
     check(
       !(await db.prepare("SELECT 1 present FROM property_alerts WHERE id=?").bind(alertId).first()),
@@ -731,6 +1229,8 @@ if (cleanupFailure) {
           overrideAuditId,
           feedbackAuditId,
           rankingAuditId,
+          scenarioId: scenarioToken?.id,
+          benchmarkId: benchmarkToken?.id,
           dueAlertIds,
         },
         cleanupError: cleanupFailure instanceof Error ? cleanupFailure.message : "unknown",
@@ -751,6 +1251,7 @@ console.log(
       verified: true,
       propertyKey,
       workflow: [
+        "actual_d1_rollback_sentinel",
         "two_partner_shared_state",
         "saved",
         "assigned",
@@ -759,6 +1260,10 @@ console.log(
         "alert_read",
         "note",
         "buy_box",
+        "actual_d1_qualification_buy_box_query",
+        "calculated_test_only_flip_rental_flip_scenario_with_cross_session_gets",
+        "actual_candidate_snapshot_when_officially_available",
+        "blind_internal_benchmark_early_reveal_rejection_complete_review_frozen_criteria_export",
         "selected_export",
         "fresh_public_recheck",
         "attributed_assessment",
@@ -775,6 +1280,9 @@ console.log(
         "official_tax_code_recheck",
       ],
       retainedOfficialData,
+      scenarioCandidateAcceptance,
+      providerQueryDiagnostics,
+      actualD1Usage: db.usageSummary(),
       restored: true,
     },
     null,

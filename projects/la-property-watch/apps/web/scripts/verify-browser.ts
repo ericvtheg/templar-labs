@@ -143,7 +143,7 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       await expect(dialog.getByText("Present in latest source observation").first()).toBeVisible();
       await expect(dialog.getByText(/deterministic prioritization/)).toBeVisible();
       await expect(
-        dialog.getByRole("link", { name: "Open source", exact: true }).first(),
+        dialog.getByRole("link", { name: "Open source evidence", exact: true }).first(),
       ).toHaveAttribute("href", detail.evidence[0].sourceUrl);
       assert(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

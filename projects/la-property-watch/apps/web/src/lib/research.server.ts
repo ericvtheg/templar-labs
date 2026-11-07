@@ -32,6 +32,20 @@ import {
   loadDashboard,
   loadPropertyDetail,
 } from "./repository.ts";
+import {
+  type BenchmarkCreateInput,
+  createBlindBenchmark,
+  listBlindBenchmarks,
+  loadBlindBenchmark,
+  loadPropertyScenarios,
+  revealBlindBenchmark,
+  revealedBenchmarkCsv,
+  ScenarioBenchmarkConflictError,
+  ScenarioBenchmarkValidationError,
+  type ScenarioWriteInput,
+  upsertBlindReview,
+  upsertPropertyScenario,
+} from "./scenario-benchmark.server.ts";
 
 const privateHeaders = {
   "cache-control": "private, no-store",
@@ -95,6 +109,33 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
         }),
       );
     }
+    if (request.method === "GET" && pathname.startsWith("/api/research/scenarios/")) {
+      const key = decodeURIComponent(pathname.slice("/api/research/scenarios/".length));
+      return json({ scenarios: await loadPropertyScenarios(env.DB, key) });
+    }
+    if (request.method === "GET" && pathname === "/api/research/benchmarks") {
+      return json({ benchmarks: await listBlindBenchmarks(env.DB, session.user.email) });
+    }
+    if (
+      request.method === "GET" &&
+      pathname.startsWith("/api/research/benchmarks/") &&
+      pathname.endsWith("/export.csv")
+    ) {
+      const id = decodeURIComponent(
+        pathname.slice("/api/research/benchmarks/".length, -"/export.csv".length),
+      );
+      return new Response(await revealedBenchmarkCsv(env.DB, session.user.email, id), {
+        headers: {
+          ...privateHeaders,
+          "content-type": "text/csv; charset=utf-8",
+          "content-disposition": `attachment; filename="property-watch-blind-benchmark-${new Date().toISOString().slice(0, 10)}.csv"`,
+        },
+      });
+    }
+    if (request.method === "GET" && pathname.startsWith("/api/research/benchmarks/")) {
+      const id = decodeURIComponent(pathname.slice("/api/research/benchmarks/".length));
+      return json(await loadBlindBenchmark(env.DB, session.user.email, id));
+    }
     if (request.method === "GET" && pathname.startsWith("/api/research/deal-briefs/")) {
       const key = decodeURIComponent(pathname.slice("/api/research/deal-briefs/".length));
       const buyBoxId = new URL(request.url).searchParams.get("buyBoxId");
@@ -144,6 +185,88 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
           body["patch"] as PipelinePatch,
         ),
       );
+    }
+    if (request.method === "POST" && pathname.startsWith("/api/research/scenarios/")) {
+      const key = decodeURIComponent(pathname.slice("/api/research/scenarios/".length));
+      const body = await jsonBody(request);
+      exactKeys(
+        body,
+        [
+          "id",
+          "expectedVersion",
+          "name",
+          "kind",
+          "financing",
+          "inputs",
+          "sensitivity",
+          "candidateSelections",
+        ],
+        ["candidateRemovals"],
+      );
+      return json(
+        await upsertPropertyScenario(
+          env.DB,
+          session.user.email,
+          key,
+          body as unknown as ScenarioWriteInput,
+        ),
+        body["id"] === null ? 201 : 200,
+      );
+    }
+    if (request.method === "POST" && pathname === "/api/research/benchmarks") {
+      const body = await jsonBody(request);
+      exactKeys(body, [
+        "privateName",
+        "market",
+        "asOfDate",
+        "buyBoxId",
+        "propertyKeys",
+        "competitorCsv",
+        "tokenHeader",
+        "competitorLabel",
+        "fileName",
+        "mode",
+        "licenseAcknowledged",
+      ]);
+      return json(
+        await createBlindBenchmark(
+          env.DB,
+          session.user.email,
+          body as unknown as BenchmarkCreateInput,
+        ),
+        201,
+      );
+    }
+    if (
+      request.method === "POST" &&
+      pathname.startsWith("/api/research/benchmarks/") &&
+      pathname.endsWith("/reviews")
+    ) {
+      const id = decodeURIComponent(
+        pathname.slice("/api/research/benchmarks/".length, -"/reviews".length),
+      );
+      const body = await jsonBody(request);
+      exactKeys(body, [
+        "cardId",
+        "expectedVersion",
+        "useful",
+        "correctness",
+        "researchSeconds",
+        "reason",
+      ]);
+      return json(await upsertBlindReview(env.DB, session.user.email, id, body as never));
+    }
+    if (
+      request.method === "POST" &&
+      pathname.startsWith("/api/research/benchmarks/") &&
+      pathname.endsWith("/reveal")
+    ) {
+      const id = decodeURIComponent(
+        pathname.slice("/api/research/benchmarks/".length, -"/reveal".length),
+      );
+      const body = await jsonBody(request);
+      exactKeys(body, ["expectedVersion", "confirmation"]);
+      return json(await revealBlindBenchmark(env.DB, session.user.email, id, body as never));
     }
     if (request.method === "POST" && pathname.startsWith("/api/research/assessments/")) {
       const key = decodeURIComponent(pathname.slice("/api/research/assessments/".length));
@@ -341,6 +464,12 @@ export async function handleResearch(request: Request, env: Bindings): Promise<R
       return json({ error: cause.message }, 400);
     }
     if (cause instanceof DecisionConflictError) {
+      return json({ error: cause.message, code: "version_conflict" }, 409);
+    }
+    if (cause instanceof ScenarioBenchmarkValidationError) {
+      return json({ error: cause.message }, 400);
+    }
+    if (cause instanceof ScenarioBenchmarkConflictError) {
       return json({ error: cause.message, code: "version_conflict" }, 409);
     }
     console.error(

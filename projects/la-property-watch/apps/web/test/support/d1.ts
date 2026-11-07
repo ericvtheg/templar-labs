@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
-type TestStatement = D1PreparedStatement & { executeForBatch: () => D1Result };
+type TestStatement = D1PreparedStatement & { executeForBatch: () => D1Result; sqlText: string };
 
 export function testDatabase() {
   const sqlite = new DatabaseSync(":memory:");
   let failBatchAfterStatement: number | null = null;
   let afterAllHook: { pattern: RegExp; callback: () => void } | null = null;
+  let beforeBatchHook: { pattern: RegExp; callback: () => Promise<void> } | null = null;
   sqlite.exec("PRAGMA foreign_keys = ON");
   const migrations = new URL("../../../../db/migrations/", import.meta.url);
   for (const name of readdirSync(migrations)
@@ -67,11 +68,22 @@ export function testDatabase() {
         return Promise.resolve(executeForBatch());
       },
       executeForBatch,
+      sqlText: sql,
     } as unknown as TestStatement;
   };
   const binding = {
     prepare,
     async batch(statements: D1PreparedStatement[]) {
+      if (
+        beforeBatchHook &&
+        statements.some((statement) =>
+          beforeBatchHook?.pattern.test((statement as TestStatement).sqlText),
+        )
+      ) {
+        const callback = beforeBatchHook.callback;
+        beforeBatchHook = null;
+        await callback();
+      }
       sqlite.exec("BEGIN IMMEDIATE");
       try {
         const results = statements.map((statement, index) => {
@@ -97,6 +109,9 @@ export function testDatabase() {
     },
     afterNextAll(pattern: RegExp, callback: () => void) {
       afterAllHook = { pattern, callback };
+    },
+    beforeNextBatch(pattern: RegExp, callback: () => Promise<void>) {
+      beforeBatchHook = { pattern, callback };
     },
     close: () => sqlite.close(),
   };

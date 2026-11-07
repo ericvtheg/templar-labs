@@ -52,6 +52,14 @@ describe("production mutation cleanup guard", () => {
     assert.match(script, /Official enrichment was not retained/);
     assert.match(script, /Official tax\/code recheck was not retained/);
     assert.match(script, /official_tax_code_recheck/);
+    assert.match(script, /acceptance-rollback-/);
+    assert.match(script, /Actual D1 batch rollback leaked/);
+    assert.match(script, /calculated_test_only_flip_rental_flip_scenario_with_cross_session_gets/);
+    assert.match(
+      script,
+      /blind_internal_benchmark_early_reveal_rejection_complete_review_frozen_criteria_export/,
+    );
+    assert.match(script, /TEST-ONLY \/ SYNTHETIC TEST FIXTURE/);
   });
 
   it("forces the entire D1 cleanup batch to roll back when either exact ownership token changed", async () => {
@@ -127,5 +135,64 @@ describe("production mutation cleanup guard", () => {
       /constraint|guard/i,
     );
     assert.equal(database.sqlite.prepare("SELECT COUNT(*) n FROM property_notes").get()?.["n"], 1);
+  });
+
+  it("preserves a test buy box and rolls back cleanup if a partner edits it", async () => {
+    database.sqlite.exec(`INSERT INTO buy_boxes
+      (id,name,property_types_json,jurisdictions_json,neighborhoods_json,zips_json,size_basis,value_basis,distress_phases_json,version,created_at,created_by,updated_at,updated_by)
+      VALUES ('acceptance-box','Partner edited','[]','[]','[]','[]','none','assessed_value','[]',2,'test','ericventor97@gmail.com','changed','partner');`);
+    await assert.rejects(
+      database.binding.batch([
+        database.binding.prepare("DELETE FROM property_notes WHERE id='acceptance-note'"),
+        acceptanceCleanupGuard(database.binding, {
+          propertyKey: "norfolk-va:15834200",
+          buyBoxId: "acceptance-box",
+          buyBoxVersion: 1,
+          buyBoxCreatedBy: "ericventor97@gmail.com",
+        }),
+        database.binding.prepare("DELETE FROM buy_boxes WHERE id='acceptance-box'"),
+      ]),
+      /constraint|guard/i,
+    );
+    assert.equal(database.sqlite.prepare("SELECT COUNT(*) n FROM property_notes").get()?.["n"], 1);
+    assert.equal(
+      database.sqlite.prepare("SELECT version FROM buy_boxes WHERE id='acceptance-box'").get()?.[
+        "version"
+      ],
+      2,
+    );
+  });
+
+  it("guards C/E cleanup with exact scenario and benchmark ownership tokens", async () => {
+    database.sqlite.exec(`
+      INSERT INTO property_deal_scenarios
+        (id,property_key,name,kind,currency,inputs_cents_json,sensitivity_cents_json,result_json,version,created_at,created_by,updated_at,updated_by,operation_token)
+      VALUES ('scenario-owned','norfolk-va:15834200','Acceptance','flip','USD','{}','[]','{}',1,'2026-11-07T01:00:00.000Z','ericventor97@gmail.com','2026-11-07T01:00:00.000Z','ericventor97@gmail.com','scenario-token');
+      INSERT INTO blind_benchmarks
+        (id,private_name,market,as_of_date,buy_box_id,buy_box_version,buy_box_fingerprint,identifier_scheme,identifier_pattern,mode,private_state_json,private_counts_json,reviewer_ids_json,status,version,created_at,created_by)
+      VALUES ('benchmark-owned','Acceptance','norfolk-va','2026-11-07','box',1,'fingerprint','tax-account','[0-9]{8}','test-only','{}','{}','[]','revealed',2,'2026-11-07T01:00:00.000Z','ericventor97@gmail.com');
+    `);
+    database.sqlite
+      .prepare("UPDATE property_deal_scenarios SET version=2 WHERE id='scenario-owned'")
+      .run();
+    await assert.rejects(
+      database.binding.batch([
+        acceptanceCleanupGuard(database.binding, {
+          propertyKey: "norfolk-va:15834200",
+          scenarioId: "scenario-owned",
+          scenarioVersion: 1,
+          scenarioOperationToken: "scenario-token",
+          benchmarkId: "benchmark-owned",
+          benchmarkVersion: 2,
+          benchmarkCreatedBy: "ericventor97@gmail.com",
+        }),
+        database.binding.prepare("DELETE FROM blind_benchmarks WHERE id='benchmark-owned'"),
+      ]),
+      /constraint|guard/i,
+    );
+    assert.equal(
+      database.sqlite.prepare("SELECT COUNT(*) n FROM blind_benchmarks").get()?.["n"],
+      1,
+    );
   });
 });

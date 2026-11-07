@@ -3,11 +3,16 @@ import { signInLocally } from "./auth-fixture.ts";
 
 test("mobile ranked workflow and evidence continuation remain usable without overflow", async ({
   page,
-}) => {
+}, testInfo) => {
   await signInLocally(page.context(), { email: "ericventor97@gmail.com" });
   await page.goto("/");
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
   await expect(page.getByRole("heading", { name: /Find distress earlier/ })).toBeVisible();
+  const primaryHeading = page.getByRole("heading", { name: "Current property signals" });
+  await expect(primaryHeading).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  expect((await primaryHeading.boundingBox())?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(650);
+  await page.screenshot({ path: testInfo.outputPath("ce-workspace-mobile.png") });
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
   ).toBe(false);

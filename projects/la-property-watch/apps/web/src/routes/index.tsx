@@ -21,7 +21,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { authFailure } from "../lib/auth-errors.ts";
 import { loadApp } from "../lib/functions.ts";
 import {
@@ -130,7 +130,13 @@ type BuyBoxData = PartnerWorkspaceData["buyBoxes"][number];
 type DealBriefData = NonNullable<
   Awaited<ReturnType<typeof import("../lib/partner.server.ts").loadDealBrief>>
 >;
-type WorkspaceView = "shortlist" | "activity" | "pipeline" | "buyboxes" | "alerts";
+type ScenarioData = Awaited<
+  ReturnType<typeof import("../lib/scenario-benchmark.server.ts").loadPropertyScenarios>
+>[number];
+type BenchmarkData = Awaited<
+  ReturnType<typeof import("../lib/scenario-benchmark.server.ts").loadBlindBenchmark>
+>;
+type WorkspaceView = "shortlist" | "activity" | "pipeline" | "buyboxes" | "alerts" | "benchmarks";
 
 function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: string }) {
   const [data, setData] = useState<DashboardData>(initial);
@@ -141,6 +147,8 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   const [selected, setSelected] = useState<PropertyDetailData | null>(null);
   const [brief, setBrief] = useState<DealBriefData | null>(null);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("shortlist");
+  const [benchmarks, setBenchmarks] = useState<BenchmarkData[]>([]);
+  const [benchmarksLoaded, setBenchmarksLoaded] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const [buyBoxId, setBuyBoxId] = useState(initial.partner.buyBoxes[0]?.id ?? "");
   const [fit, setFit] = useState<"all" | "match" | "unknown" | "no_match">("all");
@@ -318,6 +326,16 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
     setWorkspace((await response.json()) as PartnerWorkspaceData);
   }
 
+  async function loadBenchmarks() {
+    const response = await fetch("/api/research/benchmarks", { credentials: "same-origin" });
+    if (!response.ok) {
+      throw new Error("Could not load blind comparisons.");
+    }
+    const payload = (await response.json()) as { benchmarks: BenchmarkData[] };
+    setBenchmarks(payload.benchmarks);
+    setBenchmarksLoaded(true);
+  }
+
   async function mutate(path: string, body: unknown) {
     const mutationPropertyKey = detailRequest.current.propertyKey;
     setNotice(null);
@@ -426,10 +444,8 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
               <em>with exact evidence.</em>
             </h1>
             <p className="hero-copy">
-              Current tax delinquencies, open municipal violations, recorded association liens, and
-              mortgage foreclosure initiations are grouped conservatively by jurisdiction-scoped
-              property identity. Scores explain prioritization; they are not foreclosure
-              probabilities.
+              Rank current official tax, code, lien, and foreclosure-initiation evidence by exact
+              property identity. Scores explain workflow triage, never foreclosure probability.
             </p>
           </div>
           <div className="hero-actions">
@@ -479,6 +495,7 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
               ["activity", "Changes", <Clock3 size={16} key="activity" />],
               ["pipeline", "Pipeline", <Bookmark size={16} key="pipeline" />],
               ["buyboxes", "Buy boxes", <SlidersHorizontal size={16} key="buyboxes" />],
+              ["benchmarks", "Blind benchmarks", <FileSearch2 size={16} key="benchmarks" />],
               [
                 "alerts",
                 `Alerts (${workspace.alerts.filter((alert) => !alert.readAt).length})`,
@@ -490,14 +507,32 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
               key={value}
               className={workspaceView === value ? "active" : ""}
               type="button"
-              onClick={() => setWorkspaceView(value)}
+              onClick={() => {
+                setWorkspaceView(value);
+                if (value === "benchmarks" && !benchmarksLoaded) {
+                  void loadBenchmarks().catch((cause) =>
+                    setNotice(
+                      cause instanceof Error ? cause.message : "Could not load blind comparisons.",
+                    ),
+                  );
+                }
+              }}
             >
               {icon}
               {label}
             </button>
           ))}
         </nav>
-        {workspaceView !== "shortlist" ? (
+        {workspaceView === "benchmarks" ? (
+          <BenchmarkWorkspace
+            benchmarks={benchmarks}
+            selectedKeys={[...selectedKeys]}
+            buyBoxes={workspace.buyBoxes}
+            viewerEmail={initial.viewerEmail}
+            onReload={loadBenchmarks}
+            onNotice={setNotice}
+          />
+        ) : workspaceView !== "shortlist" ? (
           <PartnerWorkspacePanel
             view={workspaceView}
             workspace={workspace}
@@ -525,92 +560,102 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
             icon={<CalendarDays size={18} />}
           />
         </section>
-        <section className="coverage-strip" aria-label="Source coverage">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Current coverage</p>
-              <h2>What is ranked</h2>
-            </div>
-            <span>Coverage is source-specific, not nationwide</span>
-          </div>
-          <div className="coverage-grid">
-            <article>
-              <strong>Travis County + Norfolk · tax</strong>
-              <p>
-                Daily official delinquency snapshots. Norfolk installments roll up once per property
-                while every component remains evidence.
-              </p>
-            </article>
-            <article>
-              <strong>Norfolk · municipal code</strong>
-              <p>
-                Open workflow records join only on the exact tax-account key. Unmatched violations
-                remain separate, never fuzzy-merged.
-              </p>
-            </article>
-            <article>
-              <strong>Denver + NYC · filings</strong>
-              <p>
-                Denver NED foreclosure initiations and monthly NYC common-charge lien recordings.
-                Denver registry use requires permission under its Terms of Use before
-                commercialization.
-              </p>
-            </article>
-          </div>
-        </section>
-        <section className="source-strip" aria-label="Source status">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Operations</p>
-              <h2>Source freshness and failures</h2>
-            </div>
-            <span>Fetched and source-updated timestamps are distinct</span>
-          </div>
-          <div className="source-grid">
-            {data.sources.length === 0 ? (
-              <div className="empty-source">
-                <Clock3 size={20} />
-                <span>No ingestion run yet. Start the first protected refresh.</span>
+        <details className="diagnostics-disclosure">
+          <summary>
+            Source coverage and freshness · {healthySources} healthy latest runs
+            {data.sources.some((source) => source.status !== "success")
+              ? " · attention needed"
+              : ""}
+          </summary>
+          <section className="coverage-strip" aria-label="Source coverage">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Current coverage</p>
+                <h2>What is ranked</h2>
               </div>
-            ) : (
-              data.sources.map((source) => (
-                <article className="source-card" key={source.sourceId}>
-                  <div className={`status-dot ${source.status}`} />
-                  <div>
-                    <h3>{source.sourceName}</h3>
-                    <p>
-                      {source.recordsUpserted.toLocaleString()} evidence rows · {source.status}
-                    </p>
-                    <small>
-                      Fetched{" "}
-                      {source.finishedAt ? formatTimestamp(source.finishedAt) : "in progress"}
-                    </small>
-                    <small>
-                      Source updated{" "}
-                      {source.sourceUpdatedAt
-                        ? formatTimestamp(source.sourceUpdatedAt)
-                        : "not published"}
-                    </small>
-                    <small>
-                      {source.snapshotComplete
-                        ? `${source.recordsNoLongerPresent} no longer present after complete snapshot`
-                        : "Snapshot not reconciled as complete"}
-                    </small>
-                    {source.error ? <small className="source-warning">{source.error}</small> : null}
-                  </div>
-                  <a
-                    href={source.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Open ${source.sourceName}`}
-                  >
-                    <ExternalLink size={16} />
-                  </a>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
+              <span>Coverage is source-specific, not nationwide</span>
+            </div>
+            <div className="coverage-grid">
+              <article>
+                <strong>Travis County + Norfolk · tax</strong>
+                <p>
+                  Daily official delinquency snapshots. Norfolk installments roll up once per
+                  property while every component remains evidence.
+                </p>
+              </article>
+              <article>
+                <strong>Norfolk · municipal code</strong>
+                <p>
+                  Open workflow records join only on the exact tax-account key. Unmatched violations
+                  remain separate, never fuzzy-merged.
+                </p>
+              </article>
+              <article>
+                <strong>Denver + NYC · filings</strong>
+                <p>
+                  Denver NED foreclosure initiations and monthly NYC common-charge lien recordings.
+                  Denver registry use requires permission under its Terms of Use before
+                  commercialization.
+                </p>
+              </article>
+            </div>
+          </section>
+          <section className="source-strip" aria-label="Source status">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Operations</p>
+                <h2>Source freshness and failures</h2>
+              </div>
+              <span>Fetched and source-updated timestamps are distinct</span>
+            </div>
+            <div className="source-grid">
+              {data.sources.length === 0 ? (
+                <div className="empty-source">
+                  <Clock3 size={20} />
+                  <span>No ingestion run yet. Start the first protected refresh.</span>
+                </div>
+              ) : (
+                data.sources.map((source) => (
+                  <article className="source-card" key={source.sourceId}>
+                    <div className={`status-dot ${source.status}`} />
+                    <div>
+                      <h3>{source.sourceName}</h3>
+                      <p>
+                        {source.recordsUpserted.toLocaleString()} evidence rows · {source.status}
+                      </p>
+                      <small>
+                        Fetched{" "}
+                        {source.finishedAt ? formatTimestamp(source.finishedAt) : "in progress"}
+                      </small>
+                      <small>
+                        Source updated{" "}
+                        {source.sourceUpdatedAt
+                          ? formatTimestamp(source.sourceUpdatedAt)
+                          : "not published"}
+                      </small>
+                      <small>
+                        {source.snapshotComplete
+                          ? `${source.recordsNoLongerPresent} no longer present after complete snapshot`
+                          : "Snapshot not reconciled as complete"}
+                      </small>
+                      {source.error ? (
+                        <small className="source-warning">{source.error}</small>
+                      ) : null}
+                    </div>
+                    <a
+                      href={source.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`Open ${source.sourceName}`}
+                    >
+                      <ExternalLink size={16} />
+                    </a>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        </details>
         <section className="records-section">
           <div className="section-heading records-heading">
             <div>
@@ -1919,6 +1964,11 @@ function DealBriefSections({
           status, condition, exact units, rent and NOI remain unverified.
         </p>
       </section>
+      <ScenarioWorkspace
+        propertyKey={propertyKey}
+        saleCandidates={brief.saleCandidates}
+        viewerEmail={viewerEmail}
+      />
       <section
         className="brief-section feedback-section"
         aria-label="Partner feedback and outcomes"
@@ -2154,6 +2204,1127 @@ function DealBriefSections({
       </section>
     </>
   );
+}
+
+const flipScenarioFields = [
+  ["purchasePrice", "Proposed purchase price", "money"],
+  ["acquisitionFixed", "Fixed acquisition costs", "money"],
+  ["acquisitionRate", "Acquisition cost rate (decimal)", "rate"],
+  ["rehab", "Rehab assumption", "money"],
+  ["contingencyRate", "Rehab contingency rate (decimal)", "rate"],
+  ["holdingMonths", "Holding months", "months"],
+  ["holdingMonthly", "Monthly holding costs", "money"],
+  ["loanToPurchase", "New-loan share of purchase (decimal)", "rate"],
+  ["annualInterestRate", "Annual interest rate (decimal)", "rate"],
+  ["originationRate", "Origination rate (decimal)", "rate"],
+  ["financingFixed", "Fixed financing fees", "money"],
+  ["salePrice", "Explicit exit-price assumption", "money"],
+  ["sellingRate", "Selling cost rate (decimal)", "rate"],
+  ["sellingFixed", "Fixed selling costs", "money"],
+  ["targetProfit", "Target dollar profit", "money"],
+] as const;
+const rentalScenarioFields = [
+  ["purchasePrice", "Proposed purchase price", "money"],
+  ["acquisitionFixed", "Fixed acquisition costs", "money"],
+  ["acquisitionRate", "Acquisition cost rate (decimal)", "rate"],
+  ["rehab", "Rehab assumption", "money"],
+  ["contingencyRate", "Rehab contingency rate (decimal)", "rate"],
+  ["stabilizationMonths", "Stabilization months", "months"],
+  ["stabilizationMonthly", "Monthly stabilization costs", "money"],
+  ["loanToPurchase", "New-loan share of purchase (decimal)", "rate"],
+  ["annualInterestRate", "Annual interest rate (decimal)", "rate"],
+  ["originationRate", "Origination rate (decimal)", "rate"],
+  ["financingFixed", "Fixed financing fees", "money"],
+  ["loanTermMonths", "Modeled new-loan term months", "months"],
+  ["elapsedLoanMonths", "Separate loan-balance snapshot month", "months"],
+  ["monthlyRent", "Monthly rent assumption", "money"],
+  ["otherMonthlyIncome", "Other monthly income", "money"],
+  ["vacancyRate", "Vacancy rate (decimal)", "rate"],
+  ["monthlyTaxes", "Recurring monthly property taxes", "money"],
+  ["monthlyInsurance", "Monthly insurance", "money"],
+  ["monthlyHoa", "Monthly HOA", "money"],
+  ["otherMonthlyOperating", "Other monthly operating costs", "money"],
+  ["maintenanceRate", "Maintenance rate (decimal)", "rate"],
+  ["managementRate", "Management rate (decimal)", "rate"],
+  ["monthlyCapex", "Monthly capex reserve below NOI", "money"],
+  ["targetAllInYield", "Target unlevered NOI/all-in yield", "rate"],
+] as const;
+
+function scenarioStoredValue(scenario: ScenarioData | null, field: string, unit: string) {
+  if (!scenario) {
+    return "";
+  }
+  const cell = (
+    scenario.inputs as Record<string, { value?: number | null; valueCents?: number | null }>
+  )[field];
+  if (!cell) {
+    return "";
+  }
+  const value =
+    unit === "money"
+      ? cell.valueCents === null
+        ? null
+        : (cell.valueCents ?? 0) / 100
+      : cell.value;
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function scenarioStoredDate(scenario: ScenarioData | null, field: string) {
+  const cell = (scenario?.inputs as Record<string, { asOf?: string | null }> | null | undefined)?.[
+    field
+  ];
+  return cell?.asOf ?? "";
+}
+
+type StoredSensitivityCase = {
+  name: string;
+  overrides: Record<
+    string,
+    { value?: number | null; valueCents?: number | null; asOf?: string | null }
+  >;
+};
+
+function storedSensitivityValue(cell: StoredSensitivityCase["overrides"][string], unit: string) {
+  const value =
+    unit === "money"
+      ? cell.valueCents === null || cell.valueCents === undefined
+        ? null
+        : cell.valueCents / 100
+      : cell.value;
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function ScenarioWorkspace({
+  propertyKey,
+  saleCandidates,
+  viewerEmail,
+}: {
+  propertyKey: string;
+  saleCandidates: DealBriefData["saleCandidates"];
+  viewerEmail: string;
+}) {
+  const [scenarios, setScenarios] = useState<ScenarioData[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [kind, setKind] = useState<"flip" | "rental">("flip");
+  const [busy, setBusy] = useState(true);
+  const [message, setMessage] = useState<string | null>(null);
+  const editing = scenarios.find((entry) => entry.id === editingId) ?? null;
+  const fields = kind === "flip" ? flipScenarioFields : rentalScenarioFields;
+  const editingSensitivity = (editing?.sensitivity ?? []) as StoredSensitivityCase[];
+  const currentCandidateIds = new Set(saleCandidates.map((sale) => sale.id));
+  const candidateEditorEntries = [
+    ...saleCandidates.map((sale) => ({
+      saleId: sale.id,
+      candidateAddress: sale.candidateAddress,
+      candidateParcelId: sale.candidateParcelId,
+      salePriceCents: sale.salePriceCents,
+    })),
+    ...(editing?.saleCandidateReferences ?? [])
+      .filter((reference) => !currentCandidateIds.has(reference.saleId))
+      .map((reference) => ({
+        saleId: reference.saleId,
+        candidateAddress: reference.candidateAddress,
+        candidateParcelId: reference.candidateParcelId,
+        salePriceCents: reference.salePriceCents,
+      })),
+  ];
+
+  const reload = useCallback(async () => {
+    const response = await fetch(`/api/research/scenarios/${encodeURIComponent(propertyKey)}`, {
+      credentials: "same-origin",
+    });
+    if (!response.ok) {
+      throw new Error("Could not load deal scenarios.");
+    }
+    setScenarios(((await response.json()) as { scenarios: ScenarioData[] }).scenarios);
+    setBusy(false);
+  }, [propertyKey]);
+
+  useEffect(() => {
+    setBusy(true);
+    void reload().catch((cause) => {
+      setMessage(cause instanceof Error ? cause.message : "Could not load deal scenarios.");
+      setBusy(false);
+    });
+  }, [reload]);
+
+  return (
+    <section className="brief-section scenario-workspace" aria-label="Deal economics scenarios">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Named deal economics</p>
+          <h3>Flip and rental assumptions</h3>
+        </div>
+        <span>{scenarios.length} persisted</span>
+      </div>
+      <p className="fine-print">
+        Amounts are USD and persist as integer cents. Blank means unknown, never zero. Inputs are
+        dated partner assumptions: assessments, arrears, and other-parcel sales cannot become
+        purchase, rehab, exit, recurring-tax, payoff, equity, title, or valuation facts.
+      </p>
+      {message ? (
+        <div className="notice" role="status">
+          {message}
+        </div>
+      ) : null}
+      {busy ? <p>Loading persisted scenarios…</p> : null}
+      <div className="scenario-list">
+        {scenarios.map((scenario) => {
+          const result = scenario.result as {
+            evaluation?: {
+              status: string;
+              value?: Record<string, unknown>;
+              issues?: Array<{ path: string; message: string }>;
+            };
+            sensitivity?: {
+              value?: Array<{
+                name: string;
+                result: {
+                  status: string;
+                  value?: Record<string, unknown>;
+                  issues?: Array<{ path: string }>;
+                };
+              }>;
+            };
+          };
+          const values = result.evaluation?.value;
+          return (
+            <article className="workspace-card scenario-card" key={scenario.id}>
+              <strong>{scenario.name}</strong>
+              <span>
+                {scenario.kind} · version {scenario.version} · {scenario.updatedBy}
+              </span>
+              {result.evaluation?.status === "ok" && values ? (
+                <dl className="scenario-results">
+                  <Detail
+                    label="Cash invested"
+                    value={formatScenarioMoney(values["cashInvested"])}
+                  />
+                  <Detail
+                    label="Modeled loan principal"
+                    value={formatScenarioMoney(values["loanPrincipal"])}
+                  />
+                  <Detail
+                    label="Acquisition costs"
+                    value={formatScenarioMoney(values["acquisitionCosts"])}
+                  />
+                  <Detail label="Rehab" value={formatScenarioMoney(values["rehab"])} />
+                  <Detail
+                    label="Rehab contingency"
+                    value={formatScenarioMoney(values["contingency"])}
+                  />
+                  {scenario.kind === "flip" ? (
+                    <>
+                      <Detail
+                        label="Holding costs"
+                        value={formatScenarioMoney(values["holding"])}
+                      />
+                      <Detail
+                        label="Financing interest"
+                        value={formatScenarioMoney(values["interest"])}
+                      />
+                      <Detail
+                        label="Loan origination"
+                        value={formatScenarioMoney(values["origination"])}
+                      />
+                      <Detail
+                        label="Fixed financing fees"
+                        value={formatScenarioMoney(values["financingFixed"])}
+                      />
+                      <Detail
+                        label="Selling costs"
+                        value={formatScenarioMoney(values["sellingCosts"])}
+                      />
+                      <Detail
+                        label="Total modeled costs"
+                        value={formatScenarioMoney(values["totalCosts"])}
+                      />
+                      <Detail label="Profit" value={formatScenarioMoney(values["profit"])} />
+                      <Detail label="Cash ROI" value={formatScenarioRatio(values["cashROI"])} />
+                      <Detail
+                        label="Break-even sale"
+                        value={formatScenarioMoney(values["breakEvenSale"])}
+                      />
+                      <Detail
+                        label="Maximum purchase for target profit"
+                        value={formatScenarioSolution(values["maxPurchaseForTargetProfit"])}
+                        wide
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Detail
+                        label="Stabilization costs"
+                        value={formatScenarioMoney(values["stabilizationCosts"])}
+                      />
+                      <Detail
+                        label="Loan origination"
+                        value={formatScenarioMoney(values["origination"])}
+                      />
+                      <Detail
+                        label="Fixed financing fees"
+                        value={formatScenarioMoney(values["financingFixed"])}
+                      />
+                      <Detail
+                        label="Stabilization debt payments"
+                        value={formatScenarioMoney(values["stabilizationDebtPayments"])}
+                      />
+                      <Detail
+                        label="All-in unlevered basis"
+                        value={formatScenarioMoney(values["allInUnleveredBasis"])}
+                      />
+                      <Detail
+                        label="First stabilized-year effective income"
+                        value={formatScenarioMoney(values["annualEffectiveIncome"])}
+                      />
+                      <Detail
+                        label="First stabilized-year operating costs"
+                        value={formatScenarioMoney(values["annualOperatingCosts"])}
+                      />
+                      <Detail
+                        label="First stabilized-year NOI"
+                        value={formatScenarioMoney(values["annualNOI"])}
+                      />
+                      <Detail
+                        label="First stabilized-year cash flow"
+                        value={formatScenarioMoney(values["annualCashFlow"])}
+                      />
+                      <Detail
+                        label="Cash-on-cash"
+                        value={formatScenarioRatio(values["cashOnCash"])}
+                      />
+                      <Detail
+                        label="Elapsed-loan balance snapshot"
+                        value={formatScenarioMoney(values["remainingLoanBalance"])}
+                      />
+                      <Detail
+                        label="First stabilized-year capex reserve"
+                        value={formatScenarioMoney(values["annualCapexReserve"])}
+                      />
+                      <Detail
+                        label="Monthly debt payment"
+                        value={formatScenarioMoney(values["monthlyDebtPayment"])}
+                      />
+                      <Detail
+                        label="First stabilized-year debt service"
+                        value={formatScenarioMoney(values["annualDebtService"])}
+                      />
+                      <Detail
+                        label="Break-even monthly rent"
+                        value={formatScenarioSolution(values["breakEvenMonthlyRent"])}
+                        wide
+                      />
+                      <Detail
+                        label="Max purchase · unlevered NOI/all-in before capex"
+                        value={formatScenarioSolution(values["maxPurchaseForTargetYield"])}
+                        wide
+                      />
+                    </>
+                  )}
+                </dl>
+              ) : (
+                <div className="missing-inputs">
+                  <strong>Calculation needs explicit inputs</strong>
+                  <ul>
+                    {(result.evaluation?.issues ?? []).map((issue) => (
+                      <li key={`${issue.path}:${issue.message}`}>
+                        {issue.path.replace("inputs.", "")} · {issue.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(result.sensitivity?.value ?? []).map((entry) => (
+                <small key={entry.name}>
+                  Sensitivity {entry.name}:{" "}
+                  {entry.result.status === "ok"
+                    ? scenario.kind === "flip"
+                      ? `profit ${formatScenarioMoney(entry.result.value?.["profit"])}`
+                      : `cash flow ${formatScenarioMoney(entry.result.value?.["annualCashFlow"])}`
+                    : `needs ${(entry.result.issues ?? []).map((issue) => issue.path.replace("inputs.", "")).join(", ")}`}
+                </small>
+              ))}
+              {scenario.saleCandidateReferences.map((candidate) => (
+                <small key={candidate.saleId}>
+                  {candidate.disposition.replaceAll("_", " ")}:{" "}
+                  {candidate.candidateAddress ?? candidate.candidateParcelId} · {candidate.reason}.
+                  Saved evidence {candidate.savedEvidenceStatus.replaceAll("_", " ")} · current
+                  source {candidate.currentSourceStatus.replaceAll("_", " ")}. Supporting transfer
+                  only; not a verified exit.
+                </small>
+              ))}
+              <button
+                className="button secondary"
+                type="button"
+                onClick={() => {
+                  setEditingId(scenario.id);
+                  setKind(scenario.kind);
+                }}
+              >
+                Edit scenario
+              </button>
+            </article>
+          );
+        })}
+      </div>
+      <details className="scenario-editor" open={scenarios.length === 0 || editing !== null}>
+        <summary>{editing ? `Edit ${editing.name}` : "Create a named scenario"}</summary>
+        <form
+          className="scenario-form"
+          key={`${editing?.id ?? "new"}:${kind}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusy(true);
+            setMessage(null);
+            const form = new FormData(event.currentTarget);
+            const sharedAsOf = String(form.get("asOf") ?? "");
+            const redateAll = form.get("redateAll") === "on";
+            const inputs = Object.fromEntries(
+              fields.map(([field]) => {
+                const raw = String(form.get(field) ?? "");
+                const fieldAsOf = editing ? String(form.get(`${field}:asOf`) ?? "") : sharedAsOf;
+                return [
+                  field,
+                  raw === ""
+                    ? null
+                    : { value: Number(raw), asOf: redateAll ? sharedAsOf : fieldAsOf },
+                ];
+              }),
+            );
+            const sensitivityName = String(form.get("sensitivityName") ?? "");
+            const sensitivityField = String(form.get("sensitivityField") ?? "");
+            const sensitivityValue = String(form.get("sensitivityValue") ?? "");
+            const preservedSensitivity = editingSensitivity.flatMap((entry, caseIndex) => {
+              if (form.get(`sensitivity:${caseIndex}:remove`) === "on") {
+                return [];
+              }
+              const overrides = Object.fromEntries(
+                Object.entries(entry.overrides).flatMap(([field]) => {
+                  if (form.get(`sensitivity:${caseIndex}:${field}:remove`) === "on") {
+                    return [];
+                  }
+                  const raw = String(form.get(`sensitivity:${caseIndex}:${field}:value`) ?? "");
+                  const date = String(form.get(`sensitivity:${caseIndex}:${field}:asOf`) ?? "");
+                  return raw === "" ? [] : [[field, { value: Number(raw), asOf: date }]];
+                }),
+              );
+              return Object.keys(overrides).length
+                ? [
+                    {
+                      name: String(form.get(`sensitivity:${caseIndex}:name`) ?? ""),
+                      overrides,
+                    },
+                  ]
+                : [];
+            });
+            const candidateSelections = candidateEditorEntries.flatMap((candidate) => {
+              const disposition = String(
+                form.get(`candidate:${candidate.saleId}:disposition`) ?? "",
+              );
+              return disposition
+                ? [
+                    {
+                      saleId: candidate.saleId,
+                      disposition,
+                      reason: String(form.get(`candidate:${candidate.saleId}:reason`) ?? ""),
+                    },
+                  ]
+                : [];
+            });
+            const candidateRemovals = candidateEditorEntries.flatMap((candidate) => {
+              const existing = editing?.saleCandidateReferences.some(
+                (reference) => reference.saleId === candidate.saleId,
+              );
+              const disposition = String(
+                form.get(`candidate:${candidate.saleId}:disposition`) ?? "",
+              );
+              return existing && !disposition ? [candidate.saleId] : [];
+            });
+            void fetch(`/api/research/scenarios/${encodeURIComponent(propertyKey)}`, {
+              method: "POST",
+              credentials: "same-origin",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                id: editing?.id ?? null,
+                expectedVersion: editing?.version ?? 0,
+                name: form.get("name"),
+                kind,
+                financing: kind === "rental" ? form.get("financing") : null,
+                inputs,
+                sensitivity: [
+                  ...preservedSensitivity,
+                  ...(sensitivityName && sensitivityField && sensitivityValue !== ""
+                    ? [
+                        {
+                          name: sensitivityName,
+                          overrides: {
+                            [sensitivityField]: {
+                              value: Number(sensitivityValue),
+                              asOf: String(form.get("sensitivityAsOf") ?? "") || sharedAsOf,
+                            },
+                          },
+                        },
+                      ]
+                    : []),
+                ],
+                candidateSelections,
+                candidateRemovals,
+              }),
+            })
+              .then(async (response) => {
+                const payload = (await response.json()) as { error?: string };
+                if (!response.ok) {
+                  throw new Error(payload.error ?? "Scenario could not be saved.");
+                }
+                setEditingId(null);
+                setMessage("Scenario and calculated results persisted.");
+                return reload();
+              })
+              .catch((cause) => {
+                setMessage(cause instanceof Error ? cause.message : "Scenario could not be saved.");
+                setBusy(false);
+              });
+          }}
+        >
+          <label>
+            <span>Scenario name</span>
+            <input name="name" required maxLength={160} defaultValue={editing?.name ?? ""} />
+          </label>
+          <label>
+            <span>Strategy</span>
+            <select
+              value={kind}
+              onChange={(event) => {
+                setEditingId(null);
+                setKind(event.target.value as "flip" | "rental");
+              }}
+            >
+              <option value="flip">Flip · interest-only acquisition model</option>
+              <option value="rental">Rental / hold · first stabilized year</option>
+            </select>
+          </label>
+          {kind === "rental" ? (
+            <label>
+              <span>Financing choice</span>
+              <select name="financing" defaultValue={editing?.financing ?? "cash"}>
+                <option value="cash">Cash · loan inputs must be zero</option>
+                <option value="amortizing">Amortizing modeled new loan</option>
+              </select>
+            </label>
+          ) : null}
+          <label>
+            <span>{editing ? "New date for explicit re-date action" : "Assumptions as of"}</span>
+            <input name="asOf" type="date" />
+          </label>
+          {editing ? (
+            <label className="check-row">
+              <input name="redateAll" type="checkbox" />
+              <span>Explicitly apply that new date to every populated assumption</span>
+            </label>
+          ) : null}
+          <div className="scenario-input-grid">
+            {fields.map(([field, label, unit]) => (
+              <div className="scenario-input-cell" key={field}>
+                <label>
+                  <span>
+                    {label}
+                    {unit === "money" ? " · USD" : ""}
+                  </span>
+                  <input
+                    name={field}
+                    type="number"
+                    min={0}
+                    step={unit === "money" ? "0.01" : unit === "months" ? "1" : "0.0001"}
+                    defaultValue={scenarioStoredValue(editing, field, unit)}
+                    placeholder="Unknown"
+                  />
+                </label>
+                {editing ? (
+                  <label>
+                    <span>{label} as of</span>
+                    <input
+                      name={`${field}:asOf`}
+                      type="date"
+                      defaultValue={scenarioStoredDate(editing, field)}
+                    />
+                  </label>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          {editingSensitivity.map((entry, caseIndex) => (
+            <fieldset className="saved-sensitivity" key={entry.name}>
+              <legend>Saved sensitivity case {caseIndex + 1}</legend>
+              <label>
+                <span>Case name</span>
+                <input
+                  name={`sensitivity:${caseIndex}:name`}
+                  maxLength={160}
+                  defaultValue={entry.name}
+                />
+              </label>
+              {Object.entries(entry.overrides).map(([field, cell]) => {
+                const fieldDefinition = fields.find(([candidate]) => candidate === field);
+                if (!fieldDefinition) {
+                  return null;
+                }
+                const [, label, unit] = fieldDefinition;
+                return (
+                  <div className="saved-sensitivity-override" key={field}>
+                    <label>
+                      <span>{label}</span>
+                      <input
+                        name={`sensitivity:${caseIndex}:${field}:value`}
+                        type="number"
+                        min={0}
+                        step={unit === "money" ? "0.01" : unit === "months" ? "1" : "0.0001"}
+                        defaultValue={storedSensitivityValue(cell, unit)}
+                      />
+                    </label>
+                    <label>
+                      <span>{label} as of</span>
+                      <input
+                        name={`sensitivity:${caseIndex}:${field}:asOf`}
+                        type="date"
+                        defaultValue={cell.asOf ?? ""}
+                      />
+                    </label>
+                    <label className="check-row">
+                      <input name={`sensitivity:${caseIndex}:${field}:remove`} type="checkbox" />
+                      <span>Explicitly remove this override</span>
+                    </label>
+                  </div>
+                );
+              })}
+              <label className="check-row">
+                <input name={`sensitivity:${caseIndex}:remove`} type="checkbox" />
+                <span>Explicitly remove this saved sensitivity case</span>
+              </label>
+            </fieldset>
+          ))}
+          <fieldset>
+            <legend>Add another named sensitivity calculation</legend>
+            <label>
+              <span>Case name</span>
+              <input name="sensitivityName" maxLength={160} />
+            </label>
+            <label>
+              <span>Field</span>
+              <select name="sensitivityField" defaultValue="">
+                <option value="">No case</option>
+                {fields.map(([field, label]) => (
+                  <option key={field} value={field}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Absolute alternate value · same units</span>
+              <input name="sensitivityValue" type="number" min={0} step="0.0001" />
+            </label>
+            <label>
+              <span>New sensitivity as of</span>
+              <input name="sensitivityAsOf" type="date" />
+            </label>
+          </fieldset>
+          {candidateEditorEntries.length ? (
+            <fieldset className="scenario-candidates">
+              <legend>Official transfer candidates · support only, never verified exit</legend>
+              {candidateEditorEntries.map((sale) => {
+                const existing = editing?.saleCandidateReferences.find(
+                  (entry) => entry.saleId === sale.saleId,
+                );
+                return (
+                  <div key={sale.saleId}>
+                    <strong>
+                      {sale.candidateAddress ?? sale.candidateParcelId} ·{" "}
+                      {formatMoney(sale.salePriceCents)}
+                    </strong>
+                    {existing ? (
+                      <small>
+                        Saved evidence {existing.savedEvidenceStatus.replaceAll("_", " ")} · current
+                        source {existing.currentSourceStatus.replaceAll("_", " ")}
+                      </small>
+                    ) : null}
+                    <select
+                      name={`candidate:${sale.saleId}:disposition`}
+                      defaultValue={existing?.disposition ?? ""}
+                    >
+                      <option value="">Not referenced</option>
+                      <option value="selected_support">Selected support</option>
+                      <option value="excluded">Excluded</option>
+                    </select>
+                    <input
+                      name={`candidate:${sale.saleId}:reason`}
+                      maxLength={1000}
+                      defaultValue={existing?.reason ?? ""}
+                      placeholder="Required reason"
+                    />
+                  </div>
+                );
+              })}
+            </fieldset>
+          ) : null}
+          <div className="button-row">
+            <button className="button primary" type="submit" disabled={busy}>
+              {busy ? "Calculating…" : editing ? "Save scenario revision" : "Create scenario"}
+            </button>
+            {editing ? (
+              <button className="button secondary" type="button" onClick={() => setEditingId(null)}>
+                Cancel edit
+              </button>
+            ) : null}
+          </div>
+        </form>
+      </details>
+      <p className="fine-print">
+        Signed in as {viewerEmail}. Rental annual metrics cover the first 12 stabilized months.
+        Elapsed loan months is a separate balance snapshot. Rental max offer is unlevered NOI/all-in
+        basis before capex, never cash-on-cash.
+      </p>
+    </section>
+  );
+}
+
+function formatScenarioMoney(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 2,
+      }).format(value)
+    : "Not calculable";
+}
+function formatScenarioRatio(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${(value * 100).toFixed(2)}%`
+    : "Not calculable";
+}
+function formatScenarioSolution(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return "Not calculable";
+  }
+  const result = value as { status?: string; amount?: number | null };
+  return result.status === "feasible"
+    ? formatScenarioMoney(result.amount)
+    : (result.status ?? "Not calculable");
+}
+
+function BenchmarkWorkspace({
+  benchmarks,
+  selectedKeys,
+  buyBoxes,
+  viewerEmail,
+  onReload,
+  onNotice,
+}: {
+  benchmarks: BenchmarkData[];
+  selectedKeys: string[];
+  buyBoxes: BuyBoxData[];
+  viewerEmail: string;
+  onReload: () => Promise<void>;
+  onNotice: (message: string | null) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const selected = benchmarks.find((entry) => entry.id === selectedId) ?? benchmarks[0] ?? null;
+
+  async function post(path: string, body: unknown) {
+    setSaving(true);
+    onNotice(null);
+    try {
+      const response = await fetch(path, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = (await response.json()) as { id?: string; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Blind comparison update failed.");
+      }
+      if (payload.id) {
+        setSelectedId(payload.id);
+      }
+      await onReload();
+      onNotice("Blind comparison state persisted.");
+    } catch (cause) {
+      onNotice(cause instanceof Error ? cause.message : "Blind comparison update failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section
+      className="partner-workspace-panel benchmark-workspace"
+      aria-label="Blind benchmark workspace"
+    >
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Held-out blind comparison</p>
+          <h2>Licensed shortlist benchmark</h2>
+        </div>
+        <span>Descriptive only · excluded from ranking feedback</span>
+      </div>
+      <p>
+        Compare the exact selected Property Watch shortlist with a user-owned licensed CSV under one
+        market, date, and immutable buy-box fingerprint. No competitor result exists until that
+        export is supplied and independently reviewed.
+      </p>
+      <details className="benchmark-create" open={benchmarks.length === 0}>
+        <summary>
+          Create comparison from {selectedKeys.length} selected shortlist key
+          {selectedKeys.length === 1 ? "" : "s"}
+        </summary>
+        <form
+          className="benchmark-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            void post("/api/research/benchmarks", {
+              privateName: form.get("privateName"),
+              market: "norfolk-va",
+              asOfDate: form.get("asOfDate"),
+              buyBoxId: form.get("buyBoxId"),
+              propertyKeys: selectedKeys,
+              competitorCsv: form.get("competitorCsv"),
+              tokenHeader: form.get("tokenHeader"),
+              competitorLabel: form.get("competitorLabel"),
+              fileName: form.get("fileName"),
+              mode: form.get("mode"),
+              licenseAcknowledged: form.get("licensed") === "on",
+            });
+          }}
+        >
+          <label>
+            <span>Private setup name</span>
+            <input name="privateName" required maxLength={160} />
+          </label>
+          <label>
+            <span>Market / neutral scheme</span>
+            <input value="Norfolk · exact tax-account" readOnly />
+          </label>
+          <label>
+            <span>Comparison as of</span>
+            <input name="asOfDate" type="date" required />
+          </label>
+          <label>
+            <span>Persisted buy-box version/content</span>
+            <select name="buyBoxId" required defaultValue="">
+              <option value="" disabled>
+                Select a buy box
+              </option>
+              {buyBoxes.map((buyBox) => (
+                <option key={buyBox.id} value={buyBox.id}>
+                  {buyBox.name} · v{buyBox.version}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Private licensed source label</span>
+            <input name="competitorLabel" required maxLength={200} />
+          </label>
+          <label>
+            <span>Private export file name</span>
+            <input name="fileName" required maxLength={200} />
+          </label>
+          <label>
+            <span>Exact identifier column header</span>
+            <input name="tokenHeader" required maxLength={200} />
+          </label>
+          <label>
+            <span>Comparison data mode</span>
+            <select name="mode" defaultValue="live">
+              <option value="live">Live licensed comparison</option>
+              <option value="test-only">Clearly labeled internal test only</option>
+            </select>
+          </label>
+          <label className="wide">
+            <span>Licensed CSV · max 60,000 UTF-8 bytes / 1,000 rows</span>
+            <textarea name="competitorCsv" required placeholder={"parcel_id\n15834200\n00000218"} />
+          </label>
+          <label className="wide checkbox-label">
+            <input name="licensed" type="checkbox" required />I confirm this is a user-owned
+            licensed export; no paywall or private login was scraped.
+          </label>
+          <button
+            className="button primary"
+            type="submit"
+            disabled={saving || selectedKeys.length === 0 || buyBoxes.length === 0}
+          >
+            Persist randomized blind order
+          </button>
+        </form>
+      </details>
+      {benchmarks.length === 0 ? (
+        <div className="empty-state">
+          <FileSearch2 size={28} />
+          <h3>Awaiting a licensed export</h3>
+          <p>No source performance or comparison is seeded or claimed.</p>
+        </div>
+      ) : (
+        <>
+          <label className="benchmark-picker">
+            <span>Comparison</span>
+            <select
+              value={selected?.id ?? ""}
+              onChange={(event) => setSelectedId(event.target.value)}
+            >
+              {benchmarks.map((benchmark) => (
+                <option key={benchmark.id} value={benchmark.id}>
+                  {benchmark.displayName} · {benchmark.status}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selected ? (
+            <div className="benchmark-detail">
+              <article className="workspace-card benchmark-summary">
+                <strong>{selected.displayName}</strong>
+                <span>
+                  {selected.market} · {selected.asOfDate} · buy box v{selected.buyBoxVersion} ·{" "}
+                  {selected.metrics.mode}
+                </span>
+                <small>{selected.buyBoxFingerprint}</small>
+                {selected.frozenCriteria ? (
+                  <details className="frozen-criteria">
+                    <summary>Frozen source-neutral review criteria</summary>
+                    <dl>
+                      <Detail
+                        label="Property types"
+                        value={selected.frozenCriteria.propertyTypes.join(", ") || "Any"}
+                      />
+                      <Detail
+                        label="Jurisdictions"
+                        value={selected.frozenCriteria.jurisdictions.join(", ") || "Any"}
+                      />
+                      <Detail
+                        label="Neighborhoods"
+                        value={selected.frozenCriteria.neighborhoods.join(", ") || "Any"}
+                      />
+                      <Detail
+                        label="ZIP codes"
+                        value={selected.frozenCriteria.zips.join(", ") || "Any"}
+                      />
+                      <Detail
+                        label="Size range"
+                        value={`${selected.frozenCriteria.minSizeValue ?? "No minimum"} – ${selected.frozenCriteria.maxSizeValue ?? "No maximum"} · ${selected.frozenCriteria.sizeBasis}`}
+                      />
+                      <Detail
+                        label="Value range · cents"
+                        value={`${selected.frozenCriteria.minValueCents ?? "No minimum"} – ${selected.frozenCriteria.maxValueCents ?? "No maximum"} · ${selected.frozenCriteria.valueBasis}`}
+                      />
+                      <Detail
+                        label="Distress phases"
+                        value={selected.frozenCriteria.distressPhases.join(", ") || "Any"}
+                      />
+                    </dl>
+                  </details>
+                ) : (
+                  <small>
+                    Frozen criteria unavailable for this legacy benchmark; no criteria were
+                    reconstructed or fabricated.
+                  </small>
+                )}
+                <small>
+                  {selected.cards.length} neutral cards · {selected.metrics.union.reviewJudgments}{" "}
+                  reviewed · {selected.metrics.union.missingJudgments} missing judgments
+                </small>
+                <small>
+                  Role {selected.role.replaceAll("_", " ")} · {viewerEmail}
+                </small>
+              </article>
+              <div className="blind-card-list">
+                {selected.cards.map((card, index) => {
+                  const review = selected.ownReviews.find((entry) => entry.cardId === card.cardId);
+                  return (
+                    <article className="workspace-card blind-card" key={card.cardId}>
+                      <strong>Blind card {index + 1}</strong>
+                      <span>
+                        {card.identifier.market} · {card.identifier.scheme} ·{" "}
+                        {card.identifier.token}
+                      </span>
+                      {selected.canReview ? (
+                        <form
+                          key={`${card.cardId}:${review?.version ?? 0}`}
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            const form = new FormData(event.currentTarget);
+                            const seconds = String(form.get("researchSeconds") ?? "");
+                            void post(
+                              `/api/research/benchmarks/${encodeURIComponent(selected.id)}/reviews`,
+                              {
+                                cardId: card.cardId,
+                                expectedVersion: review?.version ?? 0,
+                                useful: form.get("useful"),
+                                correctness: form.get("correctness"),
+                                researchSeconds: seconds === "" ? null : Number(seconds),
+                                reason: form.get("reason"),
+                              },
+                            );
+                          }}
+                        >
+                          <label>
+                            <span>Worth investigating?</span>
+                            <select name="useful" defaultValue={review?.useful ?? "unknown"}>
+                              <option value="unknown">Unknown</option>
+                              <option value="yes">Yes</option>
+                              <option value="no">No</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Qualifying unresolved-status claim correct?</span>
+                            <select
+                              name="correctness"
+                              defaultValue={review?.correctness ?? "unknown"}
+                            >
+                              <option value="unknown">Unknown</option>
+                              <option value="yes">Yes</option>
+                              <option value="no">No</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Research seconds · blank is missing</span>
+                            <input
+                              name="researchSeconds"
+                              type="number"
+                              min={0}
+                              max={604800}
+                              defaultValue={review?.researchSeconds ?? ""}
+                            />
+                          </label>
+                          <label>
+                            <span>Independent reason</span>
+                            <textarea
+                              name="reason"
+                              required
+                              maxLength={2000}
+                              defaultValue={
+                                review?.reason ?? "Evidence check pending; judgment remains unknown"
+                              }
+                            />
+                          </label>
+                          <button className="button secondary" type="submit" disabled={saving}>
+                            Save blind review v{review?.version ?? 0}
+                          </button>
+                        </form>
+                      ) : (
+                        <small>
+                          {selected.role === "setup_creator"
+                            ? "Setup creator cannot review; the assigned independent partner reviews every card."
+                            : "No review assignment."}
+                        </small>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+              {selected.status === "reviewing" && selected.canReveal ? (
+                <form
+                  className="reveal-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    void post(
+                      `/api/research/benchmarks/${encodeURIComponent(selected.id)}/reveal`,
+                      {
+                        expectedVersion: selected.version,
+                        confirmation: form.get("confirmation"),
+                      },
+                    );
+                  }}
+                >
+                  <label>
+                    <span>Irreversible confirmation</span>
+                    <input name="confirmation" required placeholder="REVEAL SOURCES" />
+                  </label>
+                  <button className="button primary" type="submit" disabled={saving}>
+                    Irreversibly reveal sources
+                  </button>
+                </form>
+              ) : null}
+              {selected.status === "reviewing" &&
+              selected.role === "setup_creator" &&
+              !selected.canReveal ? (
+                <p className="fine-print">
+                  Reveal locked: every assigned reviewer must save a judgment, including unknown,
+                  for every blind card.
+                </p>
+              ) : null}
+              {selected.status === "revealed" && selected.metrics.sources ? (
+                <section className="revealed-metrics">
+                  <div className="section-heading">
+                    <div>
+                      <p className="eyebrow">Post-reveal only</p>
+                      <h3>Source-specific descriptive metrics</h3>
+                    </div>
+                    <a
+                      className="button secondary"
+                      href={`/api/research/benchmarks/${encodeURIComponent(selected.id)}/export.csv`}
+                    >
+                      <Download size={16} /> Export actual reviews CSV
+                    </a>
+                  </div>
+                  <p>
+                    Union: {selected.metrics.datasetCounts?.uniqueProperties} unique ·{" "}
+                    {selected.metrics.datasetCounts?.overlapProperties} overlap ·{" "}
+                    {selected.metrics.datasetCounts?.uncertainRows} quarantined. Missing reviews are
+                    not failures.
+                  </p>
+                  {selected.metrics.sources.map((source) => (
+                    <article className="workspace-card" key={source.id}>
+                      <strong>{source.label}</strong>
+                      <span>
+                        {source.counts.uniqueProperties} unique ·{" "}
+                        {source.counts.exclusiveProperties} source-exclusive ·{" "}
+                        {source.counts.duplicateRows} duplicates · {source.counts.uncertainRows}{" "}
+                        uncertain
+                      </span>
+                      <span>
+                        Useful yes/no/unknown/missing: {source.metrics.useful.yes}/
+                        {source.metrics.useful.no}/{source.metrics.useful.unknown}/
+                        {source.metrics.useful.missing}
+                      </span>
+                      <span>
+                        Correct yes/no/unknown/missing: {source.metrics.correctness.yes}/
+                        {source.metrics.correctness.no}/{source.metrics.correctness.unknown}/
+                        {source.metrics.correctness.missing}
+                      </span>
+                      <small>
+                        Useful known ratio {formatMetricRatio(source.metrics.useful.yesKnownRatio)}{" "}
+                        · correctness known ratio{" "}
+                        {formatMetricRatio(source.metrics.correctness.yesKnownRatio)} · time per
+                        timed useful property{" "}
+                        {source.metrics.time.secondsPerTimedUsefulProperty ?? "no denominator"}{" "}
+                        seconds · time coverage{" "}
+                        {formatMetricRatio(source.metrics.time.timeCoverage)}
+                      </small>
+                    </article>
+                  ))}
+                  <p className="fine-print">
+                    Descriptive only. No significance, superiority, accuracy, or
+                    competitor-performance claim is inferred.
+                  </p>
+                </section>
+              ) : null}
+              <ul className="fine-print">
+                {selected.blindingLimitations.map((limit) => (
+                  <li key={limit}>{limit}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
+function formatMetricRatio(value: number | null) {
+  return value === null ? "no denominator" : `${(value * 100).toFixed(1)}%`;
 }
 
 function PipelineEditor({

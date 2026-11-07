@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { signInLocally } from "./auth-fixture.ts";
 
@@ -68,6 +69,7 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
   await expect(
     page.getByLabel("Watchlist summary").getByText("2", { exact: true }).first(),
   ).toBeVisible();
+  await page.getByText(/Source coverage and freshness/).click();
   await expect(page.getByText("City of Norfolk · Delinquent Property Taxes")).toBeVisible();
   await expect(page.getByText("City of Norfolk · Neighborhood Quality Violations")).toBeVisible();
   await expect(page.getByText(/Denver registry use requires permission/)).toBeVisible();
@@ -197,10 +199,16 @@ test("refresh is same-origin and returns promptly as queued work", async ({ page
 test("partners complete and retain the shortlist, buy-box, review, note, alert, and selected-export workflow", async ({
   page,
   browser,
-}) => {
+}, testInfo) => {
+  test.setTimeout(180_000);
   await signInLocally(page.context(), { email: allowedEmail });
   await page.goto("/");
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  const primaryHeading = page.getByRole("heading", { name: "Current property signals" });
+  await expect(primaryHeading).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  expect((await primaryHeading.boundingBox())?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(720);
+  await page.screenshot({ path: testInfo.outputPath("ce-workspace-desktop.png") });
 
   await page.getByRole("button", { name: "Buy boxes" }).click();
   const buyBox = page.locator(".buy-box-form");
@@ -212,6 +220,16 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   await expect(page.getByRole("option", { name: "Norfolk partner criteria" })).toBeAttached();
 
   await page.getByRole("button", { name: "Shortlist" }).click();
+  await page.getByLabel("Shared buy box").selectOption({ label: "Norfolk partner criteria" });
+  await page.getByLabel("Lead qualification").selectOption("needs_research");
+  const boundedQuery = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/research/data?") &&
+      response.url().includes("buyBoxId=") &&
+      response.url().includes("qualification=needs_research"),
+  );
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  expect((await boundedQuery).status()).toBe(200);
   await page.getByLabel("Search properties").fill("15834200");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await page.getByLabel("Select 2800 VIMY RIDGE AV").check();
@@ -239,6 +257,83 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   await expect(
     dialog.getByRole("heading", { name: /Qualification: needs research/ }),
   ).toBeVisible();
+  const scenarioForm = dialog.locator(".scenario-form");
+  await scenarioForm.getByLabel("Scenario name").fill("Dated E2E flip");
+  await scenarioForm.getByLabel("Assumptions as of").fill("2026-11-07");
+  for (const [label, value] of [
+    ["Proposed purchase price · USD", "200000"],
+    ["Fixed acquisition costs · USD", "2000"],
+    ["Acquisition cost rate (decimal)", "0.02"],
+    ["Rehab assumption · USD", "30000"],
+    ["Rehab contingency rate (decimal)", "0.1"],
+    ["Holding months", "6"],
+    ["Monthly holding costs · USD", "1000"],
+    ["New-loan share of purchase (decimal)", "0.8"],
+    ["Annual interest rate (decimal)", "0.12"],
+    ["Origination rate (decimal)", "0.02"],
+    ["Fixed financing fees · USD", "500"],
+    ["Explicit exit-price assumption · USD", "300000"],
+    ["Selling cost rate (decimal)", "0.06"],
+    ["Fixed selling costs · USD", "1000"],
+    ["Target dollar profit · USD", "25000"],
+  ] as const) {
+    await scenarioForm.getByLabel(label, { exact: true }).fill(value);
+  }
+  await scenarioForm.getByLabel("Case name").fill("Lower explicit exit");
+  await scenarioForm.getByLabel("Field").selectOption("salePrice");
+  await scenarioForm.getByLabel("Absolute alternate value · same units").fill("280000");
+  await scenarioForm.getByRole("button", { name: "Create scenario" }).click();
+  await expect(dialog.getByText("Scenario and calculated results persisted.")).toBeVisible();
+  await expect(dialog.getByText("Dated E2E flip", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("$22,700.00", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Acquisition costs", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Total modeled costs", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/Sensitivity Lower explicit exit: profit/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Edit scenario" }).click();
+  await scenarioForm.getByLabel("Rehab assumption as of").fill("2026-10-01");
+  const addSensitivity = scenarioForm.getByRole("group", {
+    name: "Add another named sensitivity calculation",
+  });
+  await addSensitivity.getByLabel("Case name").fill("Higher rehab");
+  await addSensitivity.getByLabel("Field").selectOption("rehab");
+  await addSensitivity.getByLabel("Absolute alternate value · same units").fill("40000");
+  await addSensitivity.getByLabel("New sensitivity as of").fill("2026-09-15");
+  await scenarioForm.getByRole("button", { name: "Save scenario revision" }).click();
+  await expect(dialog.getByText(/flip · version 2/)).toBeVisible();
+  await expect(dialog.getByText(/Sensitivity Higher rehab: profit/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Edit scenario" }).click();
+  await scenarioForm.getByLabel("Scenario name").fill("Dated E2E flip renamed");
+  await scenarioForm.getByRole("button", { name: "Save scenario revision" }).click();
+  await expect(dialog.getByText("Dated E2E flip renamed", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/flip · version 3/)).toBeVisible();
+  await page.reload();
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  await page.getByLabel("Search properties").fill("15834200");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByLabel("Select 2800 VIMY RIDGE AV").check();
+  await page.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
+  await expect(dialog.getByText(/Sensitivity Lower explicit exit: profit/)).toBeVisible();
+  await expect(dialog.getByText(/Sensitivity Higher rehab: profit/)).toBeVisible();
+  const persistedScenario = await page.evaluate(async () => {
+    const response = await fetch(
+      `/api/research/scenarios/${encodeURIComponent("norfolk-va:15834200")}`,
+      { credentials: "same-origin" },
+    );
+    return (await response.json()) as {
+      scenarios: Array<{
+        name: string;
+        inputs: Record<string, { asOf: string | null }>;
+        sensitivity: Array<{ name: string }>;
+      }>;
+    };
+  });
+  expect(persistedScenario.scenarios[0]?.name).toBe("Dated E2E flip renamed");
+  expect(persistedScenario.scenarios[0]?.inputs["purchasePrice"]?.asOf).toBe("2026-11-07");
+  expect(persistedScenario.scenarios[0]?.inputs["rehab"]?.asOf).toBe("2026-10-01");
+  expect(persistedScenario.scenarios[0]?.sensitivity.map((entry) => entry.name)).toEqual([
+    "Lower explicit exit",
+    "Higher rehab",
+  ]);
   await dialog.getByRole("button", { name: "Create attributed assessment" }).click();
   await expect(dialog.getByText(/Assessment v1/)).toBeVisible();
   await dialog.getByLabel("Partner qualification override").selectOption("deprioritize");
@@ -248,10 +343,10 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   await dialog.getByRole("button", { name: "Save reversible override" }).click();
   await expect(dialog.getByRole("heading", { name: /Qualification: deprioritized/ })).toBeVisible();
 
-  await dialog.getByLabel("Lead usefulness").selectOption("useful");
-  await dialog.getByLabel("Verified state").selectOption("unresolved");
-  await dialog.getByLabel("Interest").selectOption("investigate");
-  await dialog.getByLabel("Known result").selectOption("offer_made");
+  await dialog.locator('select[name="usefulness"]').selectOption("useful");
+  await dialog.locator('select[name="verification"]').selectOption("unresolved");
+  await dialog.locator('select[name="interest"]').selectOption("investigate");
+  await dialog.locator('select[name="outcome"]').selectOption("offer_made");
   await dialog.getByLabel("Research minutes").fill("14");
   await dialog
     .getByLabel("Reason / evidence reviewed")
@@ -268,6 +363,29 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
   await dialog.getByRole("button", { name: "Save toggle / reset to baseline" }).click();
   await expect(dialog.getByLabel("Enable optional bounded adjustment")).toBeChecked();
   await page.getByRole("button", { name: "Close details" }).click();
+
+  await page.getByRole("button", { name: "Blind benchmarks" }).click();
+  const benchmarkForm = page.locator(".benchmark-form");
+  await benchmarkForm.getByLabel("Private setup name").fill("E2E internal comparison");
+  await benchmarkForm.getByLabel("Comparison as of").fill("2026-11-07");
+  await benchmarkForm.getByLabel("Persisted buy-box version/content").selectOption({ index: 1 });
+  await benchmarkForm.getByLabel("Private licensed source label").fill("=E2E LICENSED FIXTURE");
+  await benchmarkForm.getByLabel("Private export file name").fill("e2e-private-fixture.csv");
+  await benchmarkForm.getByLabel("Exact identifier column header").fill("parcel");
+  await benchmarkForm.getByLabel("Comparison data mode").selectOption("test-only");
+  await benchmarkForm
+    .getByLabel(/Licensed CSV/)
+    .fill("parcel,score\n15834200,99\n00000218,3\n,1\n123,2\n");
+  await benchmarkForm.getByLabel(/I confirm this is a user-owned licensed export/).check();
+  await benchmarkForm.getByRole("button", { name: "Persist randomized blind order" }).click();
+  await expect(page.getByText("Blind comparison · 2026-11-07", { exact: true })).toBeVisible();
+  await expect(page.getByText(/test-only/)).toBeVisible();
+  await expect(page.getByText("=E2E LICENSED FIXTURE", { exact: true })).not.toBeVisible();
+  await expect(page.getByText(/Setup creator cannot review/).first()).toBeVisible();
+  await expect(page.getByText(/Reveal locked: every assigned reviewer/)).toBeVisible();
+  await expect(page.getByLabel("Irreversible confirmation")).not.toBeVisible();
+  await page.getByText("Frozen source-neutral review criteria").click();
+  await expect(page.locator(".frozen-criteria")).toContainText("23509");
 
   await page.getByRole("button", { name: "Pipeline" }).click();
   await expect(page.getByRole("heading", { name: "Review pipeline" })).toBeVisible();
@@ -305,5 +423,48 @@ test("partners complete and retain the shortlist, buy-box, review, note, alert, 
     partnerDialog.getByRole("heading", { name: /Qualification: deprioritized/ }),
   ).toBeVisible();
   await expect(partnerDialog.getByText(/1 reviewer judgments/)).toBeVisible();
+  await expect(partnerDialog.getByText("Dated E2E flip renamed", { exact: true })).toBeVisible();
+  await expect(partnerDialog.getByText("$22,700.00", { exact: true })).toBeVisible();
+  await partnerPage.getByRole("button", { name: "Close details" }).click();
+  await partnerPage.getByRole("button", { name: "Blind benchmarks" }).click();
+  await expect(
+    partnerPage.getByText("Blind comparison · 2026-11-07", { exact: true }),
+  ).toBeVisible();
+  const blindCardCount = await partnerPage.locator(".blind-card").count();
+  for (let index = 0; index < blindCardCount; index += 1) {
+    const blindCard = partnerPage.locator(".blind-card").nth(index);
+    await blindCard.getByLabel("Worth investigating?").selectOption("unknown");
+    await blindCard
+      .getByLabel("Qualifying unresolved-status claim correct?")
+      .selectOption("unknown");
+    await blindCard
+      .getByLabel("Independent reason")
+      .fill(`E2E independent review ${index + 1} remains unknown`);
+    await blindCard.getByRole("button", { name: /Save blind review v0/ }).click();
+    await expect(partnerPage.getByText("Blind comparison state persisted.")).toBeVisible();
+  }
   await partnerContext.close();
+
+  await page.reload();
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  await page.getByRole("button", { name: "Blind benchmarks" }).click();
+  await expect(
+    page.getByText(`${blindCardCount} reviewed · 0 missing judgments`, { exact: false }),
+  ).toBeVisible();
+  await page.getByLabel("Irreversible confirmation").fill("REVEAL SOURCES");
+  await page.getByRole("button", { name: "Irreversibly reveal sources" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Source-specific descriptive metrics" }),
+  ).toBeVisible();
+  await expect(page.getByText("=E2E LICENSED FIXTURE", { exact: true })).toBeVisible();
+  await expect(page.getByText(/overlap/).first()).toBeVisible();
+  const benchmarkDownload = page.waitForEvent("download");
+  await page.getByRole("link", { name: /Export actual reviews CSV/ }).click();
+  const downloadedBenchmark = await benchmarkDownload;
+  expect(downloadedBenchmark.suggestedFilename()).toMatch(/^property-watch-blind-benchmark-/);
+  const downloadedPath = await downloadedBenchmark.path();
+  expect(downloadedPath).not.toBeNull();
+  const benchmarkCsv = await readFile(downloadedPath!, "utf8");
+  expect(benchmarkCsv).toContain("test-only");
+  expect(benchmarkCsv).toContain("TEST-ONLY / SYNTHETIC TEST FIXTURE");
 });

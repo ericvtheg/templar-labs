@@ -6,6 +6,15 @@ export type AcceptanceCleanupTokens = {
   preferenceVersion?: number;
   rankingProfileVersion?: number;
   rankingProfileUpdatedAt?: string;
+  scenarioId?: string;
+  scenarioVersion?: number;
+  scenarioOperationToken?: string;
+  benchmarkId?: string;
+  benchmarkVersion?: number;
+  benchmarkCreatedBy?: string;
+  buyBoxId?: string;
+  buyBoxVersion?: number;
+  buyBoxCreatedBy?: string;
 };
 
 /**
@@ -27,18 +36,39 @@ export function acceptanceCleanupGuard(db: D1Database, tokens: AcceptanceCleanup
        )) OR (? IS NOT NULL AND NOT EXISTS (
          SELECT 1 FROM ranking_adjustment_profile
          WHERE id='shared' AND version=? AND updated_at=?
+       )) OR (? IS NOT NULL AND NOT EXISTS (
+         SELECT 1 FROM property_deal_scenarios
+         WHERE id=? AND version=? AND operation_token=?
+       )) OR (? IS NOT NULL AND NOT EXISTS (
+         SELECT 1 FROM blind_benchmarks
+         WHERE id=? AND version=? AND created_by=? COLLATE NOCASE
+       )) OR (? IS NOT NULL AND NOT EXISTS (
+         SELECT 1 FROM buy_boxes
+         WHERE id=? AND version=? AND created_by=? COLLATE NOCASE
        ))`,
     )
     .bind(
       tokens.pipelineVersion ?? null,
       tokens.propertyKey,
       tokens.pipelineVersion ?? null,
-      tokens.pipelineUpdatedAt,
+      tokens.pipelineUpdatedAt ?? null,
       tokens.preferenceVersion ?? null,
       tokens.preferenceUserEmail ?? null,
       tokens.preferenceVersion ?? null,
       tokens.rankingProfileVersion ?? null,
       tokens.rankingProfileVersion ?? null,
       tokens.rankingProfileUpdatedAt ?? null,
+      tokens.scenarioId ?? null,
+      tokens.scenarioId ?? null,
+      tokens.scenarioVersion ?? null,
+      tokens.scenarioOperationToken ?? null,
+      tokens.benchmarkId ?? null,
+      tokens.benchmarkId ?? null,
+      tokens.benchmarkVersion ?? null,
+      tokens.benchmarkCreatedBy ?? null,
+      tokens.buyBoxId ?? null,
+      tokens.buyBoxId ?? null,
+      tokens.buyBoxVersion ?? null,
+      tokens.buyBoxCreatedBy ?? null,
     );
 }

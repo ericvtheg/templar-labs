@@ -581,3 +581,139 @@ export const rankingAdjustmentAudit = sqliteTable("ranking_adjustment_audit", {
   createdAt: text("created_at").notNull(),
   operationToken: text("operation_token").notNull().default(""),
 });
+
+export const propertyDealScenarios = sqliteTable(
+  "property_deal_scenarios",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    name: text("name").notNull(),
+    kind: text("kind").notNull(),
+    financing: text("financing"),
+    currency: text("currency").notNull().default("USD"),
+    inputsCentsJson: text("inputs_cents_json").notNull(),
+    sensitivityCentsJson: text("sensitivity_cents_json").notNull().default("[]"),
+    resultJson: text("result_json").notNull(),
+    version: integer("version").notNull(),
+    createdAt: text("created_at").notNull(),
+    createdBy: text("created_by").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    updatedBy: text("updated_by").notNull(),
+    operationToken: text("operation_token").notNull(),
+  },
+  (table) => [
+    index("property_deal_scenarios_property_updated_idx").on(table.propertyKey, table.updatedAt),
+    uniqueIndex("property_deal_scenarios_property_name_unique").on(table.propertyKey, table.name),
+  ],
+);
+
+export const propertyDealScenarioCandidates = sqliteTable(
+  "property_deal_scenario_candidates",
+  {
+    scenarioId: text("scenario_id").notNull(),
+    saleId: text("sale_id").notNull(),
+    disposition: text("disposition").notNull(),
+    reason: text("reason").notNull(),
+    evidenceSnapshotJson: text("evidence_snapshot_json"),
+    createdAt: text("created_at").notNull(),
+    createdBy: text("created_by").notNull(),
+  },
+  (table) => [index("property_deal_scenario_candidates_scenario_idx").on(table.scenarioId)],
+);
+
+export const blindBenchmarks = sqliteTable("blind_benchmarks", {
+  id: text("id").primaryKey(),
+  privateName: text("private_name").notNull(),
+  market: text("market").notNull(),
+  asOfDate: text("as_of_date").notNull(),
+  buyBoxId: text("buy_box_id").notNull(),
+  buyBoxVersion: integer("buy_box_version").notNull(),
+  buyBoxFingerprint: text("buy_box_fingerprint").notNull(),
+  buyBoxSnapshotJson: text("buy_box_snapshot_json"),
+  identifierScheme: text("identifier_scheme").notNull(),
+  identifierPattern: text("identifier_pattern").notNull(),
+  mode: text("mode").notNull(),
+  privateStateJson: text("private_state_json").notNull(),
+  privateCountsJson: text("private_counts_json").notNull(),
+  reviewerIdsJson: text("reviewer_ids_json").notNull(),
+  status: text("status").notNull(),
+  version: integer("version").notNull(),
+  createdAt: text("created_at").notNull(),
+  createdBy: text("created_by").notNull(),
+  revealedAt: text("revealed_at"),
+  revealedBy: text("revealed_by"),
+  revealConfirmation: text("reveal_confirmation"),
+});
+
+export const blindBenchmarkImports = sqliteTable(
+  "blind_benchmark_imports",
+  {
+    id: text("id").primaryKey(),
+    benchmarkId: text("benchmark_id").notNull(),
+    sourceId: text("source_id").notNull(),
+    sourceKind: text("source_kind").notNull(),
+    privateLabel: text("private_label").notNull(),
+    privateFileName: text("private_file_name"),
+    privateMappingJson: text("private_mapping_json").notNull(),
+    privateRawCsv: text("private_raw_csv"),
+    privateCountsJson: text("private_counts_json").notNull(),
+    createdAt: text("created_at").notNull(),
+    createdBy: text("created_by").notNull(),
+  },
+  (table) => [
+    uniqueIndex("blind_benchmark_imports_source_unique").on(table.benchmarkId, table.sourceId),
+  ],
+);
+
+export const blindBenchmarkReviews = sqliteTable(
+  "blind_benchmark_reviews",
+  {
+    benchmarkId: text("benchmark_id").notNull(),
+    cardId: text("card_id").notNull(),
+    reviewerEmail: text("reviewer_email").notNull(),
+    useful: text("useful").notNull(),
+    correctness: text("correctness").notNull(),
+    researchSeconds: integer("research_seconds"),
+    reason: text("reason").notNull(),
+    version: integer("version").notNull(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    operationToken: text("operation_token").notNull().default(""),
+  },
+  (table) => [
+    index("blind_benchmark_reviews_benchmark_idx").on(
+      table.benchmarkId,
+      table.reviewerEmail,
+      table.cardId,
+    ),
+  ],
+);
+
+export const blindBenchmarkReviewAudit = sqliteTable(
+  "blind_benchmark_review_audit",
+  {
+    id: text("id").primaryKey(),
+    benchmarkId: text("benchmark_id").notNull(),
+    cardId: text("card_id").notNull(),
+    reviewerEmail: text("reviewer_email").notNull(),
+    useful: text("useful").notNull(),
+    correctness: text("correctness").notNull(),
+    researchSeconds: integer("research_seconds"),
+    reason: text("reason").notNull(),
+    version: integer("version").notNull(),
+    createdAt: text("created_at").notNull(),
+    operationToken: text("operation_token").notNull().default(""),
+  },
+  (table) => [
+    index("blind_benchmark_review_audit_idx").on(
+      table.benchmarkId,
+      table.reviewerEmail,
+      table.createdAt,
+    ),
+    uniqueIndex("blind_benchmark_review_audit_operation_unique").on(
+      table.benchmarkId,
+      table.reviewerEmail,
+      table.operationToken,
+    ),
+  ],
+);

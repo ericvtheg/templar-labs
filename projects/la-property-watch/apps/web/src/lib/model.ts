@@ -1,5 +1,9 @@
 export const allowedEmails: readonly string[] = ["ericventor97@gmail.com", "Rhwcreative@gmail.com"];
 
+export function canonicalPartnerEmail(value: string): string | null {
+  return allowedEmails.find((email) => email.toLowerCase() === value.trim().toLowerCase()) ?? null;
+}
+
 // saleType remains for backwards compatibility with existing records and clients.
 export type SaleType = "tax_default" | "trustee";
 export type SignalType =
@@ -128,6 +132,15 @@ export type RankedProperty = {
   readonly firstSeenAt: string;
   readonly lastSeenAt: string;
   readonly sourceNames: readonly string[];
+  readonly normalizedPropertyType: "sfh" | "small_multifamily" | "commercial" | "land" | null;
+  readonly neighborhood: string | null;
+  readonly lotAreaSqft: number | null;
+  readonly residentialFinishedAreaValue: number | null;
+  readonly commercialBuildingAreaValue: number | null;
+  readonly buildingAreaUnitStatus: string | null;
+  readonly assessedValueCents: number | null;
+  readonly lastReportedConsiderationCents: number | null;
+  readonly userAssumptionCents: number | null;
 };
 
 export type PropertyPage = {

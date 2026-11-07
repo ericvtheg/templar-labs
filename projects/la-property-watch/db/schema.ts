@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const foreclosureRecords = sqliteTable(
@@ -184,5 +185,240 @@ export const watchlistProperties = sqliteTable(
   (table) => [
     index("watchlist_rank_idx").on(table.score, table.propertyKey),
     index("watchlist_jurisdiction_rank_idx").on(table.jurisdictionId, table.score),
+  ],
+);
+
+export const sourcePublications = sqliteTable("source_publications", {
+  sourceId: text("source_id").primaryKey(),
+  baselineEstablishedAt: text("baseline_established_at").notNull(),
+  lastSuccessRunId: text("last_success_run_id").notNull(),
+  lastSourceUpdatedAt: text("last_source_updated_at"),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const propertyChangeEvents = sqliteTable(
+  "property_change_events",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    sourceId: text("source_id").notNull(),
+    sourceRecordId: text("source_record_id"),
+    eventType: text("event_type").notNull(),
+    severity: text("severity").notNull(),
+    detectedAt: text("detected_at").notNull(),
+    publishedAt: text("published_at"),
+    beforeJson: text("before_json"),
+    afterJson: text("after_json").notNull(),
+    sourceName: text("source_name").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    ingestionRunId: text("ingestion_run_id").notNull(),
+  },
+  (table) => [
+    index("property_change_property_detected_idx").on(table.propertyKey, table.detectedAt),
+    index("property_change_detected_idx").on(table.detectedAt, table.id),
+    index("property_change_run_idx").on(table.ingestionRunId),
+  ],
+);
+
+export const partnerProperties = sqliteTable(
+  "partner_properties",
+  {
+    propertyKey: text("property_key").primaryKey(),
+    saved: integer("saved", { mode: "boolean" }).notNull().default(false),
+    dismissed: integer("dismissed", { mode: "boolean" }).notNull().default(false),
+    stage: text("stage").notNull().default("New"),
+    assignedTo: text("assigned_to"),
+    followUpAt: text("follow_up_at"),
+    passReason: text("pass_reason"),
+    version: integer("version").notNull().default(1),
+    createdAt: text("created_at").notNull(),
+    createdBy: text("created_by").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    updatedBy: text("updated_by").notNull(),
+  },
+  (table) => [index("partner_properties_pipeline_idx").on(table.stage, table.dismissed)],
+);
+
+export const propertyNotes = sqliteTable(
+  "property_notes",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    body: text("body").notNull(),
+    authorEmail: text("author_email").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("property_notes_property_created_idx").on(table.propertyKey, table.createdAt)],
+);
+
+export const buyBoxes = sqliteTable("buy_boxes", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  propertyTypesJson: text("property_types_json").notNull(),
+  jurisdictionsJson: text("jurisdictions_json").notNull(),
+  neighborhoodsJson: text("neighborhoods_json").notNull(),
+  zipsJson: text("zips_json").notNull(),
+  minSizeValue: integer("min_size_value"),
+  maxSizeValue: integer("max_size_value"),
+  sizeBasis: text("size_basis").notNull(),
+  minValueCents: integer("min_value_cents"),
+  maxValueCents: integer("max_value_cents"),
+  valueBasis: text("value_basis").notNull(),
+  valueAssumptionLabel: text("value_assumption_label"),
+  distressPhasesJson: text("distress_phases_json").notNull(),
+  version: integer("version").notNull().default(1),
+  createdAt: text("created_at").notNull(),
+  createdBy: text("created_by").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull(),
+});
+
+export const propertyEnrichment = sqliteTable("property_enrichment", {
+  propertyKey: text("property_key").primaryKey(),
+  jurisdictionId: text("jurisdiction_id").notNull(),
+  parcelId: text("parcel_id").notNull(),
+  sourceParcelId: text("source_parcel_id").notNull(),
+  joinMethod: text("join_method").notNull(),
+  joinSourceUrl: text("join_source_url"),
+  lrsn: text("lrsn"),
+  gpin: text("gpin"),
+  assessorAddress: text("assessor_address"),
+  assessorCity: text("assessor_city"),
+  assessorZip: text("assessor_zip"),
+  legalDescription: text("legal_description"),
+  ownerName: text("owner_name"),
+  ownerSourceUrl: text("owner_source_url"),
+  ownerObservedAt: text("owner_observed_at"),
+  landUseCode: text("land_use_code"),
+  landUseDescription: text("land_use_description"),
+  propertyUse: text("property_use"),
+  normalizedPropertyType: text("normalized_property_type"),
+  typeMappingSourceUrl: text("type_mapping_source_url"),
+  residentialFinishedAreaValue: integer("residential_finished_area_value"),
+  commercialBuildingAreaValue: integer("commercial_building_area_value"),
+  buildingAreaUnitStatus: text("building_area_unit_status").notNull(),
+  lotAreaSqft: integer("lot_area_sqft"),
+  yearBuilt: integer("year_built"),
+  neighborhood: text("neighborhood"),
+  assessedLandCents: integer("assessed_land_cents"),
+  assessedImprovementCents: integer("assessed_improvement_cents"),
+  assessedTotalCents: integer("assessed_total_cents"),
+  assessmentYear: integer("assessment_year"),
+  assessmentEffectiveDate: text("assessment_effective_date"),
+  assessmentSourceUrl: text("assessment_source_url"),
+  lastTransferDate: text("last_transfer_date"),
+  lastTransferConsiderationCents: integer("last_transfer_consideration_cents"),
+  lastTransferDocumentNumber: text("last_transfer_document_number"),
+  lastTransferGrantor: text("last_transfer_grantor"),
+  lastTransferGrantee: text("last_transfer_grantee"),
+  sourceUpdatedAt: text("source_updated_at"),
+  observedAt: text("observed_at").notNull(),
+  rawJson: text("raw_json").notNull(),
+});
+
+export const userAlertPreferences = sqliteTable(
+  "user_alert_preferences",
+  {
+    userEmail: text("user_email").primaryKey(),
+    newActivity: integer("new_activity", { mode: "boolean" }).notNull().default(true),
+    worseningActivity: integer("worsening_activity", { mode: "boolean" }).notNull().default(true),
+    dueFollowUps: integer("due_follow_ups", { mode: "boolean" }).notNull().default(true),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_alert_preferences_email_nocase_unique").on(sql`lower(${table.userEmail})`),
+  ],
+);
+
+export const propertyAlerts = sqliteTable(
+  "property_alerts",
+  {
+    id: text("id").primaryKey(),
+    userEmail: text("user_email").notNull(),
+    propertyKey: text("property_key").notNull(),
+    changeEventId: text("change_event_id"),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    createdAt: text("created_at").notNull(),
+    availableAt: text("available_at").notNull(),
+    readAt: text("read_at"),
+  },
+  (table) => [
+    uniqueIndex("property_alert_user_event_unique").on(table.userEmail, table.changeEventId),
+    index("property_alert_user_available_idx").on(table.userEmail, table.availableAt),
+  ],
+);
+
+export const propertyEnrichmentExtensions = sqliteTable(
+  "property_enrichment_extensions",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    extension: text("extension"),
+    residentialFinishedAreaValue: integer("residential_finished_area_value"),
+    commercialBuildingAreaValue: integer("commercial_building_area_value"),
+    yearBuilt: integer("year_built"),
+    rawJson: text("raw_json").notNull(),
+  },
+  (table) => [
+    index("property_enrichment_extensions_property_idx").on(table.propertyKey, table.extension),
+  ],
+);
+
+export const propertySales = sqliteTable(
+  "property_sales",
+  {
+    id: text("id").primaryKey(),
+    subjectPropertyKey: text("subject_property_key").notNull(),
+    candidateParcelId: text("candidate_parcel_id").notNull(),
+    candidateAddress: text("candidate_address"),
+    saleDate: text("sale_date").notNull(),
+    salePriceCents: integer("sale_price_cents").notNull(),
+    documentNumber: text("document_number"),
+    normalizedPropertyType: text("normalized_property_type"),
+    buildingAreaSourceValue: integer("building_area_source_value"),
+    buildingAreaUnitStatus: text("building_area_unit_status").notNull(),
+    documentParcelCount: integer("document_parcel_count"),
+    qualificationStatus: text("qualification_status").notNull(),
+    exclusionReason: text("exclusion_reason"),
+    selectionReason: text("selection_reason").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    sourceUpdatedAt: text("source_updated_at"),
+    observedAt: text("observed_at").notNull(),
+  },
+  (table) => [
+    index("property_sales_subject_date_idx").on(table.subjectPropertyKey, table.saleDate),
+  ],
+);
+
+export const enrichmentRuns = sqliteTable(
+  "enrichment_runs",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    sourceId: text("source_id").notNull(),
+    status: text("status").notNull(),
+    startedAt: text("started_at").notNull(),
+    finishedAt: text("finished_at").notNull(),
+    sourceUpdatedAt: text("source_updated_at"),
+    recordsFound: integer("records_found").notNull(),
+    error: text("error"),
+  },
+  (table) => [index("enrichment_runs_property_started_idx").on(table.propertyKey, table.startedAt)],
+);
+
+export const propertyValueAssumptions = sqliteTable(
+  "property_value_assumptions",
+  {
+    id: text("id").primaryKey(),
+    propertyKey: text("property_key").notNull(),
+    label: text("label").notNull(),
+    valueCents: integer("value_cents").notNull(),
+    asOfDate: text("as_of_date").notNull(),
+    authorEmail: text("author_email").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("property_assumptions_property_created_idx").on(table.propertyKey, table.createdAt),
   ],
 );

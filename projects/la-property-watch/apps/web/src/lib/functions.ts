@@ -2,10 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { canAccessResearch } from "./access.ts";
 import { getAuth, getBindings } from "./auth.server.ts";
-import type { LoaderData } from "./model.ts";
+import { loadPartnerWorkspace } from "./partner.server.ts";
 import { loadDashboard } from "./repository.ts";
 
-export const loadApp = createServerFn({ method: "GET" }).handler(async (): Promise<LoaderData> => {
+export const loadApp = createServerFn({ method: "GET" }).handler(async () => {
   const request = getRequest();
   const bindings = await getBindings();
   const session = await getAuth(request, bindings).api.getSession({ headers: request.headers });
@@ -18,6 +18,8 @@ export const loadApp = createServerFn({ method: "GET" }).handler(async (): Promi
   return {
     mode: "ready",
     viewerName: session.user.name,
+    viewerEmail: session.user.email,
+    partner: await loadPartnerWorkspace(bindings.DB, session.user.email),
     ...(await loadDashboard(bindings.DB)),
   };
 });

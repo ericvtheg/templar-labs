@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  Bell,
+  Bookmark,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -8,12 +10,14 @@ import {
   Download,
   ExternalLink,
   FileSearch2,
+  Inbox,
   Layers3,
   LoaderCircle,
   MapPin,
   RefreshCw,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -121,13 +125,26 @@ function Forbidden({ email }: { email: string }) {
 }
 
 type ReadyData = Extract<Awaited<ReturnType<typeof loadApp>>, { mode: "ready" }>;
+type PartnerWorkspaceData = ReadyData["partner"];
+type BuyBoxData = PartnerWorkspaceData["buyBoxes"][number];
+type DealBriefData = NonNullable<
+  Awaited<ReturnType<typeof import("../lib/partner.server.ts").loadDealBrief>>
+>;
+type WorkspaceView = "shortlist" | "activity" | "pipeline" | "buyboxes" | "alerts";
 
 function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: string }) {
   const [data, setData] = useState<DashboardData>(initial);
+  const [workspace, setWorkspace] = useState<PartnerWorkspaceData>(initial.partner);
   const [query, setQuery] = useState("");
   const [signalType, setSignalType] = useState<"all" | SignalType>("all");
   const [jurisdiction, setJurisdiction] = useState("all");
   const [selected, setSelected] = useState<PropertyDetailData | null>(null);
+  const [brief, setBrief] = useState<DealBriefData | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("shortlist");
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
+  const [buyBoxId, setBuyBoxId] = useState(initial.partner.buyBoxes[0]?.id ?? "");
+  const [fit, setFit] = useState<"all" | "match" | "unknown" | "no_match">("all");
+  const [sort, setSort] = useState<"distress" | "confidence" | "fit" | "recent">("distress");
   const [detailLoading, setDetailLoading] = useState(false);
   const [listLoading, setListLoading] = useState(false);
   const [refreshState, setRefreshState] = useState<"idle" | "queueing" | "running">("idle");
@@ -140,19 +157,33 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
 
   async function loadPage(
     page = 1,
-    overrides: Partial<{ signal: SignalType | "all"; jurisdiction: string }> = {},
+    overrides: Partial<{
+      signal: SignalType | "all";
+      jurisdiction: string;
+      buyBoxId: string;
+      fit: "all" | "match" | "unknown" | "no_match";
+      sort: "distress" | "confidence" | "fit" | "recent";
+    }> = {},
   ) {
     setListLoading(true);
     try {
       const selectedSignal = overrides.signal ?? signalType;
       const selectedJurisdiction = overrides.jurisdiction ?? jurisdiction;
+      const selectedBuyBox = overrides.buyBoxId ?? buyBoxId;
+      const selectedFit = overrides.fit ?? fit;
+      const selectedSort = overrides.sort ?? sort;
       const params = new URLSearchParams({
         page: String(page),
         pageSize: "50",
         query: query.trim(),
         signal: selectedSignal,
         jurisdiction: selectedJurisdiction,
+        fit: selectedFit,
+        sort: selectedSort,
       });
+      if (selectedBuyBox) {
+        params.set("buyBoxId", selectedBuyBox);
+      }
       const response = await fetch(`/api/research/data?${params}`, { credentials: "same-origin" });
       if (!response.ok) {
         throw new Error("Could not load the ranked property list.");
@@ -188,7 +219,80 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   }
 
   async function openProperty(property: RankedProperty) {
-    await loadEvidencePage(property.propertyKey, 1);
+    await openPropertyKey(property.propertyKey);
+  }
+
+  async function openPropertyKey(propertyKey: string) {
+    setBrief(null);
+    await Promise.all([loadEvidencePage(propertyKey, 1), loadBrief(propertyKey)]);
+  }
+
+  async function loadBrief(propertyKey: string) {
+    const params = new URLSearchParams();
+    if (buyBoxId) {
+      params.set("buyBoxId", buyBoxId);
+    }
+    const response = await fetch(
+      `/api/research/deal-briefs/${encodeURIComponent(propertyKey)}?${params}`,
+      { credentials: "same-origin" },
+    );
+    if (!response.ok) {
+      throw new Error("Could not load the source-backed deal brief.");
+    }
+    setBrief((await response.json()) as DealBriefData);
+  }
+
+  async function reloadWorkspace() {
+    const response = await fetch("/api/research/workspace", { credentials: "same-origin" });
+    if (!response.ok) {
+      throw new Error("Could not reload the partner workspace.");
+    }
+    setWorkspace((await response.json()) as PartnerWorkspaceData);
+  }
+
+  async function mutate(path: string, body: unknown) {
+    setNotice(null);
+    const response = await fetch(path, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      const message = payload.error ?? "The update could not be saved.";
+      setNotice(message);
+      throw new Error(message);
+    }
+    await reloadWorkspace();
+    if (selected) {
+      await loadBrief(selected.property.propertyKey);
+    }
+    return payload;
+  }
+
+  async function exportSelected() {
+    if (selectedKeys.size === 0) {
+      setNotice("Select at least one property before exporting.");
+      return;
+    }
+    const response = await fetch("/api/research/export-selected.csv", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ propertyKeys: [...selectedKeys] }),
+    });
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      setNotice(payload.error ?? "Selected export failed.");
+      return;
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `property-watch-selected-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   async function refresh() {
@@ -219,7 +323,11 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
   }
 
   return (
-    <div className="app-shell" data-hydrated={hydrated ? "true" : "false"}>
+    <div
+      className="app-shell"
+      data-hydrated={hydrated ? "true" : "false"}
+      data-workspace-view={workspaceView}
+    >
       <header className="topbar">
         <a className="wordmark" href="/" aria-label="Property Watch home">
           <span className="wordmark-icon">
@@ -276,6 +384,13 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
             <a className="button secondary" href="/api/research/export.csv">
               <Download size={17} /> Export evidence CSV
             </a>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={() => void exportSelected()}
+            >
+              <Download size={17} /> Export selected ({selectedKeys.size})
+            </button>
             <p>
               Only complete successful snapshots remove records from the current view. Disappearance
               never means paid or resolved.
@@ -287,6 +402,41 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
             <Clock3 size={17} />
             {notice}
           </div>
+        ) : null}
+        <nav className="workspace-nav" aria-label="Partner workflow">
+          {(
+            [
+              ["shortlist", "Shortlist", <Layers3 size={16} key="shortlist" />],
+              ["activity", "Changes", <Clock3 size={16} key="activity" />],
+              ["pipeline", "Pipeline", <Bookmark size={16} key="pipeline" />],
+              ["buyboxes", "Buy boxes", <SlidersHorizontal size={16} key="buyboxes" />],
+              [
+                "alerts",
+                `Alerts (${workspace.alerts.filter((alert) => !alert.readAt).length})`,
+                <Bell size={16} key="alerts" />,
+              ],
+            ] as const
+          ).map(([value, label, icon]) => (
+            <button
+              key={value}
+              className={workspaceView === value ? "active" : ""}
+              type="button"
+              onClick={() => setWorkspaceView(value)}
+            >
+              {icon}
+              {label}
+            </button>
+          ))}
+        </nav>
+        {workspaceView !== "shortlist" ? (
+          <PartnerWorkspacePanel
+            view={workspaceView}
+            workspace={workspace}
+            viewerEmail={initial.viewerEmail}
+            onOpen={(key) => void openPropertyKey(key)}
+            onMutate={(path, body) => mutate(path, body)}
+            onBuyBoxSelected={setBuyBoxId}
+          />
         ) : null}
         <section className="metric-grid" aria-label="Watchlist summary">
           <Metric
@@ -458,6 +608,61 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                 <option value="nyc-ny">New York City, NY</option>
               </select>
             </label>
+            <label>
+              <span className="sr-only">Shared buy box</span>
+              <select
+                aria-label="Shared buy box"
+                value={buyBoxId}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setBuyBoxId(value);
+                  setFit("all");
+                  void loadPage(1, { buyBoxId: value, fit: "all" });
+                }}
+              >
+                <option value="">No buy box · show all</option>
+                {workspace.buyBoxes.map((buyBox) => (
+                  <option key={buyBox.id} value={buyBox.id}>
+                    {buyBox.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Buying fit</span>
+              <select
+                aria-label="Buying fit"
+                value={fit}
+                disabled={!buyBoxId}
+                onChange={(event) => {
+                  const value = event.target.value as typeof fit;
+                  setFit(value);
+                  void loadPage(1, { fit: value });
+                }}
+              >
+                <option value="all">All fit results</option>
+                <option value="match">Buy-box match</option>
+                <option value="unknown">Unknown fit</option>
+                <option value="no_match">Not a match</option>
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Shortlist sort</span>
+              <select
+                aria-label="Shortlist sort"
+                value={sort}
+                onChange={(event) => {
+                  const value = event.target.value as typeof sort;
+                  setSort(value);
+                  void loadPage(1, { sort: value });
+                }}
+              >
+                <option value="distress">Distress strength</option>
+                <option value="confidence">Evidence confidence</option>
+                <option value="fit">Buying fit</option>
+                <option value="recent">Recently observed</option>
+              </select>
+            </label>
             <button className="button secondary" type="submit" disabled={listLoading}>
               {listLoading ? "Loading…" : "Search"}
             </button>
@@ -483,6 +688,19 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
                   property={property}
                   onOpen={() => void openProperty(property)}
                   loading={detailLoading}
+                  selected={selectedKeys.has(property.propertyKey)}
+                  onSelect={(checked) =>
+                    setSelectedKeys((current) => {
+                      const next = new Set(current);
+                      if (checked) {
+                        next.add(property.propertyKey);
+                      } else {
+                        next.delete(property.propertyKey);
+                      }
+                      return next;
+                    })
+                  }
+                  buyBox={workspace.buyBoxes.find((entry) => entry.id === buyBoxId) ?? null}
                 />
               ))}
             </div>
@@ -551,9 +769,12 @@ function Dashboard({ initial, viewerName }: { initial: ReadyData; viewerName: st
       {selected ? (
         <PropertyDetailPanel
           detail={selected}
+          brief={brief}
+          viewerEmail={initial.viewerEmail}
           loading={detailLoading}
           onClose={() => setSelected(null)}
           onEvidencePage={(page) => void loadEvidencePage(selected.property.propertyKey, page)}
+          onMutate={(path, body) => mutate(path, body)}
         />
       ) : null}
     </div>
@@ -564,62 +785,86 @@ function PropertyRow({
   property,
   onOpen,
   loading,
+  selected,
+  onSelect,
+  buyBox,
 }: {
   property: RankedProperty;
   onOpen: () => void;
   loading: boolean;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
+  buyBox: BuyBoxData | null;
 }) {
+  const dimensions = shortlistDimensions(property, buyBox);
   return (
-    <button className="property-row" type="button" onClick={onOpen} disabled={loading}>
-      <div className="score-box">
-        <strong>{property.score}</strong>
-        <span>priority</span>
-      </div>
-      <div className="property-address">
-        <strong>{property.address ?? "Address not published"}</strong>
-        <span>
-          {[property.city, property.state, property.zip].filter(Boolean).join(" ") ||
-            property.jurisdictionName}
-        </span>
-        <small>
-          {property.parcelId
-            ? `Parcel ${formatParcelId(property.parcelId, property.jurisdictionId)}`
-            : "No authoritative parcel key · kept unmatched"}
-        </small>
-      </div>
-      <div className="property-signals">
-        {property.signalTypes.map((signal) => (
-          <span key={signal}>{signalLabel(signal)}</span>
-        ))}
-      </div>
-      <div className="property-totals">
-        <strong>{formatMoney(property.totalDelinquentCents)}</strong>
-        <span>{property.evidenceCount} evidence rows</span>
-        <small>
-          {property.independentSignalCount} independent signal type
-          {property.independentSignalCount === 1 ? "" : "s"}
-        </small>
-      </div>
-      <div className="property-reasons">
-        {property.scoreReasons.slice(0, 2).map((reason) => (
-          <span key={reason}>{reason}</span>
-        ))}
-      </div>
-      <ArrowUpRight size={18} />
-    </button>
+    <div className="property-row-wrap">
+      <label className="property-select">
+        <input
+          type="checkbox"
+          aria-label={`Select ${property.address ?? property.propertyKey}`}
+          checked={selected}
+          onChange={(event) => onSelect(event.target.checked)}
+        />
+        <span>Select</span>
+      </label>
+      <button className="property-row" type="button" onClick={onOpen} disabled={loading}>
+        <div className="score-box">
+          <strong>{dimensions.distress.value}</strong>
+          <span>distress</span>
+        </div>
+        <div className="property-address">
+          <strong>{property.address ?? "Address not published"}</strong>
+          <span>
+            {[property.city, property.state, property.zip].filter(Boolean).join(" ") ||
+              property.jurisdictionName}
+          </span>
+          <small>
+            {property.parcelId
+              ? `Parcel ${formatParcelId(property.parcelId, property.jurisdictionId)}`
+              : "No authoritative parcel key · kept unmatched"}
+          </small>
+        </div>
+        <div className="property-signals">
+          {property.signalTypes.map((signal) => (
+            <span key={signal}>{signalLabel(signal)}</span>
+          ))}
+        </div>
+        <div className="property-totals">
+          <strong>{formatMoney(property.totalDelinquentCents)}</strong>
+          <span>{property.evidenceCount} evidence rows</span>
+          <small>
+            {property.independentSignalCount} independent signal type
+            {property.independentSignalCount === 1 ? "" : "s"}
+          </small>
+        </div>
+        <div className="property-reasons">
+          <span>Evidence: {dimensions.confidence.value}</span>
+          <span>Buy box: {dimensions.fit.value}</span>
+          <small>{dimensions.fit.reason}</small>
+        </div>
+        <ArrowUpRight size={18} />
+      </button>
+    </div>
   );
 }
 
 function PropertyDetailPanel({
   detail,
+  brief,
+  viewerEmail,
   loading,
   onClose,
   onEvidencePage,
+  onMutate,
 }: {
   detail: PropertyDetailData;
+  brief: DealBriefData | null;
+  viewerEmail: string;
   loading: boolean;
   onClose: () => void;
   onEvidencePage: (page: number) => void;
+  onMutate: (path: string, body: unknown) => Promise<unknown>;
 }) {
   const property = detail.property;
   const start = (detail.evidencePage.page - 1) * detail.evidencePage.pageSize + 1;
@@ -643,6 +888,13 @@ function PropertyDetailPanel({
           This score is deterministic prioritization, not a probability. Every contributing point
           and source row remains inspectable.
         </p>
+        {brief ? (
+          <DealBriefSections brief={brief} viewerEmail={viewerEmail} onMutate={onMutate} />
+        ) : (
+          <div className="notice" role="status">
+            <LoaderCircle className="spin" size={17} /> Loading source-backed brief…
+          </div>
+        )}
         <dl className="detail-grid">
           <Detail label="Property key" value={property.propertyKey} wide />
           <Detail
@@ -704,6 +956,720 @@ function PropertyDetailPanel({
           </nav>
         </section>
       </aside>
+    </div>
+  );
+}
+
+function PartnerWorkspacePanel({
+  view,
+  workspace,
+  viewerEmail,
+  onOpen,
+  onMutate,
+  onBuyBoxSelected,
+}: {
+  view: Exclude<WorkspaceView, "shortlist">;
+  workspace: PartnerWorkspaceData;
+  viewerEmail: string;
+  onOpen: (propertyKey: string) => void;
+  onMutate: (path: string, body: unknown) => Promise<unknown>;
+  onBuyBoxSelected: (id: string) => void;
+}) {
+  return (
+    <section className="partner-workspace-panel" aria-label={`${view} workspace`}>
+      {view === "activity" ? (
+        <>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Successful publications only</p>
+              <h2>Property change feed</h2>
+            </div>
+            <span>
+              Showing {workspace.activity.length} of {workspace.activityPage.total} · detected and
+              publisher dates remain distinct
+            </span>
+          </div>
+          {workspace.activity.length === 0 ? (
+            <EmptyPanel
+              title="Baseline established; no later changes yet"
+              body="The first successful publication never becomes fabricated new distress. Incomplete and failed imports emit no events."
+            />
+          ) : (
+            <div className="workspace-card-list">
+              {workspace.activity.map((event) => (
+                <article className="workspace-card" key={event.id}>
+                  <span className={`signal-tag ${event.severity}`}>
+                    {event.eventType.replaceAll("_", " ")}
+                  </span>
+                  <h3>{event.propertyKey}</h3>
+                  <p>{changeContext(event.before, event.after)}</p>
+                  <small>
+                    Detected {formatTimestamp(event.detectedAt)} · published{" "}
+                    {event.publishedAt
+                      ? formatCalendarDate(event.publishedAt)
+                      : "date not published"}
+                  </small>
+                  <div className="source-links">
+                    <button
+                      className="button primary"
+                      type="button"
+                      onClick={() => onOpen(event.propertyKey)}
+                    >
+                      Open property
+                    </button>
+                    <a
+                      className="button secondary"
+                      href={event.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Official source <ExternalLink size={15} />
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
+      {view === "pipeline" ? (
+        <>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Shared partner state</p>
+              <h2>Review pipeline</h2>
+            </div>
+            <span>
+              {workspace.dueFollowUps.length} due follow-up
+              {workspace.dueFollowUps.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          {workspace.pipeline.length === 0 ? (
+            <EmptyPanel
+              title="No shared reviews yet"
+              body="Save a property from its deal brief to start durable review state. Source refreshes never delete this pipeline."
+            />
+          ) : (
+            <div className="workspace-card-list">
+              {workspace.pipeline.map((property) => (
+                <article className="workspace-card" key={property.propertyKey}>
+                  <h3>{property.address ?? property.propertyKey}</h3>
+                  <p>
+                    {property.jurisdictionName} · {property.stage} ·{" "}
+                    {property.saved ? "Saved" : "Not saved"}
+                    {property.dismissed ? " · Dismissed" : ""}
+                  </p>
+                  <small>
+                    Assigned {property.assignedTo ?? "Nobody"} · follow-up{" "}
+                    {property.followUpAt ? formatTimestamp(property.followUpAt) : "not set"}
+                  </small>
+                  {property.passReason ? <p>Pass reason: {property.passReason}</p> : null}
+                  <div className="source-links">
+                    <button
+                      className="button primary"
+                      type="button"
+                      onClick={() => onOpen(property.propertyKey)}
+                    >
+                      Open review
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
+      {view === "buyboxes" ? (
+        <BuyBoxEditor workspace={workspace} onMutate={onMutate} onSelected={onBuyBoxSelected} />
+      ) : null}
+      {view === "alerts" ? (
+        <>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Personal state · in app only</p>
+              <h2>Saved-property alerts</h2>
+            </div>
+            <span>
+              Showing {workspace.alerts.length} of {workspace.alertPage.total} · no external
+              delivery
+            </span>
+          </div>
+          <form
+            className="preferences-row"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const form = new FormData(event.currentTarget);
+              void onMutate("/api/research/alert-preferences", {
+                newActivity: form.has("newActivity"),
+                worseningActivity: form.has("worseningActivity"),
+                dueFollowUps: form.has("dueFollowUps"),
+              });
+            }}
+          >
+            <label>
+              <input
+                name="newActivity"
+                type="checkbox"
+                defaultChecked={workspace.alertPreferences.newActivity}
+              />{" "}
+              New activity
+            </label>
+            <label>
+              <input
+                name="worseningActivity"
+                type="checkbox"
+                defaultChecked={workspace.alertPreferences.worseningActivity}
+              />{" "}
+              Worsening activity
+            </label>
+            <label>
+              <input
+                name="dueFollowUps"
+                type="checkbox"
+                defaultChecked={workspace.alertPreferences.dueFollowUps}
+              />{" "}
+              Due follow-ups
+            </label>
+            <button className="button secondary" type="submit">
+              Save my preferences
+            </button>
+          </form>
+          {workspace.alerts.length === 0 ? (
+            <EmptyPanel
+              title="No saved-property alerts"
+              body="Alerts appear only after a saved property's later successful publication or when a follow-up becomes due."
+            />
+          ) : (
+            <div className="workspace-card-list">
+              {workspace.alerts.map((alert) => (
+                <article
+                  className={`workspace-card ${alert.readAt ? "read" : "unread"}`}
+                  key={alert.id}
+                >
+                  <span className="signal-tag">{alert.kind.replaceAll("_", " ")}</span>
+                  <h3>{alert.title}</h3>
+                  <p>{alert.propertyKey}</p>
+                  <small>
+                    {formatTimestamp(alert.availableAt)} · {alert.readAt ? "Read" : "Unread"}
+                  </small>
+                  <div className="source-links">
+                    <button
+                      className="button primary"
+                      type="button"
+                      onClick={() => onOpen(alert.propertyKey)}
+                    >
+                      Open property
+                    </button>
+                    {!alert.readAt ? (
+                      <button
+                        className="button secondary"
+                        type="button"
+                        onClick={() =>
+                          void onMutate("/api/research/alerts/read", { ids: [alert.id] })
+                        }
+                      >
+                        Mark read
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+          <p className="fine-print">
+            Preferences belong to {viewerEmail}; saved properties and pipeline state are shared.
+          </p>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function BuyBoxEditor({
+  workspace,
+  onMutate,
+  onSelected,
+}: {
+  workspace: PartnerWorkspaceData;
+  onMutate: (path: string, body: unknown) => Promise<unknown>;
+  onSelected: (id: string) => void;
+}) {
+  const [editingId, setEditingId] = useState(workspace.buyBoxes[0]?.id ?? "new");
+  const current = workspace.buyBoxes.find((entry) => entry.id === editingId) ?? null;
+  return (
+    <>
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Shared and persistent</p>
+          <h2>Buying criteria</h2>
+        </div>
+        <select
+          aria-label="Edit buy box"
+          value={editingId}
+          onChange={(event) => {
+            setEditingId(event.target.value);
+            if (event.target.value !== "new") {
+              onSelected(event.target.value);
+            }
+          }}
+        >
+          <option value="new">Create a buy box</option>
+          {workspace.buyBoxes.map((buyBox) => (
+            <option key={buyBox.id} value={buyBox.id}>
+              {buyBox.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <form
+        className="buy-box-form"
+        key={current?.id ?? "new"}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          const nullableNumber = (name: string) => {
+            const value = String(form.get(name) ?? "").trim();
+            return value ? Number(value) : null;
+          };
+          void onMutate("/api/research/buy-boxes", {
+            id: current?.id ?? null,
+            expectedVersion: current?.version ?? 0,
+            name: String(form.get("name") ?? ""),
+            propertyTypes: form.getAll("propertyTypes"),
+            jurisdictions: splitList(form.get("jurisdictions")),
+            neighborhoods: splitList(form.get("neighborhoods")),
+            zips: splitList(form.get("zips")),
+            sizeBasis: form.get("sizeBasis"),
+            minSizeValue: nullableNumber("minSizeValue"),
+            maxSizeValue: nullableNumber("maxSizeValue"),
+            minValueCents: dollarsToCents(nullableNumber("minValueDollars")),
+            maxValueCents: dollarsToCents(nullableNumber("maxValueDollars")),
+            valueBasis: form.get("valueBasis"),
+            valueAssumptionLabel: String(form.get("valueAssumptionLabel") ?? "").trim() || null,
+            distressPhases: form.getAll("distressPhases"),
+          });
+        }}
+      >
+        <label className="wide">
+          <span>Name</span>
+          <input name="name" required maxLength={100} defaultValue={current?.name ?? ""} />
+        </label>
+        <fieldset>
+          <legend>Property types</legend>
+          {["sfh", "small_multifamily", "commercial", "land"].map((value) => (
+            <label key={value}>
+              <input
+                name="propertyTypes"
+                type="checkbox"
+                value={value}
+                defaultChecked={current?.propertyTypes.includes(value as never)}
+              />{" "}
+              {value.replaceAll("_", " ")}
+            </label>
+          ))}
+        </fieldset>
+        <label>
+          <span>Markets (jurisdiction IDs)</span>
+          <input
+            name="jurisdictions"
+            defaultValue={current?.jurisdictions.join(", ") ?? ""}
+            placeholder="norfolk-va"
+          />
+        </label>
+        <label>
+          <span>Neighborhoods</span>
+          <input name="neighborhoods" defaultValue={current?.neighborhoods.join(", ") ?? ""} />
+        </label>
+        <label>
+          <span>ZIPs</span>
+          <input name="zips" defaultValue={current?.zips.join(", ") ?? ""} />
+        </label>
+        <label>
+          <span>Size basis</span>
+          <select name="sizeBasis" defaultValue={current?.sizeBasis ?? "none"}>
+            <option value="none">No size criterion</option>
+            <option value="lot_square_feet">Official lot square feet</option>
+            <option value="residential_finished_area_source_units">
+              Residential finished-area source units
+            </option>
+            <option value="commercial_building_area_source_units">
+              Commercial building-area source units (unverified)
+            </option>
+          </select>
+        </label>
+        <label>
+          <span>Minimum size</span>
+          <input
+            name="minSizeValue"
+            inputMode="numeric"
+            defaultValue={current?.minSizeValue ?? ""}
+          />
+        </label>
+        <label>
+          <span>Maximum size</span>
+          <input
+            name="maxSizeValue"
+            inputMode="numeric"
+            defaultValue={current?.maxSizeValue ?? ""}
+          />
+        </label>
+        <label>
+          <span>Value basis</span>
+          <select name="valueBasis" defaultValue={current?.valueBasis ?? "assessed_value"}>
+            <option value="assessed_value">Official assessed value (not market)</option>
+            <option value="last_reported_consideration">Last reported consideration</option>
+            <option value="user_assumption">Dated user assumption</option>
+          </select>
+        </label>
+        <label>
+          <span>Named assumption label</span>
+          <input
+            name="valueAssumptionLabel"
+            maxLength={120}
+            defaultValue={current?.valueAssumptionLabel ?? ""}
+            placeholder="Required only for assumption basis"
+          />
+        </label>
+        <label>
+          <span>Minimum value ($)</span>
+          <input
+            name="minValueDollars"
+            inputMode="decimal"
+            defaultValue={
+              current?.minValueCents === null || current?.minValueCents === undefined
+                ? ""
+                : current.minValueCents / 100
+            }
+          />
+        </label>
+        <label>
+          <span>Maximum value ($)</span>
+          <input
+            name="maxValueDollars"
+            inputMode="decimal"
+            defaultValue={
+              current?.maxValueCents === null || current?.maxValueCents === undefined
+                ? ""
+                : current.maxValueCents / 100
+            }
+          />
+        </label>
+        <fieldset>
+          <legend>Distress phase</legend>
+          {["early_distress", "filed_foreclosure"].map((value) => (
+            <label key={value}>
+              <input
+                name="distressPhases"
+                type="checkbox"
+                value={value}
+                defaultChecked={current?.distressPhases.includes(value as never)}
+              />{" "}
+              {value.replaceAll("_", " ")}
+            </label>
+          ))}
+        </fieldset>
+        <p className="fine-print wide">
+          Commercial building-area units are not verified in Norfolk metadata, so strict matching
+          stays unknown. Assessed value is not market value or an asking price.
+        </p>
+        <button className="button primary" type="submit">
+          {current ? "Save buy box" : "Create buy box"}
+        </button>
+      </form>
+    </>
+  );
+}
+
+function DealBriefSections({
+  brief,
+  viewerEmail,
+  onMutate,
+}: {
+  brief: DealBriefData;
+  viewerEmail: string;
+  onMutate: (path: string, body: unknown) => Promise<unknown>;
+}) {
+  const propertyKey = brief.property.propertyKey;
+  return (
+    <>
+      <section className="qualification-grid" aria-label="Qualification dimensions">
+        <article>
+          <span>Distress strength</span>
+          <strong>
+            {brief.distressStrength.level} · {brief.distressStrength.score}
+          </strong>
+          <p>
+            {brief.distressStrength.reasons.join("; ") || "No active signal strength established"}
+          </p>
+          <small>{brief.distressStrength.limitations.join(" · ")}</small>
+        </article>
+        <article>
+          <span>Evidence confidence</span>
+          <strong>
+            {brief.evidenceConfidence.level}
+            {brief.evidenceConfidence.score === null ? "" : ` · ${brief.evidenceConfidence.score}`}
+          </strong>
+          <p>{brief.evidenceConfidence.reasons.join("; ")}</p>
+          <small>
+            {brief.evidenceConfidence.missingInputs.join(" · ") ||
+              "No additional provenance gap recorded"}
+          </small>
+        </article>
+        <article>
+          <span>Buying fit</span>
+          <strong>{brief.buyingFit.status.replaceAll("_", " ")}</strong>
+          <p>{brief.buyingFit.reasons.join("; ") || "No buy box selected"}</p>
+          <small>
+            {brief.buyingFit.missingInputs.join(" · ") ||
+              "All configured criteria have sourced inputs"}
+          </small>
+        </article>
+      </section>
+      <PipelineEditor propertyKey={propertyKey} pipeline={brief.pipeline} onMutate={onMutate} />
+      <section className="brief-section">
+        <p className="eyebrow">Official characteristics and ownership</p>
+        {brief.enrichment ? (
+          <dl className="detail-grid">
+            <Detail
+              label="Assessor owner"
+              value={brief.enrichment.ownerName ?? "Not published"}
+              wide
+            />
+            <Detail
+              label="Assessor situs"
+              value={
+                [
+                  brief.enrichment.assessorAddress,
+                  brief.enrichment.assessorCity,
+                  brief.enrichment.assessorZip,
+                ]
+                  .filter(Boolean)
+                  .join(", ") || "Not published"
+              }
+              wide
+            />
+            <Detail
+              label="Official class / use"
+              value={
+                [brief.enrichment.landUseDescription, brief.enrichment.propertyUse]
+                  .filter(Boolean)
+                  .join(" · ") || "Unknown"
+              }
+              wide
+            />
+            <Detail
+              label="Lot area"
+              value={
+                brief.enrichment.lotAreaSqft === null
+                  ? "Not published"
+                  : `${brief.enrichment.lotAreaSqft.toLocaleString()} approximate sq ft`
+              }
+            />
+            <Detail
+              label="Building area"
+              value={
+                brief.enrichment.commercialBuildingAreaValue === null &&
+                brief.enrichment.residentialFinishedAreaValue === null
+                  ? "Not published"
+                  : `${brief.enrichment.commercialBuildingAreaValue ?? brief.enrichment.residentialFinishedAreaValue} source units · units unverified`
+              }
+            />
+            <Detail
+              label="Assessment"
+              value={`${formatMoney(brief.enrichment.assessedTotalCents)} effective ${formatCalendarDate(brief.enrichment.assessmentEffectiveDate)} · not market value`}
+              wide
+            />
+            <Detail
+              label="Last reported transfer"
+              value={`${formatCalendarDate(brief.enrichment.lastTransferDate)} · ${formatMoney(brief.enrichment.lastTransferConsiderationCents)} · document ${brief.enrichment.lastTransferDocumentNumber ?? "not published"}`}
+              wide
+            />
+            <Detail
+              label="Exact join"
+              value={`${brief.enrichment.joinMethod.replaceAll("_", " ")} · source literal ${brief.enrichment.sourceParcelId}`}
+              wide
+            />
+          </dl>
+        ) : (
+          <p>
+            Official characteristics have not been retrieved for this exact parcel. Unknown fields
+            remain unknown.
+          </p>
+        )}
+        {brief.situsAliases.length > 1 ? (
+          <p className="evidence-detail">
+            Source-specific situs aliases under this parcel: {brief.situsAliases.join(" · ")}
+          </p>
+        ) : null}
+      </section>
+      <section className="brief-section">
+        <p className="eyebrow">Recent same-type assessor-reported transfer candidates</p>
+        {brief.saleCandidates.length === 0 ? (
+          <p>No bounded official transfer candidates are stored for this property.</p>
+        ) : (
+          brief.saleCandidates.map((sale) => (
+            <article className="sale-candidate" key={sale.id}>
+              <strong>
+                {sale.candidateAddress ?? sale.candidateParcelId} ·{" "}
+                {formatMoney(sale.salePriceCents)}
+              </strong>
+              <span>
+                {formatCalendarDate(sale.saleDate)} ·{" "}
+                {sale.qualificationStatus.replaceAll("_", " ")}
+              </span>
+              <p>{sale.selectionReason}</p>
+              <small>{sale.exclusionReason}</small>
+              <a href={sale.sourceUrl} target="_blank" rel="noreferrer">
+                Official query <ExternalLink size={14} />
+              </a>
+            </article>
+          ))
+        )}
+        <p className="fine-print">
+          Candidates are not qualified comparables or an appraisal. Package allocations, arms-length
+          status, condition, exact units, rent and NOI remain unverified.
+        </p>
+      </section>
+      <section className="brief-two-column">
+        <div>
+          <p className="eyebrow">Missing facts</p>
+          <ul>
+            {brief.missingFacts.map((fact) => (
+              <li key={fact}>{fact}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="eyebrow">Next verification steps</p>
+          <ol>
+            {brief.nextChecks.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      </section>
+      <section className="brief-section">
+        <p className="eyebrow">Append-only partner notes</p>
+        {brief.notes.length === 0 ? (
+          <p>No partner notes yet.</p>
+        ) : (
+          brief.notes.map((note) => (
+            <article className="note" key={note.id}>
+              <p>{note.body}</p>
+              <small>
+                {note.authorEmail} · {formatTimestamp(note.createdAt)}
+              </small>
+            </article>
+          ))
+        )}
+        <form
+          className="inline-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+            const body = String(form.get("body") ?? "");
+            event.currentTarget.reset();
+            void onMutate(`/api/research/notes/${encodeURIComponent(propertyKey)}`, { body });
+          }}
+        >
+          <label>
+            <span className="sr-only">New note</span>
+            <textarea
+              name="body"
+              required
+              maxLength={4000}
+              placeholder="Add a sourced research note…"
+            />
+          </label>
+          <button className="button primary" type="submit">
+            Add note as {viewerEmail}
+          </button>
+        </form>
+      </section>
+    </>
+  );
+}
+
+function PipelineEditor({
+  propertyKey,
+  pipeline,
+  onMutate,
+}: {
+  propertyKey: string;
+  pipeline: DealBriefData["pipeline"];
+  onMutate: (path: string, body: unknown) => Promise<unknown>;
+}) {
+  return (
+    <form
+      className="pipeline-editor"
+      key={`${propertyKey}:${pipeline?.version ?? 0}`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        const followUp = String(form.get("followUpAt") ?? "");
+        void onMutate(`/api/research/pipeline/${encodeURIComponent(propertyKey)}`, {
+          expectedVersion: pipeline?.version ?? 0,
+          patch: {
+            saved: form.has("saved"),
+            dismissed: form.has("dismissed"),
+            stage: form.get("stage"),
+            assignedTo: form.get("assignedTo") || null,
+            followUpAt: followUp ? new Date(followUp).toISOString() : null,
+            passReason: String(form.get("passReason") ?? "").trim() || null,
+          },
+        });
+      }}
+    >
+      <p className="eyebrow">Shared review controls · version {pipeline?.version ?? 0}</p>
+      <label>
+        <input name="saved" type="checkbox" defaultChecked={pipeline?.saved ?? false} /> Saved /
+        followed
+      </label>
+      <label>
+        <input name="dismissed" type="checkbox" defaultChecked={pipeline?.dismissed ?? false} />{" "}
+        Dismissed (reversible)
+      </label>
+      <label>
+        <span>Stage</span>
+        <select name="stage" defaultValue={pipeline?.stage ?? "New"}>
+          {["New", "Researching", "Qualified", "Passed"].map((stage) => (
+            <option key={stage}>{stage}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span>Assign</span>
+        <select name="assignedTo" defaultValue={pipeline?.assignedTo ?? ""}>
+          <option value="">Unassigned</option>
+          <option value="ericventor97@gmail.com">ericventor97@gmail.com</option>
+          <option value="Rhwcreative@gmail.com">Rhwcreative@gmail.com</option>
+        </select>
+      </label>
+      <label>
+        <span>Follow-up</span>
+        <input
+          name="followUpAt"
+          type="datetime-local"
+          defaultValue={pipeline?.followUpAt ? pipeline.followUpAt.slice(0, 16) : ""}
+        />
+      </label>
+      <label className="wide">
+        <span>Pass reason (required for Passed)</span>
+        <input name="passReason" maxLength={500} defaultValue={pipeline?.passReason ?? ""} />
+      </label>
+      <button className="button primary" type="submit">
+        Save review state
+      </button>
+    </form>
+  );
+}
+
+function EmptyPanel({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="empty-state">
+      <Inbox size={28} />
+      <h3>{title}</h3>
+      <p>{body}</p>
     </div>
   );
 }
@@ -821,6 +1787,114 @@ function Detail({ label, value, wide = false }: { label: string; value: string; 
       <dd>{value}</dd>
     </div>
   );
+}
+
+function shortlistDimensions(property: RankedProperty, buyBox: BuyBoxData | null) {
+  const filedSignals = new Set<SignalType>([
+    "notice_of_default",
+    "mortgage_foreclosure_initiated",
+    "scheduled_trustee_sale",
+    "scheduled_tax_sale",
+  ]);
+  const distress = property.signalTypes.some((signal) => filedSignals.has(signal))
+    ? "Strong"
+    : property.independentSignalCount >= 2
+      ? "Moderate"
+      : property.signalTypes.length > 0
+        ? "Early"
+        : "Unknown";
+  const confidence = property.parcelId
+    ? property.freshestSourceUpdatedAt
+      ? "Source-backed"
+      : "Exact ID · date unknown"
+    : "Unknown identity";
+  if (!buyBox) {
+    return {
+      distress: { value: distress },
+      confidence: { value: confidence },
+      fit: { value: "Unknown", reason: "No buy box selected" },
+    };
+  }
+  let mismatch = false;
+  const missing: string[] = [];
+  const outside = <T,>(values: readonly T[], actual: T | null | undefined, label: string) => {
+    if (values.length === 0) {
+      return;
+    }
+    if (actual === null || actual === undefined || actual === "") {
+      missing.push(label);
+    } else if (!values.includes(actual)) {
+      mismatch = true;
+    }
+  };
+  outside(buyBox.jurisdictions, property.jurisdictionId, "market");
+  outside(buyBox.zips, property.zip, "ZIP");
+  outside(buyBox.neighborhoods, property.neighborhood, "neighborhood");
+  outside(buyBox.propertyTypes, property.normalizedPropertyType, "property type");
+  if (buyBox.minSizeValue !== null || buyBox.maxSizeValue !== null) {
+    if (buyBox.sizeBasis !== "lot_square_feet" || property.lotAreaSqft === null) {
+      missing.push("reliable size");
+    } else if (
+      (buyBox.minSizeValue !== null && property.lotAreaSqft < buyBox.minSizeValue) ||
+      (buyBox.maxSizeValue !== null && property.lotAreaSqft > buyBox.maxSizeValue)
+    ) {
+      mismatch = true;
+    }
+  }
+  if (buyBox.minValueCents !== null || buyBox.maxValueCents !== null) {
+    const value =
+      buyBox.valueBasis === "assessed_value"
+        ? property.assessedValueCents
+        : buyBox.valueBasis === "last_reported_consideration"
+          ? property.lastReportedConsiderationCents
+          : property.userAssumptionCents;
+    if (value === null) {
+      missing.push(buyBox.valueBasis.replaceAll("_", " "));
+    } else if (
+      (buyBox.minValueCents !== null && value < buyBox.minValueCents) ||
+      (buyBox.maxValueCents !== null && value > buyBox.maxValueCents)
+    ) {
+      mismatch = true;
+    }
+  }
+  if (buyBox.distressPhases.length > 0) {
+    const phase = property.signalTypes.some((signal) => filedSignals.has(signal))
+      ? "filed_foreclosure"
+      : "early_distress";
+    if (!buyBox.distressPhases.includes(phase)) {
+      mismatch = true;
+    }
+  }
+  const status = mismatch ? "Not a match" : missing.length ? "Unknown" : "Match";
+  return {
+    distress: { value: distress },
+    confidence: { value: confidence },
+    fit: {
+      value: status,
+      reason: mismatch
+        ? "At least one known criterion is outside the buy box"
+        : missing.length
+          ? `Missing ${missing.join(", ")}`
+          : "All configured criteria match",
+    },
+  };
+}
+
+function changeContext(before: unknown, after: unknown): string {
+  const beforeText = before ? JSON.stringify(before) : "not previously published";
+  const afterText = after ? JSON.stringify(after) : "not published";
+  return `Before: ${beforeText}. After: ${afterText}.`;
+}
+
+function splitList(value: FormDataEntryValue | null): string[] {
+  return String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function dollarsToCents(value: number | null): number | null {
+  return value === null ? null : Math.round(value * 100);
 }
 
 async function pollRefresh(jobId: string, update: (data: DashboardData) => void): Promise<boolean> {

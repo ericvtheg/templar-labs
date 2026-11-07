@@ -1,3 +1,4 @@
+import { publicationChangeStatements } from "./change-tracking.ts";
 import {
   fetchAcrisCommonChargeLiens,
   fetchDenverMortgageForeclosureInitiations,
@@ -39,6 +40,9 @@ export type DashboardQuery = {
   readonly query?: string;
   readonly jurisdiction?: string;
   readonly signalType?: SignalType | "all";
+  readonly buyBoxId?: string | null;
+  readonly fit?: "all" | "match" | "unknown" | "no_match";
+  readonly sort?: "distress" | "confidence" | "fit" | "recent";
 };
 const refreshCooldownMs = 20_000;
 const refreshLease = "foreclosure-source-refresh";
@@ -235,7 +239,18 @@ export async function refreshSources(
       const notes = result.warnings.join(" ").slice(0, 1000) || null;
       const mutable = recordColumns.filter((column) => !["id", "first_seen_at"].includes(column));
       const publishSql = `INSERT INTO foreclosure_records (${recordColumns.join(",")}) SELECT ${recordColumns.join(",")} FROM foreclosure_record_staging WHERE staging_run_id=? ON CONFLICT(id) DO UPDATE SET ${mutable.map((column) => `${column}=excluded.${column}`).join(",")}`;
-      const statements: D1PreparedStatement[] = [db.prepare(publishSql).bind(id)];
+      const statements: D1PreparedStatement[] = [
+        ...publicationChangeStatements(db, {
+          runId: id,
+          sourceId: source.id,
+          sourceName: source.name,
+          sourceUrl: source.url,
+          detectedAt: finishedAt,
+          sourceUpdatedAt: result.sourceUpdatedAt ?? null,
+          snapshotComplete: result.snapshotComplete === true,
+        }),
+        db.prepare(publishSql).bind(id),
+      ];
       let reconciliationIndex = -1;
       if (result.snapshotComplete === true) {
         reconciliationIndex = statements.length;
@@ -487,11 +502,12 @@ function recordValues(r: ResearchRecord, snapshotId: string): unknown[] {
 }
 
 function watchlistStatements(db: D1Database, rankedAt: string): D1PreparedStatement[] {
-  const year = Number(rankedAt.slice(0, 4));
-  if (!Number.isInteger(year)) {
+  if (!Number.isInteger(Number(rankedAt.slice(0, 4)))) {
     throw new Error("A valid ranking timestamp is required.");
   }
-  const score = `(CASE WHEN SUM(CASE WHEN signal_type='tax_delinquency' THEN 1 ELSE 0 END)>0 THEN 25 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='code_violation' THEN 1 ELSE 0 END)>0 THEN 20 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='recorded_lien' THEN 1 ELSE 0 END)>0 THEN 20 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='mortgage_foreclosure_initiated' THEN 1 ELSE 0 END)>0 THEN 35 ELSE 0 END)+(CASE WHEN COUNT(DISTINCT CASE WHEN signal_type IN ('tax_delinquency','code_violation','recorded_lien','mortgage_foreclosure_initiated') THEN signal_type END)>=3 THEN 30 WHEN COUNT(DISTINCT CASE WHEN signal_type IN ('tax_delinquency','code_violation','recorded_lien','mortgage_foreclosure_initiated') THEN signal_type END)=2 THEN 20 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='tax_delinquency' THEN COALESCE(delinquent_amount_cents,0) ELSE 0 END)>=5000000 THEN 20 WHEN SUM(CASE WHEN signal_type='tax_delinquency' THEN COALESCE(delinquent_amount_cents,0) ELSE 0 END)>=1000000 THEN 12 WHEN SUM(CASE WHEN signal_type='tax_delinquency' THEN COALESCE(delinquent_amount_cents,0) ELSE 0 END)>=100000 THEN 6 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='code_violation' THEN 1 ELSE 0 END)>=5 THEN 8 WHEN SUM(CASE WHEN signal_type='code_violation' THEN 1 ELSE 0 END)>=2 THEN 4 ELSE 0 END)+(CASE WHEN MIN(CASE WHEN signal_type='tax_delinquency' THEN tax_year END) IS NOT NULL AND ${year}-MIN(CASE WHEN signal_type='tax_delinquency' THEN tax_year END)>=3 THEN 10 WHEN MIN(CASE WHEN signal_type='tax_delinquency' THEN tax_year END) IS NOT NULL AND ${year}-MIN(CASE WHEN signal_type='tax_delinquency' THEN tax_year END)>=1 THEN 5 ELSE 0 END)+(CASE WHEN julianday(MAX(source_updated_at))>=julianday('${rankedAt}','-2 days') THEN 10 WHEN julianday(MAX(source_updated_at))>=julianday('${rankedAt}','-7 days') THEN 6 WHEN julianday(MAX(source_updated_at))>=julianday('${rankedAt}','-30 days') THEN 2 ELSE 0 END)`;
+  const independentCount =
+    "COUNT(DISTINCT CASE WHEN signal_type IN ('tax_delinquency','code_violation','recorded_lien','mortgage_foreclosure_initiated') THEN signal_type END)";
+  const score = `(CASE WHEN SUM(CASE WHEN signal_type='tax_delinquency' THEN 1 ELSE 0 END)>0 THEN 40 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='code_violation' THEN 1 ELSE 0 END)>0 THEN 25 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='recorded_lien' THEN 1 ELSE 0 END)>0 THEN 35 ELSE 0 END)+(CASE WHEN SUM(CASE WHEN signal_type='mortgage_foreclosure_initiated' THEN 1 ELSE 0 END)>0 THEN 80 ELSE 0 END)+(CASE WHEN ${independentCount}>1 THEN MIN(20,(${independentCount}-1)*10) ELSE 0 END)`;
   const insert = `INSERT INTO watchlist_properties (property_key,jurisdiction_id,jurisdiction_name,parcel_id,address,city,state,zip,owner_name,property_type,score,signal_types,independent_signal_count,evidence_count,tax_installment_count,code_violation_count,recorded_lien_count,total_delinquent_cents,earliest_tax_year,freshest_source_updated_at,first_seen_at,last_seen_at,source_names,ranked_at) SELECT property_key,MAX(jurisdiction_id),MAX(jurisdiction_name),MAX(apn),COALESCE(MAX(CASE WHEN signal_type='tax_delinquency' THEN address END),MAX(address)),COALESCE(MAX(CASE WHEN signal_type='tax_delinquency' THEN city END),MAX(city)),MAX(state),MAX(zip),MAX(owner_name),MAX(property_type),MIN(100,${score}),GROUP_CONCAT(DISTINCT signal_type),COUNT(DISTINCT CASE WHEN signal_type IN ('tax_delinquency','code_violation','recorded_lien','mortgage_foreclosure_initiated') THEN signal_type END),COUNT(*),SUM(CASE WHEN signal_type='tax_delinquency' THEN 1 ELSE 0 END),SUM(CASE WHEN signal_type='code_violation' THEN 1 ELSE 0 END),SUM(CASE WHEN signal_type='recorded_lien' THEN 1 ELSE 0 END),SUM(CASE WHEN signal_type='tax_delinquency' THEN COALESCE(delinquent_amount_cents,0) ELSE 0 END),MIN(CASE WHEN signal_type='tax_delinquency' THEN tax_year END),MAX(source_updated_at),MIN(first_seen_at),MAX(last_seen_at),GROUP_CONCAT(DISTINCT source_name),? FROM foreclosure_records WHERE source_kind='current' AND snapshot_presence='present' AND COALESCE(priority,1)>0 AND property_key<>'' GROUP BY property_key HAVING SUM(CASE WHEN signal_type IN ('tax_delinquency','code_violation','recorded_lien','mortgage_foreclosure_initiated') THEN 1 ELSE 0 END)>0`;
   return [db.prepare("DELETE FROM watchlist_properties"), db.prepare(insert).bind(rankedAt)];
 }
@@ -548,6 +564,21 @@ function dashboardInput(query: DashboardQuery) {
   if (new TextEncoder().encode(`%${escapedSearch}%`).byteLength > 50) {
     throw new DashboardQueryError("Search is too long for this data store.");
   }
+  const fit = query.fit ?? "all";
+  if (!new Set(["all", "match", "unknown", "no_match"]).has(fit)) {
+    throw new DashboardQueryError("Unknown buy-box fit filter.");
+  }
+  const sort = query.sort ?? "distress";
+  if (!new Set(["distress", "confidence", "fit", "recent"]).has(sort)) {
+    throw new DashboardQueryError("Unknown shortlist sort.");
+  }
+  const buyBoxId = query.buyBoxId ?? null;
+  if (buyBoxId !== null && !/^[a-zA-Z0-9-]{1,100}$/.test(buyBoxId)) {
+    throw new DashboardQueryError("Invalid buy box ID.");
+  }
+  if (fit !== "all" && buyBoxId === null) {
+    throw new DashboardQueryError("Select a buy box before filtering by fit.");
+  }
   return {
     page,
     pageSize,
@@ -555,6 +586,9 @@ function dashboardInput(query: DashboardQuery) {
     jurisdiction,
     search,
     escapedSearch,
+    buyBoxId,
+    fit: fit as "all" | "match" | "unknown" | "no_match",
+    sort: sort as "distress" | "confidence" | "fit" | "recent",
   };
 }
 
@@ -566,32 +600,69 @@ export async function loadDashboard(
   const generatedAt = new Date().toISOString();
   const clauses: string[] = [];
   const parameters: unknown[] = [];
+  const buyBox = input.buyBoxId
+    ? await db
+        .prepare("SELECT * FROM buy_boxes WHERE id=?")
+        .bind(input.buyBoxId)
+        .first<FitBuyBoxRow>()
+    : null;
+  if (input.buyBoxId && !buyBox) {
+    throw new DashboardQueryError("Buy box not found.");
+  }
   if (input.jurisdiction !== "all") {
-    clauses.push("jurisdiction_id=?");
+    clauses.push("p.jurisdiction_id=?");
     parameters.push(input.jurisdiction);
   }
   if (input.signalType !== "all") {
-    clauses.push("(','||signal_types||',') LIKE ?");
+    clauses.push("(','||p.signal_types||',') LIKE ?");
     parameters.push(`%,${input.signalType},%`);
   }
   if (input.search) {
     const needle = `%${input.escapedSearch.toLowerCase()}%`;
     clauses.push(
-      "(LOWER(COALESCE(address,'')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(parcel_id,'')) LIKE ? ESCAPE '\\' OR LOWER(jurisdiction_name) LIKE ? ESCAPE '\\')",
+      "(LOWER(COALESCE(p.address,'')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(p.parcel_id,'')) LIKE ? ESCAPE '\\' OR LOWER(p.jurisdiction_name) LIKE ? ESCAPE '\\')",
     );
     parameters.push(needle, needle, needle);
   }
+  const fitSql = buyBox ? buyBoxFitSql(buyBox) : null;
+  const assumptionSelect =
+    buyBox?.value_basis === "user_assumption" && buyBox.value_assumption_label
+      ? `(SELECT va.value_cents FROM property_value_assumptions va WHERE va.property_key=p.property_key AND va.label='${buyBox.value_assumption_label.replaceAll("'", "''")}' ORDER BY va.as_of_date DESC,va.created_at DESC,va.id DESC LIMIT 1)`
+      : "NULL";
+  if (fitSql && input.fit !== "all") {
+    if (input.fit === "no_match") {
+      clauses.push(`(${fitSql.mismatch})`);
+    } else if (input.fit === "unknown") {
+      clauses.push(`NOT (${fitSql.mismatch}) AND (${fitSql.unknown})`);
+    } else {
+      clauses.push(`NOT (${fitSql.mismatch}) AND NOT (${fitSql.unknown})`);
+    }
+    parameters.push(...fitSql.parameters);
+  }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  const fitOrder = fitSql
+    ? `CASE WHEN ${fitSql.mismatch} THEN 2 WHEN ${fitSql.unknown} THEN 1 ELSE 0 END,`
+    : "";
+  const order = {
+    distress: "p.score DESC,p.property_key ASC",
+    confidence:
+      "p.parcel_id IS NULL,(LENGTH(p.source_names)-LENGTH(REPLACE(p.source_names,',',''))) DESC,p.property_key ASC",
+    recent: "p.last_seen_at DESC,p.property_key ASC",
+    fit: `${fitOrder}p.score DESC,p.property_key ASC`,
+  }[input.sort];
+  const orderParameters = input.sort === "fit" && fitSql ? fitSql.parameters : [];
   const [count, propertyRows, runRows, refreshRows, archiveRows, archiveCount] = await Promise.all([
     db
-      .prepare(`SELECT COUNT(*) AS total FROM watchlist_properties ${where}`)
+      .prepare(
+        `SELECT COUNT(*) AS total FROM watchlist_properties p LEFT JOIN property_enrichment e ON e.property_key=p.property_key ${where}`,
+      )
       .bind(...parameters)
       .first<{ total: number }>(),
     db
       .prepare(
-        `SELECT * FROM watchlist_properties ${where} ORDER BY score DESC,total_delinquent_cents DESC,property_key ASC LIMIT ? OFFSET ?`,
+        `SELECT p.*,e.normalized_property_type,e.neighborhood,e.lot_area_sqft,e.residential_finished_area_value,e.commercial_building_area_value,e.building_area_unit_status,e.assessed_total_cents,e.last_transfer_consideration_cents,${assumptionSelect} selected_user_assumption_cents FROM watchlist_properties p LEFT JOIN property_enrichment e ON e.property_key=p.property_key ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,
       )
-      .bind(...parameters, input.pageSize, (input.page - 1) * input.pageSize)
+      .bind(...parameters, ...orderParameters, input.pageSize, (input.page - 1) * input.pageSize)
       .all<PropertyRow>(),
     db.prepare("SELECT * FROM ingestion_runs ORDER BY started_at DESC LIMIT 100").all<RunRow>(),
     db
@@ -840,50 +911,34 @@ function mapProperty(row: PropertyRow): RankedProperty {
   const signalTypes = row.signal_types.split(",").filter(Boolean) as SignalType[];
   const reasons: string[] = [];
   if (signalTypes.includes("tax_delinquency")) {
-    reasons.push("25 · current official tax-delinquency snapshot");
+    reasons.push("40 · official tax-delinquency signal type is present");
   }
   if (signalTypes.includes("code_violation")) {
-    reasons.push("20 · current municipal violation workflow");
+    reasons.push("25 · municipal code signal type is present");
   }
   if (signalTypes.includes("recorded_lien")) {
-    reasons.push("20 · officially recorded lien event (outstanding status unverified)");
+    reasons.push("35 · recorded-lien signal type is present (outstanding status unverified)");
   }
   if (signalTypes.includes("mortgage_foreclosure_initiated")) {
-    reasons.push("35 · official Notice of Election and Demand foreclosure initiation");
+    reasons.push("80 · official foreclosure-initiation signal type is present");
   }
   if (row.independent_signal_count >= 3) {
-    reasons.push("30 · three independent signal types");
+    reasons.push("20 · three or more independent signal types");
   } else if (row.independent_signal_count === 2) {
-    reasons.push("20 · two independent signal types");
+    reasons.push("10 · two independent signal types");
   }
-  if (row.total_delinquent_cents >= 5_000_000) {
-    reasons.push("20 · reported delinquency at least $50,000");
-  } else if (row.total_delinquent_cents >= 1_000_000) {
-    reasons.push("12 · reported delinquency at least $10,000");
-  } else if (row.total_delinquent_cents >= 100_000) {
-    reasons.push("6 · reported delinquency at least $1,000");
+  const rawDistress =
+    (signalTypes.includes("tax_delinquency") ? 40 : 0) +
+    (signalTypes.includes("code_violation") ? 25 : 0) +
+    (signalTypes.includes("recorded_lien") ? 35 : 0) +
+    (signalTypes.includes("mortgage_foreclosure_initiated") ? 80 : 0) +
+    Math.min(20, Math.max(0, row.independent_signal_count - 1) * 10);
+  if (rawDistress > 100) {
+    reasons.push(`Score capped at 100 from ${rawDistress} contribution points`);
   }
-  if (row.code_violation_count >= 5) {
-    reasons.push("8 · five or more open violation records");
-  } else if (row.code_violation_count >= 2) {
-    reasons.push("4 · multiple open violation records");
-  }
-  const currentYear = Number(row.ranked_at.slice(0, 4));
-  if (row.earliest_tax_year && currentYear - row.earliest_tax_year >= 3) {
-    reasons.push("10 · earliest reported delinquent tax year is at least three years old");
-  } else if (row.earliest_tax_year && currentYear - row.earliest_tax_year >= 1) {
-    reasons.push("5 · earliest reported delinquent tax year is at least one year old");
-  }
-  const age = row.freshest_source_updated_at
-    ? new Date(row.ranked_at).getTime() - new Date(row.freshest_source_updated_at).getTime()
-    : Number.POSITIVE_INFINITY;
-  if (age <= 2 * 86_400_000) {
-    reasons.push("10 · supporting source updated within two days");
-  } else if (age <= 7 * 86_400_000) {
-    reasons.push("6 · supporting source updated within seven days");
-  } else if (age <= 30 * 86_400_000) {
-    reasons.push("2 · supporting source updated within 30 days");
-  }
+  reasons.push(
+    "Dollar amounts, repeated rows, tax age, and publication freshness do not increase distress strength",
+  );
   return {
     propertyKey: row.property_key,
     jurisdictionId: row.jurisdiction_id,
@@ -909,6 +964,85 @@ function mapProperty(row: PropertyRow): RankedProperty {
     firstSeenAt: row.first_seen_at,
     lastSeenAt: row.last_seen_at,
     sourceNames: row.source_names.split(",").filter(Boolean),
+    normalizedPropertyType: row.normalized_property_type ?? null,
+    neighborhood: row.neighborhood ?? null,
+    lotAreaSqft: row.lot_area_sqft ?? null,
+    residentialFinishedAreaValue: row.residential_finished_area_value ?? null,
+    commercialBuildingAreaValue: row.commercial_building_area_value ?? null,
+    buildingAreaUnitStatus: row.building_area_unit_status ?? null,
+    assessedValueCents: row.assessed_total_cents ?? null,
+    lastReportedConsiderationCents: row.last_transfer_consideration_cents ?? null,
+    userAssumptionCents: row.selected_user_assumption_cents ?? null,
+  };
+}
+
+function buyBoxFitSql(row: FitBuyBoxRow) {
+  const mismatch: string[] = [];
+  const unknown: string[] = [];
+  const parameters: unknown[] = [];
+  const list = (column: string, raw: string, nullable: boolean) => {
+    const values = JSON.parse(raw) as string[];
+    if (values.length === 0) {
+      return;
+    }
+    mismatch.push(`${column} IS NOT NULL AND ${column} NOT IN (SELECT value FROM json_each(?))`);
+    parameters.push(raw);
+    if (nullable) {
+      unknown.push(`${column} IS NULL`);
+    }
+  };
+  list("p.jurisdiction_id", row.jurisdictions_json, false);
+  list("p.zip", row.zips_json, true);
+  list("e.neighborhood", row.neighborhoods_json, true);
+  list("e.normalized_property_type", row.property_types_json, true);
+  if (row.min_size_value !== null || row.max_size_value !== null) {
+    if (row.size_basis === "lot_square_feet") {
+      unknown.push("e.lot_area_sqft IS NULL");
+      if (row.min_size_value !== null) {
+        mismatch.push("e.lot_area_sqft IS NOT NULL AND e.lot_area_sqft<?");
+        parameters.push(row.min_size_value);
+      }
+      if (row.max_size_value !== null) {
+        mismatch.push("e.lot_area_sqft IS NOT NULL AND e.lot_area_sqft>?");
+        parameters.push(row.max_size_value);
+      }
+    } else {
+      unknown.push("1=1");
+    }
+  }
+  if (row.min_value_cents !== null || row.max_value_cents !== null) {
+    const column =
+      row.value_basis === "assessed_value"
+        ? "e.assessed_total_cents"
+        : row.value_basis === "last_reported_consideration"
+          ? "e.last_transfer_consideration_cents"
+          : row.value_assumption_label
+            ? `(SELECT va.value_cents FROM property_value_assumptions va WHERE va.property_key=p.property_key AND va.label='${row.value_assumption_label.replaceAll("'", "''")}' ORDER BY va.as_of_date DESC,va.created_at DESC,va.id DESC LIMIT 1)`
+            : null;
+    if (!column) {
+      unknown.push("1=1");
+    } else {
+      unknown.push(`${column} IS NULL`);
+      if (row.min_value_cents !== null) {
+        mismatch.push(`${column} IS NOT NULL AND ${column}<?`);
+        parameters.push(row.min_value_cents);
+      }
+      if (row.max_value_cents !== null) {
+        mismatch.push(`${column} IS NOT NULL AND ${column}>?`);
+        parameters.push(row.max_value_cents);
+      }
+    }
+  }
+  const phases = JSON.parse(row.distress_phases_json) as string[];
+  if (phases.length === 1) {
+    const filed =
+      "(p.signal_types LIKE '%mortgage_foreclosure_initiated%' OR p.signal_types LIKE '%notice_of_default%' OR p.signal_types LIKE '%scheduled_trustee_sale%' OR p.signal_types LIKE '%scheduled_tax_sale%')";
+    mismatch.push(phases[0] === "filed_foreclosure" ? `NOT ${filed}` : filed);
+  }
+  return {
+    mismatch: mismatch.length ? mismatch.map((value) => `(${value})`).join(" OR ") : "0=1",
+    unknown: unknown.length ? unknown.map((value) => `(${value})`).join(" OR ") : "0=1",
+    parameters,
   };
 }
 function mapRecord(row: RecordRow): ResearchRecord {
@@ -1061,6 +1195,29 @@ type PropertyRow = {
   last_seen_at: string;
   source_names: string;
   ranked_at: string;
+  normalized_property_type?: RankedProperty["normalizedPropertyType"];
+  neighborhood?: string | null;
+  lot_area_sqft?: number | null;
+  residential_finished_area_value?: number | null;
+  commercial_building_area_value?: number | null;
+  building_area_unit_status?: string | null;
+  assessed_total_cents?: number | null;
+  last_transfer_consideration_cents?: number | null;
+  selected_user_assumption_cents?: number | null;
+};
+type FitBuyBoxRow = {
+  property_types_json: string;
+  jurisdictions_json: string;
+  neighborhoods_json: string;
+  zips_json: string;
+  min_size_value: number | null;
+  max_size_value: number | null;
+  size_basis: string;
+  min_value_cents: number | null;
+  max_value_cents: number | null;
+  value_basis: string;
+  value_assumption_label: string | null;
+  distress_phases_json: string;
 };
 type PropertyEvidenceRow = PropertyRow & {
   r_id: string;

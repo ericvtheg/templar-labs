@@ -374,6 +374,78 @@ check(
   "Evidence pagination metadata was incorrect.",
 );
 
+const workspaceResponse = await request(
+  "/api/research/workspace?activityPageSize=10&alertPageSize=10",
+  { cookie: authorized },
+);
+check(workspaceResponse.status === 200, `Partner workspace returned ${workspaceResponse.status}.`);
+const workspace = (await workspaceResponse.json()) as {
+  activity: unknown[];
+  alerts: unknown[];
+  activityPage: { page: number; pageSize: number; total: number };
+  alertPage: { page: number; pageSize: number; total: number };
+  alertPreferences: { externalDelivery: string };
+};
+check(
+  workspace.activityPage.pageSize === 10 &&
+    workspace.activityPage.total >= workspace.activity.length,
+  "Activity pagination boundary was missing.",
+);
+check(
+  workspace.alertPage.pageSize === 10 && workspace.alertPage.total >= workspace.alerts.length,
+  "Alert pagination boundary was missing.",
+);
+check(
+  workspace.alertPreferences.externalDelivery === "not_configured",
+  "Workspace claimed unsupported external delivery.",
+);
+const briefResponse = await request(
+  `/api/research/deal-briefs/${encodeURIComponent(property.propertyKey)}?evidencePage=1&evidencePageSize=10`,
+  { cookie: authorized },
+);
+check(briefResponse.status === 200, `Deal brief returned ${briefResponse.status}.`);
+const brief = (await briefResponse.json()) as {
+  property: { propertyKey: string };
+  distressStrength: { limitations: string[] };
+  evidenceConfidence: { level: string };
+  buyingFit: { status: string };
+  evidenceTotal: number;
+  evidencePage: { pageSize: number };
+  limitations: string[];
+};
+check(brief.property.propertyKey === property.propertyKey, "Deal brief identity changed.");
+check(
+  brief.distressStrength.limitations.some((entry) =>
+    /never a foreclosure probability/i.test(entry),
+  ),
+  "Deal brief lost distress limitation.",
+);
+check(
+  ["match", "no_match", "unknown"].includes(brief.buyingFit.status),
+  "Deal brief fit status was invalid.",
+);
+check(
+  brief.evidenceTotal >= 1 && brief.evidencePage.pageSize === 10,
+  "Deal brief evidence boundary was missing.",
+);
+
+const selectedCsv = await request("/api/research/export-selected.csv", {
+  method: "POST",
+  cookie: authorized,
+  headers: { origin: baseUrl.origin, "content-type": "application/json" },
+  body: JSON.stringify({ propertyKeys: [property.propertyKey] }),
+});
+check(selectedCsv.status === 200, `Selected evidence export returned ${selectedCsv.status}.`);
+const selectedCsvText = await selectedCsv.text();
+check(
+  selectedCsvText.includes(property.propertyKey),
+  "Selected export omitted the requested property.",
+);
+check(
+  /principal_balance_cents/.test(selectedCsvText.split("\n")[0] ?? ""),
+  "Selected export lost amount typing.",
+);
+
 const invalid = await request("/api/research/data?page=abc", { cookie: authorized });
 check(invalid.status === 400, `Invalid pagination returned ${invalid.status}.`);
 check(

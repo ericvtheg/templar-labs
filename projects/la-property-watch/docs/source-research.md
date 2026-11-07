@@ -33,6 +33,16 @@ Read-only live checks were run on 2026-11-07 UTC. Counts below are parser observ
 - Status: publisher workflow text is preserved. Unknown non-closed statuses are labeled for review rather than silently discarded.
 - Snapshot contract: complete; absent rows become no longer present without a resolution claim.
 
+## Norfolk official parcel, assessment, and transfer enrichment
+
+- Data: <https://data.norfolk.gov/resource/qva7-tzrf.json>; metadata: <https://data.norfolk.gov/api/views/qva7-tzrf.json>.
+- Identity: the targeted runner accepts one exact eight-digit retained Norfolk PIN and requires every returned target row to preserve that literal PIN. It never zero-pads or invents a crosswalk.
+- Publication integrity: required metadata clocks are read before and after all target, candidate, extension, and document requests. A clock change aborts the enrichment, and every response is explicitly paginated or deliberately bounded so a Socrata default limit cannot silently truncate it.
+- Property type: normalization is based on the complete published `property_use` and `property_class_description` vocabulary. Published single-family attached/detached values map to single family; published duplex, triplex, and fourplex parcel classes map to small multifamily; published vacant-land categories map to land. Condo buildings with two to four units remain unknown rather than being mislabeled as a whole multifamily parcel, and apartment/commercial classes including 49+ units remain commercial. The grouped official vocabulary query is retained as mapping provenance.
+- Characteristics and assessment: source extension rows remain separate. Parcel-level living area and year built are populated only for a single extension, square-foot units remain explicitly unverified, and assessment/sale values are never summed repeatedly across extensions.
+- Transfer candidates: selection is deliberately bounded to the 25 most recent distinct same-class parcel/document/date candidates within the stated two-year window. After selection, all extension rows for selected parcels and all companion rows for selected documents are paginated to completion. Each result and the deal brief state the bound, selection criteria, package-sale review requirement, and that candidates are neither comparable-sales conclusions nor an appraisal.
+- Runner: `node --experimental-strip-types projects/la-property-watch/scripts/ingest-production.ts --enrich-norfolk=EXACT_8_DIGIT_PIN`. This writes only the named retained property enrichment and records a source-specific run; supervisor production execution remains a separate gate.
+
 ## NYC ACRIS common-charge lien events
 
 - Master data: <https://data.cityofnewyork.us/resource/bnx9-e6tj.json>

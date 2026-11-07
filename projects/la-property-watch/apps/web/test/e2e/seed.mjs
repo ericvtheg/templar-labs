@@ -267,7 +267,7 @@ const watchlist = [
     null,
     "GARRIS, LEONDER P & HERMINE E",
     "Real estate",
-    86,
+    75,
     "tax_delinquency,code_violation",
     2,
     3,
@@ -293,7 +293,7 @@ const watchlist = [
     null,
     "HOMES ASSOCIATION OF NORFOLK, INC",
     "Real estate",
-    45,
+    40,
     "tax_delinquency",
     1,
     4,
@@ -316,6 +316,18 @@ const watchlistSql = watchlist
   )
   .join("\n");
 const sql = `
+DELETE FROM property_alerts;
+DELETE FROM user_alert_preferences;
+DELETE FROM property_notes;
+DELETE FROM property_value_assumptions;
+DELETE FROM partner_properties;
+DELETE FROM buy_boxes;
+DELETE FROM property_change_events;
+DELETE FROM source_publications;
+DELETE FROM property_sales;
+DELETE FROM property_enrichment_extensions;
+DELETE FROM property_enrichment;
+DELETE FROM enrichment_runs;
 DELETE FROM foreclosure_record_staging;
 DELETE FROM watchlist_properties;
 DELETE FROM ingestion_runs;

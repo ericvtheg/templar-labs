@@ -220,4 +220,225 @@ describe("private research API", () => {
     assert.equal(sqlLooking.status, 200);
     assert.equal(((await sqlLooking.json()) as { page: { total: number } }).page.total, 0);
   });
+
+  it("protects and validates partner mutations, preserves notes, and rejects stale versions", async () => {
+    database.sqlite.exec(`
+      INSERT INTO foreclosure_records (
+        id,sale_type,signal_type,jurisdiction_id,jurisdiction_name,source_record_id,source_key,
+        source_id,source_name,source_url,observed_at,status,property_key,address,apn,raw_excerpt,
+        first_seen_at,last_seen_at,updated_at
+      ) VALUES (
+        'api-evidence','tax_default','tax_delinquency','norfolk-va','Norfolk, VA','api-1','api-1',
+        'api-source','Official test-shaped fixture','https://example.test/source',
+        '2026-11-07T12:00:00.000Z','signal_status_unverified','norfolk-va:15834200',
+        '=FORMULA ADDRESS','15834200','test-only fixture','2026-11-07T12:00:00.000Z',
+        '2026-11-07T12:00:00.000Z','2026-11-07T12:00:00.000Z'
+      );
+    `);
+    const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
+    const partnerCookie = await sessionCookie({ email: "Rhwcreative@gmail.com" });
+    const url = `${origin}/api/research/pipeline/${encodeURIComponent("norfolk-va:15834200")}`;
+    const crossOrigin = await handleResearch(
+      new Request(url, {
+        method: "POST",
+        headers: { cookie, origin: "https://evil.example", "content-type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 0, patch: { saved: true } }),
+      }),
+      env,
+    );
+    assert.equal(crossOrigin.status, 403);
+    const malformed = await handleResearch(
+      new Request(url, { method: "POST", headers: { cookie, origin }, body: "not json" }),
+      env,
+    );
+    assert.equal(malformed.status, 400);
+    const accepted = await handleResearch(
+      new Request(url, {
+        method: "POST",
+        headers: { cookie, origin, "content-type": "application/json" },
+        body: JSON.stringify({
+          expectedVersion: 0,
+          patch: {
+            saved: true,
+            stage: "Researching",
+            assignedTo: "Rhwcreative@gmail.com",
+          },
+        }),
+      }),
+      env,
+    );
+    assert.equal(accepted.status, 200);
+    assert.equal(((await accepted.json()) as { version: number }).version, 1);
+    const conflict = await handleResearch(
+      new Request(url, {
+        method: "POST",
+        headers: { cookie: partnerCookie, origin, "content-type": "application/json" },
+        body: JSON.stringify({ expectedVersion: 0, patch: { stage: "Qualified" } }),
+      }),
+      env,
+    );
+    assert.equal(conflict.status, 409);
+    assert.equal(((await conflict.json()) as { code: string }).code, "version_conflict");
+
+    for (const { noteCookie, body } of [
+      { noteCookie: cookie, body: "First attributed note" },
+      { noteCookie: partnerCookie, body: "Second attributed note" },
+    ]) {
+      const response = await handleResearch(
+        new Request(`${origin}/api/research/notes/${encodeURIComponent("norfolk-va:15834200")}`, {
+          method: "POST",
+          headers: { cookie: noteCookie, origin, "content-type": "application/json" },
+          body: JSON.stringify({ body }),
+        }),
+        env,
+      );
+      assert.equal(response.status, 201);
+    }
+    const brief = await handleResearch(
+      new Request(
+        `${origin}/api/research/deal-briefs/${encodeURIComponent("norfolk-va:15834200")}`,
+        {
+          headers: { cookie },
+        },
+      ),
+      env,
+    );
+    assert.equal(brief.status, 200);
+    assert.equal(((await brief.json()) as { notes: unknown[] }).notes.length, 2);
+
+    const exportResponse = await handleResearch(
+      new Request(`${origin}/api/research/export-selected.csv`, {
+        method: "POST",
+        headers: { cookie, origin, "content-type": "application/json" },
+        body: JSON.stringify({ propertyKeys: ["norfolk-va:15834200"] }),
+      }),
+      env,
+    );
+    assert.equal(exportResponse.status, 200);
+    const csv = await exportResponse.text();
+    assert.match(csv, /norfolk-va:15834200/);
+    assert.doesNotMatch(csv, /,"[=+\-@]/);
+  });
+
+  it("keeps every partner read and export private", async () => {
+    for (const [path, method] of [
+      ["/api/research/workspace", "GET"],
+      ["/api/research/deal-briefs/norfolk-va%3A15834200", "GET"],
+      ["/api/research/export-selected.csv", "POST"],
+      ["/api/research/buy-boxes", "POST"],
+    ] as const) {
+      const response = await handleResearch(
+        new Request(`${origin}${path}`, {
+          method,
+          ...(method === "POST"
+            ? {
+                headers: { origin, "content-type": "application/json" },
+                body: JSON.stringify({ propertyKeys: ["norfolk-va:15834200"] }),
+              }
+            : {}),
+        }),
+        env,
+      );
+      assert.equal(response.status, 401, path);
+    }
+  });
+
+  it("returns 400 with zero writes for missing, null, scalar, wrong-array, extra, and unknown-only mutation fields", async () => {
+    database.sqlite.exec(`
+      INSERT INTO foreclosure_records (
+        id,sale_type,signal_type,jurisdiction_id,jurisdiction_name,source_record_id,source_key,
+        source_id,source_name,source_url,observed_at,status,property_key,apn,raw_excerpt,
+        first_seen_at,last_seen_at,updated_at
+      ) VALUES (
+        'validation-evidence','tax_default','tax_delinquency','norfolk-va','Norfolk, VA','validation-1','validation-1',
+        'validation-source','Official fixture','https://example.test/source','2026-11-07T12:00:00.000Z',
+        'signal_status_unverified','norfolk-va:15834200','15834200','test-only fixture',
+        '2026-11-07T12:00:00.000Z','2026-11-07T12:00:00.000Z','2026-11-07T12:00:00.000Z'
+      );
+    `);
+    const cookie = await sessionCookie({ email: "ericventor97@gmail.com" });
+    const property = encodeURIComponent("norfolk-va:15834200");
+    const cases: Array<[string, unknown]> = [
+      [`/api/research/pipeline/${property}`, {}],
+      [`/api/research/pipeline/${property}`, { expectedVersion: 0, patch: null }],
+      [`/api/research/pipeline/${property}`, { expectedVersion: 0, patch: { foo: 1 } }],
+      [
+        `/api/research/pipeline/${property}`,
+        { expectedVersion: 0, patch: { saved: true }, extra: true },
+      ],
+      [`/api/research/notes/${property}`, {}],
+      [`/api/research/notes/${property}`, { body: null }],
+      [`/api/research/notes/${property}`, { body: "note", extra: true }],
+      [
+        `/api/research/value-assumptions/${property}`,
+        { label: "x", valueCents: "100", asOfDate: "2026-11-01" },
+      ],
+      [
+        `/api/research/value-assumptions/${property}`,
+        { label: null, valueCents: 100, asOfDate: "2026-11-01" },
+      ],
+      [
+        `/api/research/value-assumptions/${property}`,
+        { label: "x", valueCents: 100, asOfDate: "2026-11-01", extra: 1 },
+      ],
+      ["/api/research/buy-boxes", { id: null }],
+      [
+        "/api/research/buy-boxes",
+        {
+          id: null,
+          expectedVersion: 0,
+          name: "x",
+          propertyTypes: "sfh",
+          jurisdictions: [],
+          neighborhoods: [],
+          zips: [],
+          sizeBasis: "none",
+          minSizeValue: null,
+          maxSizeValue: null,
+          minValueCents: null,
+          maxValueCents: null,
+          valueBasis: "assessed_value",
+          valueAssumptionLabel: null,
+          distressPhases: [],
+        },
+      ],
+      ["/api/research/alert-preferences", { newActivity: true, worseningActivity: true }],
+      [
+        "/api/research/alert-preferences",
+        { newActivity: true, worseningActivity: null, dueFollowUps: true },
+      ],
+      [
+        "/api/research/alert-preferences",
+        { newActivity: true, worseningActivity: true, dueFollowUps: true, extra: true },
+      ],
+      ["/api/research/alerts/read", { ids: null }],
+      ["/api/research/alerts/read", { ids: [1] }],
+      ["/api/research/alerts/read", { ids: [], extra: true }],
+      ["/api/research/export-selected.csv", { propertyKeys: null }],
+      ["/api/research/export-selected.csv", { propertyKeys: [1] }],
+      ["/api/research/export-selected.csv", { propertyKeys: [], extra: true }],
+    ];
+    const writeCount = () =>
+      Number(
+        database.sqlite
+          .prepare(`SELECT
+      (SELECT COUNT(*) FROM partner_properties)+(SELECT COUNT(*) FROM property_notes)+
+      (SELECT COUNT(*) FROM property_value_assumptions)+(SELECT COUNT(*) FROM buy_boxes)+
+      (SELECT COUNT(*) FROM user_alert_preferences)+(SELECT COUNT(*) FROM property_alerts) total`)
+          .get()?.["total"] ?? 0,
+      );
+    for (const [path, body] of cases) {
+      const before = writeCount();
+      const response = await handleResearch(
+        new Request(`${origin}${path}`, {
+          method: "POST",
+          headers: { cookie, origin, "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+        env,
+      );
+      assert.equal(response.status, 400, `${path}: ${JSON.stringify(body)}`);
+      assert.equal(writeCount(), before, `${path} wrote state for ${JSON.stringify(body)}`);
+    }
+  });
 });

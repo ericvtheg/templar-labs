@@ -139,3 +139,76 @@ test("refresh is same-origin and returns promptly as queued work", async ({ page
   expect([200, 202]).toContain(response.status());
   await expect(page.getByRole("button", { name: /Refreshing/ })).toBeVisible();
 });
+
+test("partners complete and retain the shortlist, buy-box, review, note, alert, and selected-export workflow", async ({
+  page,
+  browser,
+}) => {
+  await signInLocally(page.context(), { email: allowedEmail });
+  await page.goto("/");
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+
+  await page.getByRole("button", { name: "Buy boxes" }).click();
+  const buyBox = page.locator(".buy-box-form");
+  await buyBox.getByLabel("Name", { exact: true }).fill("Norfolk partner criteria");
+  await buyBox.getByLabel("sfh").check();
+  await buyBox.getByLabel("Markets (jurisdiction IDs)").fill("norfolk-va");
+  await buyBox.getByLabel("ZIPs").fill("23509");
+  await buyBox.getByRole("button", { name: "Create buy box" }).click();
+  await expect(page.getByRole("option", { name: "Norfolk partner criteria" })).toBeAttached();
+
+  await page.getByRole("button", { name: "Shortlist" }).click();
+  await page.getByLabel("Search properties").fill("15834200");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByLabel("Select 2800 VIMY RIDGE AV").check();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /Export selected \(1\)/ }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^property-watch-selected-\d{4}-\d{2}-\d{2}\.csv$/);
+
+  await page.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Shared review controls/)).toBeVisible();
+  await dialog.getByLabel("Saved / followed").check();
+  await dialog.getByLabel("Stage").selectOption("Researching");
+  await dialog.getByLabel("Assign").selectOption("Rhwcreative@gmail.com");
+  await dialog.getByLabel("Follow-up").fill("2026-11-07T09:00");
+  await dialog.getByRole("button", { name: "Save review state" }).click();
+  await expect(dialog.getByText(/Shared review controls · version 1/)).toBeVisible();
+  await dialog
+    .getByPlaceholder("Add a sourced research note…")
+    .fill("Confirmed exact parcel; tax status still needs current verification.");
+  await dialog.getByRole("button", { name: /Add note as/ }).click();
+  await expect(
+    dialog.getByText("Confirmed exact parcel; tax status still needs current verification."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close details" }).click();
+
+  await page.getByRole("button", { name: "Pipeline" }).click();
+  await expect(page.getByRole("heading", { name: "Review pipeline" })).toBeVisible();
+  await expect(page.getByText(/Researching · Saved/)).toBeVisible();
+  await expect(page.getByText(/Assigned Rhwcreative@gmail.com/)).toBeVisible();
+  await page.getByRole("button", { name: /Alerts \(/ }).click();
+  await expect(page.getByRole("heading", { name: "Saved-property alerts" })).toBeVisible();
+  await expect(page.getByText("Follow-up is due")).toBeVisible();
+  await page.getByRole("button", { name: "Mark read" }).click();
+  await expect(page.getByText(/Read/).last()).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  await page.getByRole("button", { name: "Pipeline" }).click();
+  await expect(page.getByText(/Researching · Saved/)).toBeVisible();
+
+  const partnerContext = await browser.newContext();
+  await signInLocally(partnerContext, { email: "rhwcreative@gmail.com" });
+  const partnerPage = await partnerContext.newPage();
+  await partnerPage.goto("/");
+  await expect(partnerPage.locator("[data-hydrated=true]")).toBeVisible();
+  await partnerPage.getByRole("button", { name: "Buy boxes" }).click();
+  await expect(
+    partnerPage.getByRole("option", { name: "Norfolk partner criteria" }),
+  ).toBeAttached();
+  await partnerPage.getByRole("button", { name: "Pipeline" }).click();
+  await expect(partnerPage.getByText(/Researching · Saved/)).toBeVisible();
+  await partnerContext.close();
+});

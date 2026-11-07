@@ -8,6 +8,7 @@ declare global {
 
 import { pathToFileURL } from "node:url";
 import type { IngestionTrigger } from "../apps/web/src/lib/model.ts";
+import { enrichNorfolkProperty } from "../apps/web/src/lib/norfolk-deal-data.ts";
 import {
   defaultSources,
   requestRefreshJob,
@@ -376,13 +377,21 @@ export async function runOnce(
 }
 
 export function parseIngestionArgs(args: string[]) {
-  const usage = "Usage: node scripts/ingest-production.ts [--queued-only | --source=SOURCE_ID]";
+  const usage =
+    "Usage: node scripts/ingest-production.ts [--queued-only | --source=SOURCE_ID | --enrich-norfolk=EXACT_8_DIGIT_PIN]";
   if (args.length > 1) {
     throw new Error(usage);
   }
   const arg = args[0];
   if (arg === undefined || arg === "--queued-only") {
-    return { queuedOnly: arg === "--queued-only", sources: undefined };
+    return { queuedOnly: arg === "--queued-only", sources: undefined, enrichmentParcel: undefined };
+  }
+  if (arg.startsWith("--enrich-norfolk=")) {
+    const enrichmentParcel = arg.slice("--enrich-norfolk=".length);
+    if (!/^\d{8}$/.test(enrichmentParcel)) {
+      throw new Error(usage);
+    }
+    return { queuedOnly: false, sources: undefined, enrichmentParcel };
   }
   if (!arg.startsWith("--source=")) {
     throw new Error(usage);
@@ -391,7 +400,7 @@ export function parseIngestionArgs(args: string[]) {
   if (sources.length !== 1) {
     throw new Error(`Unknown source ID. ${usage}`);
   }
-  return { queuedOnly: false, sources };
+  return { queuedOnly: false, sources, enrichmentParcel: undefined };
 }
 
 async function main() {
@@ -403,6 +412,14 @@ async function main() {
   }
   const adapter = new CloudflareD1({ accountId, apiToken });
   await adapter.discover();
+  if (options.enrichmentParcel) {
+    const summary = await enrichNorfolkProperty(
+      adapter as unknown as D1Database,
+      options.enrichmentParcel,
+    );
+    console.log(JSON.stringify({ targetedEnrichment: summary }, null, 2));
+    return;
+  }
   if (options.sources) {
     const queued = await adapter
       .prepare("SELECT id FROM refresh_jobs WHERE status = 'queued' LIMIT 1")

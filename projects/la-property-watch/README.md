@@ -24,11 +24,11 @@ Denver Terms of Use state that commercial use of site materials requires written
 
 Orange County published delinquency/power-to-sell records and Los Angeles tax/trustee sale publications remain a secondary historical archive. They do not drive the default current watchlist.
 
-## Ranking and freshness
+## Ranking, confidence, and fit
 
-The score is deterministic triage, capped at 100. Current present evidence can contribute: tax delinquency 25, open code workflow 20, recorded lien event 20, mortgage foreclosure initiation 35, independent-signal bonuses, published tax-total bands, multiple-code-record bonuses, tax-age bands, and source freshness.
+The distress-strength score is deterministic triage, capped at 100. A property receives each signal-type contribution at most once: tax delinquency 40, open code workflow 25, recorded lien event 35, and mortgage foreclosure initiation 80, plus 10 for each additional independent signal type up to 20. Dollar size, repeated rows of the same signal type, tax age, source freshness, and buy-box fit do not increase distress strength.
 
-Freshness uses the single persisted `ranked_at` clock for both score and displayed reasons: source update within 2 days adds 10, within 7 adds 6, within 30 adds 2, and older or unpublished timestamps add 0. A failed source run preserves the last successfully published evidence and visibly reports the failure; it never refreshes the scoring clock. A complete successful snapshot may mark absent rows no longer present. Event-window sources such as ACRIS do not reconcile absence.
+Evidence confidence and buy-box fit are separate, visibly explained dimensions. Confidence reports identity, source-date/status, and corroboration limits; it does not turn freshness into distress. Buy-box fit is evaluated only against an explicitly selected shared buy box, and a missing type, size, or named value input yields `unknown`, never a match. A failed source run preserves the last successfully published evidence and rankings. A complete successful snapshot may mark absent rows no longer present; disappearance never proves payment or cure, and event-window sources such as ACRIS do not reconcile absence.
 
 ## Access and privacy
 
@@ -63,6 +63,7 @@ pnpm --dir projects/la-property-watch/apps/web test:e2e
 pnpm --dir projects/la-property-watch/apps/web build
 pnpm --dir projects/la-property-watch typecheck
 pnpm --dir projects/la-property-watch/apps/web ingest:live -- --current-only
+node --experimental-strip-types projects/la-property-watch/scripts/ingest-production.ts --enrich-norfolk=EXACT_8_DIGIT_PIN
 ```
 
 `ingest:live` is read-only and prints source counts, coverage, warnings, and timing. Production verification requires `TEMPLAR_AUTH_SECRET` and checks access control, all current source runs, jurisdiction filters, ranked property detail, current-first evidence, validation errors, and the protected full export:
@@ -70,6 +71,8 @@ pnpm --dir projects/la-property-watch/apps/web ingest:live -- --current-only
 ```bash
 TEMPLAR_AUTH_SECRET=... pnpm --dir projects/la-property-watch verify:production
 ```
+
+The Norfolk enrichment command is a targeted production write for one exact retained PIN. It reads a stable official assessor publication, persists parcel/assessment/transfer facts and a deliberately bounded recent same-class candidate set, and reports the bound. The separate `Property Watch partner mutation acceptance` workflow is manual and opt-in (`mutate-and-restore`); it guards and restores the selected real property state rather than running during read-only verification or deployment.
 
 See [`docs/source-research.md`](docs/source-research.md) for field contracts and limitations.
 

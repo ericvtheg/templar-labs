@@ -24,3 +24,37 @@ test("mobile ranked workflow and evidence continuation remain usable without ove
   ).toBe(false);
   await expect(dialog.getByRole("link", { name: "Open source" }).first()).toBeVisible();
 });
+
+test("mobile partner review can update shared stage and append a note without horizontal overflow", async ({
+  page,
+}) => {
+  await signInLocally(page.context(), { email: "Rhwcreative@gmail.com" });
+  await page.goto("/");
+  await expect(page.locator("[data-hydrated=true]")).toBeVisible();
+  await page.getByLabel("Search properties").fill("15834200");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Shared review controls/)).toBeVisible();
+  await dialog.getByLabel("Saved / followed").check();
+  await dialog.getByLabel("Stage").selectOption("Qualified");
+  await dialog.getByLabel("Assign").selectOption("Rhwcreative@gmail.com");
+  await dialog.getByRole("button", { name: "Save review state" }).click();
+  await expect(dialog.getByText(/Shared review controls · version/)).toBeVisible();
+  await dialog
+    .getByPlaceholder("Add a sourced research note…")
+    .fill("Mobile review: candidate moved to qualified for partner discussion.");
+  await dialog.getByRole("button", { name: /Add note as/ }).click();
+  await expect(
+    dialog.getByText("Mobile review: candidate moved to qualified for partner discussion."),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
+  ).toBe(false);
+  await page.getByRole("button", { name: "Close details" }).click();
+  await page.getByRole("button", { name: "Pipeline" }).click();
+  await expect(page.getByText(/Qualified · Saved/)).toBeVisible();
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
+  ).toBe(false);
+});

@@ -293,18 +293,18 @@ describe("repository integrity regressions", () => {
     assert.match(history.property.scoreReasons.join(" "), /retained evidence history only/);
   });
 
-  it("uses one persisted ranking clock at exact freshness boundaries", async () => {
+  it("does not let publication freshness change distress strength", async () => {
     const base = await baseRecord();
     const rankedAt = "2026-11-07T12:00:00.000Z";
     const cases = [
-      ["2026-11-05T12:00:00.000Z", 35, "within two days"],
-      ["2026-11-05T11:59:59.999Z", 31, "within seven days"],
-      ["2026-10-31T12:00:00.000Z", 31, "within seven days"],
-      ["2026-10-31T11:59:59.999Z", 27, "within 30 days"],
-      ["2026-10-08T12:00:00.000Z", 27, "within 30 days"],
-      ["2026-10-08T11:59:59.999Z", 25, null],
+      ["2026-11-05T12:00:00.000Z", 40],
+      ["2026-11-05T11:59:59.999Z", 40],
+      ["2026-10-31T12:00:00.000Z", 40],
+      ["2026-10-31T11:59:59.999Z", 40],
+      ["2026-10-08T12:00:00.000Z", 40],
+      ["2026-10-08T11:59:59.999Z", 40],
     ] as const;
-    for (const [updatedAt, score, reason] of cases) {
+    for (const [updatedAt, score] of cases) {
       await upsertRecords(database.binding, [
         cloneRecord(base, 1, {
           sourceUpdatedAt: updatedAt,
@@ -317,12 +317,7 @@ describe("repository integrity regressions", () => {
       const property = (await loadDashboard(database.binding)).properties[0];
       assert.ok(property);
       assert.equal(property.score, score);
-      const reasons = property.scoreReasons.join(" ");
-      if (reason) {
-        assert.match(reasons, new RegExp(reason));
-      } else {
-        assert.doesNotMatch(reasons, /supporting source updated within/);
-      }
+      assert.doesNotMatch(property.scoreReasons.join(" "), /supporting source updated within/);
       const laterRead = (await loadDashboard(database.binding)).properties[0];
       assert.deepEqual(laterRead?.scoreReasons, property.scoreReasons);
     }

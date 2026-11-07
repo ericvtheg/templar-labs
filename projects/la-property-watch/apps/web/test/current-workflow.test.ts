@@ -67,7 +67,7 @@ describe("current ranked property workflow", () => {
       [2, 1, 3],
     );
     assert.equal(property.totalDelinquentCents, 120_071);
-    assert.equal(property.score, 86);
+    assert.equal(property.score, 75);
     assert.match(property.scoreReasons.join(" "), /two independent signal types/);
     assert.doesNotMatch(property.scoreReasons.join(" "), /probability/i);
     const filtered = await loadDashboard(database.binding, {

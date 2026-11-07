@@ -166,6 +166,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
         run: |
+          pnpm --filter la-property-watch-web exec node --experimental-strip-types scripts/verify-public-auth.ts
           node --experimental-strip-types projects/la-property-watch/scripts/verify-production.ts --read-only
           pnpm --filter la-property-watch-web exec node --experimental-strip-types scripts/verify-browser.ts
 

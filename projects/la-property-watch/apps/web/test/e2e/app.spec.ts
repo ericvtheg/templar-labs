@@ -15,6 +15,30 @@ test("signed-out visitors see only the central sign-in gate", async ({ page }) =
   expect((await page.request.get("/api/research/export.csv")).status()).toBe(401);
 });
 
+test("failed OAuth callbacks explain the failure instead of silently returning to sign-in", async ({
+  page,
+}) => {
+  await page.goto("/api/auth/callback?error=oauth");
+  await expect(page.getByRole("alert")).toContainText("missing_transaction");
+  await expect(page.getByRole("alert")).toContainText("Start sign-in again");
+
+  const start = await page.request.get("/api/auth/sign-in?returnTo=/", { maxRedirects: 0 });
+  expect(start.status()).toBe(302);
+  const authorization = new URL(start.headers()["location"]!);
+  expect(authorization.pathname).toBe("/api/auth/first-party/authorize");
+  expect(new URL(authorization.searchParams.get("callback")!).pathname).toBe("/api/auth/callback");
+  await page.goto(
+    `/api/auth/callback?error=oauth&state=${authorization.searchParams.get("state")}`,
+  );
+  await expect(page.getByRole("alert")).toContainText("provider");
+  await expect(page.getByRole("alert")).toContainText("cancelled or rejected");
+  expect((await page.request.get("/api/research/data")).status()).toBe(401);
+
+  await page.goto("/?error=auth&auth_reason=untrusted-upstream-secret");
+  await expect(page.getByRole("alert")).toContainText("unknown");
+  await expect(page.getByRole("alert")).not.toContainText("untrusted-upstream-secret");
+});
+
 test("authorized researcher ranks, filters, and paginates exact current-first evidence", async ({
   page,
 }) => {

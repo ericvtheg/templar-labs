@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { authFailure } from "../lib/auth-errors.ts";
 import { loadApp } from "../lib/functions.ts";
 import {
   type DashboardData,
@@ -29,6 +30,7 @@ import {
 } from "../lib/model.ts";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({ failure: authFailure(search) }),
   loader: () => loadApp(),
   component: App,
 });
@@ -45,6 +47,7 @@ function App() {
 }
 
 function SignIn() {
+  const { failure } = Route.useSearch();
   return (
     <main className="auth-page">
       <section className="auth-card">
@@ -68,6 +71,18 @@ function SignIn() {
             </span>
           </div>
         </div>
+        {failure ? (
+          <div className="notice" role="alert">
+            <TriangleAlert size={20} aria-hidden="true" />
+            <div>
+              <strong>Sign-in did not finish</strong>
+              <p>{failure.message}</p>
+              <small>
+                Diagnostic: {failure.reason}. Share this diagnostic, not cookies or sign-in codes.
+              </small>
+            </div>
+          </div>
+        ) : null}
         <a className="button primary wide" href="/api/auth/sign-in?returnTo=/">
           Continue with Google <ArrowUpRight size={17} aria-hidden="true" />
         </a>

@@ -168,6 +168,62 @@ test("authorization codes are PKCE-bound, single-use, and sign the global admin 
   assert.equal(signedPayload?.admin, true);
 });
 
+test("opt-in chooser bypasses an existing session once and preserves handoff PKCE", async () => {
+  const records = new Map<string, { readonly value: string; readonly expiresAt: number }>();
+  let callbackURL = "";
+  let signIns = 0;
+  const callback = "https://la-property-watch.breli.app/api/auth/callback";
+  const handler = createTemplarFirstPartyHandler({
+    auth: {
+      api: {
+        getSession: async () => testSession("existing-user"),
+        signInSocial: async ({ body }: { body: { callbackURL: string } }) => {
+          signIns += 1;
+          callbackURL = body.callbackURL;
+          return {
+            headers: new Headers({ "set-cookie": "better-auth.state=test; HttpOnly" }),
+            response: {
+              url: "https://accounts.google.com/o/oauth2/v2/auth?state=original&code_challenge=provider-pkce",
+            },
+          };
+        },
+      },
+      handler: async () => new Response("fallback"),
+    },
+    db: fakeD1(records),
+    baseURL: "https://auth.breli.app",
+    accountSelectionCallbacks: new Set([callback]),
+    adminEmails: new Set(),
+    signToken: async () => "unused",
+  });
+  const url = new URL("https://auth.breli.app/api/auth/first-party/authorize");
+  url.search = new URLSearchParams({
+    callback,
+    state: "s".repeat(43),
+    code_challenge: "c".repeat(43),
+    prompt: "select_account",
+  }).toString();
+  const response = await handler(new Request(url));
+  const google = new URL(requiredHeader(response.headers, "location"));
+  assert.equal(google.hostname, "accounts.google.com");
+  assert.equal(google.searchParams.get("prompt"), "select_account");
+  assert.equal(google.searchParams.get("state"), "original");
+  assert.equal(google.searchParams.get("code_challenge"), "provider-pkce");
+  assert.equal(records.size, 0);
+  const resume = new URL(callbackURL, url);
+  assert.equal(resume.searchParams.has("prompt"), false);
+  assert.equal(resume.searchParams.get("code_challenge"), "c".repeat(43));
+  const completed = await handler(new Request(resume));
+  assert.equal(
+    new URL(requiredHeader(completed.headers, "location")).origin,
+    new URL(callback).origin,
+  );
+  assert.equal(signIns, 1);
+  url.searchParams.set("callback", "https://other.breli.app/api/auth/callback");
+  await handler(new Request(url));
+  assert.equal(signIns, 1, "other apps retain existing-session behavior");
+});
+
 function fakeD1(
   records: Map<string, { readonly value: string; readonly expiresAt: number }>,
 ): D1Database {

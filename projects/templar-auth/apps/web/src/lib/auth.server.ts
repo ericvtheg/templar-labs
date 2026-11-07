@@ -55,6 +55,7 @@ export async function getAuth() {
       db: bindings.DB,
       baseURL: bindings.AUTH_BASE_URL,
       adminEmails: platformAdminEmails,
+      accountSelectionCallbacks: new Set(["https://la-property-watch.breli.app/api/auth/callback"]),
       signToken: async (payload) => (await jwtApi.signJWT({ body: { payload } })).token,
     }),
   };

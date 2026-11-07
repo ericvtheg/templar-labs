@@ -4,6 +4,22 @@ import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose";
 import { createTemplarAuthApp } from "../src/app.ts";
 import { templarFirstPartyAudience } from "../src/first-party.ts";
 
+test("Google account choice is opt-in and keeps a fresh PKCE transaction", async () => {
+  for (const selectGoogleAccount of [false, true]) {
+    const app = createTemplarAuthApp({
+      baseURL: "https://app.breli.app",
+      issuer: "https://auth.breli.app",
+      secret: "test-only-secret",
+      selectGoogleAccount,
+    });
+    const response = await app.handler(new Request("https://app.breli.app/api/auth/sign-in"));
+    const url = new URL(requiredHeader(response.headers, "location"));
+    assert.equal(url.searchParams.get("prompt"), selectGoogleAccount ? "select_account" : null);
+    assert.match(requiredSearchParameter(url, "code_challenge"), /^[A-Za-z0-9_-]{43}$/);
+    assert.match(requiredHeader(response.headers, "set-cookie"), /HttpOnly/);
+  }
+});
+
 test("an app verifies the central handoff through the issuer JWKS", async () => {
   const issuer = "https://auth.breli.app";
   const appOrigin = "https://app.breli.app";

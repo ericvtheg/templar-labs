@@ -40,6 +40,24 @@ test("failed OAuth callbacks explain the failure instead of silently returning t
   await expect(page.getByRole("alert")).not.toContainText("untrusted-upstream-secret");
 });
 
+test("access denial offers an account chooser rather than a local-only sign-out", async ({
+  page,
+}) => {
+  await page.goto("/?error=auth&auth_reason=access");
+  await expect(page.getByRole("alert")).toContainText("not authorized");
+  const switchAccount = page.getByRole("link", { name: "Switch Google account" });
+  await expect(switchAccount).toHaveAttribute("href", "/api/auth/sign-in?returnTo=/");
+  // Stop before the external identity provider; inspect the real app response.
+  const response = await page.request.get((await switchAccount.getAttribute("href")) ?? "", {
+    maxRedirects: 0,
+  });
+  expect(response.status()).toBe(302);
+  const authorization = new URL(response.headers()["location"]!);
+  expect(authorization.searchParams.get("prompt")).toBe("select_account");
+  expect(authorization.searchParams.get("code_challenge")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  expect((await page.request.get("/api/research/data")).status()).toBe(401);
+});
+
 test("authorized researcher ranks, filters, and paginates exact current-first evidence", async ({
   page,
 }) => {

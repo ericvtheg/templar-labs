@@ -57,6 +57,8 @@ export type TemplarAuthAppConfig = {
   readonly issuer: string;
   readonly secret: string;
   readonly basePath?: string;
+  /** Opt in to choosing a Google account on each new sign-in. */
+  readonly selectGoogleAccount?: boolean;
   readonly sessionExpiresInSeconds?: number;
   readonly integration?: AppAuthIntegration;
   readonly fetch?: typeof globalThis.fetch;
@@ -120,6 +122,9 @@ export function createTemplarAuthApp(config: TemplarAuthAppConfig): TemplarAuthA
     authorizationURL.searchParams.set("callback", callbackURL);
     authorizationURL.searchParams.set("state", state);
     authorizationURL.searchParams.set("code_challenge", await pkceChallenge(codeVerifier));
+    if (config.selectGoogleAccount) {
+      authorizationURL.searchParams.set("prompt", "select_account");
+    }
 
     const headers = new Headers({ location: authorizationURL.href });
     headers.append(

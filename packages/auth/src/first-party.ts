@@ -50,6 +50,8 @@ export type TemplarFirstPartyServerConfig = {
   readonly db: D1Database;
   readonly baseURL: string;
   readonly adminEmails: ReadonlySet<string>;
+  /** Exact callbacks opted into explicit Google account selection. */
+  readonly accountSelectionCallbacks?: ReadonlySet<string>;
   readonly signToken: (payload: Record<string, unknown>) => Promise<string>;
   readonly now?: () => number;
 };
@@ -126,6 +128,12 @@ async function authorize(
     return Response.json({ error: "invalid_callback" }, { status: 400 });
   }
 
+  const selectAccount =
+    url.searchParams.get("prompt") === "select_account" &&
+    config.accountSelectionCallbacks?.has(callback.href) === true;
+  if (selectAccount) {
+    return beginGoogleSignIn(request, config, url, callback, state, true);
+  }
   const session = await firstPartyAuthApi(config.auth).getSession({ headers: request.headers });
   if (session === null) {
     return beginGoogleSignIn(request, config, url, callback, state);
@@ -164,7 +172,14 @@ async function beginGoogleSignIn(
   authorizeURL: URL,
   callback: URL,
   state: string,
+  selectAccount = false,
 ): Promise<Response> {
+  // Consume the chooser request before storing Better Auth's OAuth callback.
+  // Otherwise the new session would immediately start another chooser loop.
+  const resumeURL = new URL(authorizeURL);
+  if (selectAccount) {
+    resumeURL.searchParams.delete("prompt");
+  }
   const errorCallbackURL = new URL(callback);
   errorCallbackURL.searchParams.set("error", "oauth");
   errorCallbackURL.searchParams.set("state", state);
@@ -172,7 +187,7 @@ async function beginGoogleSignIn(
   const signIn = await firstPartyAuthApi(config.auth).signInSocial({
     body: {
       provider: "google",
-      callbackURL: `${authorizeURL.pathname}${authorizeURL.search}`,
+      callbackURL: `${resumeURL.pathname}${resumeURL.search}`,
       errorCallbackURL: errorCallbackURL.href,
     },
     headers: request.headers,
@@ -196,7 +211,16 @@ async function beginGoogleSignIn(
   for (const cookie of stateCookies) {
     headers.append("set-cookie", cookie);
   }
-  headers.set("location", signIn.response.url);
+  // Better Auth 1.6's signInSocial schema has no per-request prompt field.
+  // Amend only the provider-generated URL; retain its state and PKCE verbatim.
+  const providerURL = new URL(signIn.response.url);
+  if (selectAccount) {
+    if (providerURL.origin !== "https://accounts.google.com") {
+      return Response.json({ error: "provider_unavailable" }, { status: 502 });
+    }
+    providerURL.searchParams.set("prompt", "select_account");
+  }
+  headers.set("location", providerURL.href);
   headers.delete("content-length");
   headers.delete("content-type");
   return new Response(null, { status: 302, headers });

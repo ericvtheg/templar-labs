@@ -87,7 +87,8 @@ function SignIn() {
           </div>
         ) : null}
         <a className="button primary wide" href="/api/auth/sign-in?returnTo=/">
-          Continue with Google <ArrowUpRight size={17} aria-hidden="true" />
+          {failure ? "Switch Google account" : "Continue with Google"}{" "}
+          <ArrowUpRight size={17} aria-hidden="true" />
         </a>
         <p className="fine-print">No public records endpoint is exposed by this application.</p>
       </section>
@@ -112,11 +113,9 @@ function Forbidden({ email }: { email: string }) {
       <p className="eyebrow">Access denied</p>
       <h1>This workspace has a restricted account allowlist.</h1>
       <p className="muted">The verified account {email} is not authorized for Property Watch.</p>
-      <form action="/api/auth/sign-out?returnTo=/" method="post">
-        <button className="button primary" type="submit">
-          Sign out and use another account
-        </button>
-      </form>
+      <a className="button primary" href="/api/auth/sign-in?returnTo=/">
+        Switch Google account
+      </a>
     </main>
   );
 }

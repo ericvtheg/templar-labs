@@ -19,6 +19,7 @@ export function getAuth(request: Request, bindings: Bindings) {
     baseURL: new URL(request.url).origin,
     issuer: bindings.TEMPLAR_AUTH_ISSUER,
     secret: bindings.AUTH_SECRET,
+    selectGoogleAccount: true,
     integration: {
       onAuthenticated: ({ user }) => {
         if (!canAccessResearch(user)) {

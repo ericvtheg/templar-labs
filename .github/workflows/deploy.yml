@@ -19,6 +19,7 @@ on:
           - all
           - emma-eric-wedding
           - la-property-watch
+          - templar-auth
 
 concurrency:
   group: deploy-main
@@ -56,6 +57,9 @@ jobs:
             pnpm exec biome lint projects/la-property-watch
             pnpm --filter la-property-watch check
             pnpm --filter la-property-watch-web typecheck
+          elif [ "${{ inputs.project }}" = "templar-auth" ]; then
+            pnpm --filter @templar/auth check
+            pnpm --filter templar-auth-web check
           else
             pnpm check
           fi
@@ -75,6 +79,8 @@ jobs:
             pnpm db:migrate:prod emma-eric-wedding
           elif [ "${{ inputs.project }}" = "la-property-watch" ]; then
             pnpm db:migrate:prod la-property-watch
+          elif [ "${{ inputs.project }}" = "templar-auth" ]; then
+            pnpm db:migrate:prod templar-auth
           else
             pnpm db:migrate:ci
           fi
@@ -102,11 +108,20 @@ jobs:
             pnpm --filter emma-eric-wedding run deploy
           elif [ "${{ inputs.project }}" = "la-property-watch" ]; then
             pnpm --filter la-property-watch run deploy
+          elif [ "${{ inputs.project }}" = "templar-auth" ]; then
+            pnpm --filter templar-auth run deploy
           elif [ "${{ github.event_name }}" = "push" ]; then
             pnpm run deploy -- --changed-since "${{ github.event.before }}"
           else
             pnpm run deploy
           fi
+
+      - name: Inspect approved Property Watch identity mapping (read-only)
+        if: inputs.project == 'templar-auth'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node --experimental-strip-types projects/la-property-watch/scripts/verify-auth-identities.ts
 
       - name: Verify wedding editor binding
         if: inputs.project == 'emma-eric-wedding'
@@ -138,7 +153,7 @@ jobs:
           PY
 
       - name: Upload prepared China audio
-        if: inputs.project != 'emma-eric-wedding' && inputs.project != 'la-property-watch'
+        if: inputs.project != 'emma-eric-wedding' && inputs.project != 'la-property-watch' && inputs.project != 'templar-auth'
         timeout-minutes: 20
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

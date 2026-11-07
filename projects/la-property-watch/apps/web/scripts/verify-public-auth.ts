@@ -38,6 +38,7 @@ await test("public Google redirect and callback error visibility (not human logi
     );
     assert.equal(appCallback, `${origin}/api/auth/callback`);
     assert.equal(google.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(google.searchParams.get("prompt"), "select_account");
     assert(
       network.some((entry) => entry.url === `${origin}/api/auth/sign-in` && entry.status === 302),
     );
@@ -54,12 +55,19 @@ await test("public Google redirect and callback error visibility (not human logi
     await page.goto(`${origin}/api/auth/callback?error=oauth`);
     await expect(page.getByRole("alert")).toContainText("missing_transaction");
     await page.screenshot({ path: `${output}/auth-failure-diagnostic.png`, fullPage: true });
+    await page.goto(`${origin}/?error=auth&auth_reason=access`);
+    await expect(page.getByRole("alert")).toContainText("not authorized");
+    await page.getByRole("link", { name: "Switch Google account" }).click();
+    await page.waitForURL((url) => url.hostname === "accounts.google.com");
+    assert.equal(new URL(page.url()).searchParams.get("prompt"), "select_account");
     assert.equal((await context.request.get(`${origin}/api/research/data`)).status(), 401);
     const evidence = {
       network,
       appCallback,
       googleCallback: google.searchParams.get("redirect_uri"),
       pkce: "S256",
+      prompt: "select_account",
+      accessErrorSwitchVerified: true,
       boundary:
         "Google credential entry reached; no human login, consent, successful callback, or session tested.",
       callbackFailureVisible: true,

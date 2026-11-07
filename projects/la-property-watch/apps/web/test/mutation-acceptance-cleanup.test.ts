@@ -59,7 +59,9 @@ describe("production mutation cleanup guard", () => {
       script,
       /blind_internal_benchmark_early_reveal_rejection_complete_review_frozen_criteria_export/,
     );
-    assert.match(script, /TEST-ONLY \/ SYNTHETIC TEST FIXTURE/);
+    assert.match(script, /isClassifiedTestOnlyBenchmarkExport\(benchmarkCsv\)/);
+    assert.match(script, /officialBeforeCleanup/);
+    assert.match(script, /phase: "workflow"/);
   });
 
   it("forces the entire D1 cleanup batch to roll back when either exact ownership token changed", async () => {

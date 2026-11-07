@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID, webcrypto } from "node:crypto";
 import { CloudflareD1 } from "./ingest-production.ts";
 import { acceptanceCleanupGuard } from "./mutation-acceptance-cleanup.ts";
+import { isClassifiedTestOnlyBenchmarkExport } from "./mutation-acceptance-validation.ts";
 import { verifyProductionQueries } from "./verify-production-queries.ts";
 
 const baseUrl = new URL(
@@ -51,6 +52,26 @@ type RankingRow = {
   updated_by: string;
   operation_token: string;
 };
+type OfficialDataCounts = {
+  enrichmentRows: number;
+  extensionRows: number;
+  saleCandidateRows: number;
+  enrichmentRuns: number;
+  officialRecheckRows: number;
+};
+async function readOfficialData(db: CloudflareD1, propertyKey: string, recheckId: string | null) {
+  const result = await db
+    .prepare(`SELECT
+    (SELECT COUNT(*) FROM property_enrichment WHERE property_key=?) enrichmentRows,
+    (SELECT COUNT(*) FROM property_enrichment_extensions WHERE property_key=?) extensionRows,
+    (SELECT COUNT(*) FROM property_sales WHERE subject_property_key=?) saleCandidateRows,
+    (SELECT COUNT(*) FROM enrichment_runs WHERE property_key=? AND status='success') enrichmentRuns,
+    (SELECT COUNT(*) FROM property_rechecks WHERE property_key=? AND id=?) officialRecheckRows`)
+    .bind(propertyKey, propertyKey, propertyKey, propertyKey, propertyKey, recheckId)
+    .first<OfficialDataCounts>();
+  check(result, "Could not read official-data retention counts.");
+  return result;
+}
 function required(name: string) {
   const value = process.env[name];
   if (!value) {
@@ -255,13 +276,7 @@ let benchmarkReviewVersion: number | null = null;
 let scenarioCandidateAcceptance = "not_checked";
 let providerQueryDiagnostics: Awaited<ReturnType<typeof verifyProductionQueries>> | null = null;
 let dueAlertIds: string[] = [];
-let retainedOfficialData: {
-  enrichmentRows: number;
-  extensionRows: number;
-  saleCandidateRows: number;
-  enrichmentRuns: number;
-  officialRecheckRows: number;
-} | null = null;
+let retainedOfficialData: OfficialDataCounts | null = null;
 const workflowFollowUpAt = new Date(Date.now() - 60_000).toISOString();
 let workflowFailure: unknown = null;
 
@@ -573,9 +588,7 @@ try {
   check(benchmarkExport.ok, `Benchmark export returned ${benchmarkExport.status}.`);
   const benchmarkCsv = await benchmarkExport.text();
   check(
-    benchmarkCsv.includes("test-only") &&
-      benchmarkCsv.includes("TEST-ONLY / SYNTHETIC TEST FIXTURE") &&
-      !/superior|outperform/i.test(benchmarkCsv),
+    isClassifiedTestOnlyBenchmarkExport(benchmarkCsv),
     "Test-only benchmark export lacked explicit synthetic classification or made a performance claim.",
   );
   const preferences = await jsonRequest<{ updatedAt: string; version: number }>(
@@ -879,10 +892,19 @@ try {
   );
 } catch (error) {
   workflowFailure = error;
+  console.error(
+    JSON.stringify({
+      phase: "workflow",
+      propertyKey,
+      runId,
+      error: error instanceof Error ? error.message : "unknown",
+    }),
+  );
 }
 
 let cleanupFailure: unknown = null;
 try {
+  const officialBeforeCleanup = await readOfficialData(db, propertyKey, recheckId);
   const statements: Array<ReturnType<typeof db.prepare>> = [
     acceptanceCleanupGuard(db as unknown as D1Database, {
       propertyKey,
@@ -1175,37 +1197,27 @@ try {
       .first()),
     "Temporary feedback version was not removed.",
   );
-  const official = await db
-    .prepare(`SELECT
-    (SELECT COUNT(*) FROM property_enrichment WHERE property_key=?) enrichment_rows,
-    (SELECT COUNT(*) FROM property_enrichment_extensions WHERE property_key=?) extension_rows,
-    (SELECT COUNT(*) FROM property_sales WHERE subject_property_key=?) sale_candidate_rows,
-    (SELECT COUNT(*) FROM enrichment_runs WHERE property_key=? AND status='success') enrichment_runs,
-    (SELECT COUNT(*) FROM property_rechecks WHERE property_key=? AND id=?) official_recheck_rows`)
-    .bind(propertyKey, propertyKey, propertyKey, propertyKey, propertyKey, recheckId)
-    .first<{
-      enrichment_rows: number;
-      extension_rows: number;
-      sale_candidate_rows: number;
-      enrichment_runs: number;
-      official_recheck_rows: number;
-    }>();
-  retainedOfficialData = {
-    enrichmentRows: Number(official?.enrichment_rows ?? 0),
-    extensionRows: Number(official?.extension_rows ?? 0),
-    saleCandidateRows: Number(official?.sale_candidate_rows ?? 0),
-    enrichmentRuns: Number(official?.enrichment_runs ?? 0),
-    officialRecheckRows: Number(official?.official_recheck_rows ?? 0),
-  };
-  check(retainedOfficialData.enrichmentRows === 1, "Official enrichment was not retained.");
-  check(retainedOfficialData.extensionRows > 0, "Official extension rows were not retained.");
-  check(
-    retainedOfficialData.enrichmentRuns > 0,
-    "Official enrichment-run provenance was not retained.",
-  );
-  check(
-    retainedOfficialData.officialRecheckRows === 1,
-    "Official tax/code recheck was not retained.",
+  retainedOfficialData = await readOfficialData(db, propertyKey, recheckId);
+  for (const field of Object.keys(officialBeforeCleanup) as Array<keyof OfficialDataCounts>) {
+    check(
+      retainedOfficialData[field] >= officialBeforeCleanup[field],
+      `Cleanup lost official ${field}.`,
+    );
+  }
+  if (!workflowFailure) {
+    check(retainedOfficialData.enrichmentRows === 1, "Official enrichment was not retained.");
+    check(retainedOfficialData.extensionRows > 0, "Official extension rows were not retained.");
+    check(
+      retainedOfficialData.enrichmentRuns > 0,
+      "Official enrichment-run provenance was not retained.",
+    );
+    check(
+      retainedOfficialData.officialRecheckRows === 1,
+      "Official tax/code recheck was not retained.",
+    );
+  }
+  console.log(
+    JSON.stringify({ syntheticStateRestored: true, propertyKey, runId, retainedOfficialData }),
   );
 } catch (error) {
   cleanupFailure = error;

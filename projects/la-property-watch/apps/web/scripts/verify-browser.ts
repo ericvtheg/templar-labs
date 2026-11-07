@@ -136,7 +136,19 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       await expect(exactPropertyRow).toContainText(
         property.parcelId ?? property.address ?? property.propertyKey,
       );
+      const briefLoaded = page.waitForResponse(
+        (candidate) =>
+          new URL(candidate.url()).pathname ===
+            `/api/research/deal-briefs/${encodeURIComponent(property.propertyKey)}` &&
+          candidate.ok(),
+      );
+      const scenariosLoaded = page.waitForResponse(
+        (candidate) =>
+          new URL(candidate.url()).pathname ===
+            `/api/research/scenarios/${encodeURIComponent(property.propertyKey)}` && candidate.ok(),
+      );
       await exactPropertyRow.click();
+      await Promise.all([briefLoaded, scenariosLoaded]);
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
       await expect(dialog.getByText(property.propertyKey, { exact: true })).toBeVisible();
@@ -149,7 +161,30 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         "Horizontal viewport overflow",
       );
+      const dimensions = dialog.getByRole("region", {
+        name: "Qualification dimensions",
+        exact: true,
+      });
+      await expect(dimensions).toBeVisible();
+      await expect(dimensions).toContainText("Distress strength");
+      await expect(dimensions).toContainText("Evidence confidence");
+      await expect(dimensions).toContainText("Buying fit");
+      await expect(dialog.getByText("Loading source-backed brief…", { exact: true })).toHaveCount(
+        0,
+      );
       await page.screenshot({ path: `test/.results/production/detail-${viewport.width}.png` });
+      for (const [name, artifact] of [
+        ["Investigation assessment", "investigation"],
+        ["Partner feedback and outcomes", "feedback"],
+        ["Deal economics scenarios", "scenarios"],
+      ] as const) {
+        const section = dialog.getByRole("region", { name, exact: true });
+        await section.scrollIntoViewIfNeeded();
+        await expect(section).toBeVisible();
+        await page.screenshot({
+          path: `test/.results/production/${artifact}-${viewport.width}.png`,
+        });
+      }
       const evidenceCard = dialog.locator(".evidence-card").first();
       await evidenceCard.scrollIntoViewIfNeeded();
       await expect(evidenceCard.getByText("Source updated", { exact: true })).toBeVisible();
@@ -190,13 +225,32 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       const download = await downloadPromise;
       assert.equal(await download.failure(), null, "CSV download failed");
       await page.screenshot({ path: `test/.results/production/dashboard-${viewport.width}.png` });
+      const workflowNav = page.getByRole("navigation", { name: "Partner workflow" });
+      for (const [name, workspace] of [
+        ["Changes", "activity workspace"],
+        ["Pipeline", "pipeline workspace"],
+        ["Buy boxes", "buyboxes workspace"],
+      ] as const) {
+        await workflowNav.getByRole("button", { name, exact: true }).click();
+        await expect(page.getByRole("region", { name: workspace, exact: true })).toBeVisible();
+      }
+      const benchmarksLoaded = page.waitForResponse(
+        (candidate) =>
+          new URL(candidate.url()).pathname === "/api/research/benchmarks" && candidate.ok(),
+      );
+      await workflowNav.getByRole("button", { name: "Blind benchmarks", exact: true }).click();
+      await benchmarksLoaded;
+      await expect(
+        page.getByRole("heading", { name: "Licensed shortlist benchmark" }),
+      ).toBeVisible();
+      await page.screenshot({ path: `test/.results/production/benchmarks-${viewport.width}.png` });
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
       await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
       assert.deepEqual(errors, [], "Unexpected browser JavaScript errors");
       await context.close();
     }
     console.log(
-      "Production browser checks passed: anonymous/denied access, authorized desktop/mobile, ranked current-property search, current-first evidence provenance, no horizontal overflow, sign-out, and no JavaScript errors.",
+      "Production browser checks passed: anonymous/denied access, authorized desktop/mobile, ranked search, loaded qualification/investigation/feedback/scenario sections, Changes/Pipeline/Buy boxes/Blind benchmarks workspaces, exact current-first provenance, no horizontal overflow, sign-out, and no JavaScript errors.",
     );
   } finally {
     await browser.close();

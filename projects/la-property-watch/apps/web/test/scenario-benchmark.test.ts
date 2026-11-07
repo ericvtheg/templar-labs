@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { isClassifiedTestOnlyBenchmarkExport } from "../../../scripts/mutation-acceptance-validation.ts";
 import {
   createBlindBenchmark,
   listBlindBenchmarks,
@@ -583,6 +584,20 @@ describe("C/E persisted decision support", () => {
     assert.match(exported, /"'=PRIVATE Vendor"/);
     assert.match(exported, /test-only/i);
     assert.match(exported, /synthetic test fixture/i);
+    assert.equal(isClassifiedTestOnlyBenchmarkExport(exported), true);
+    assert.equal(
+      isClassifiedTestOnlyBenchmarkExport(exported.replaceAll("test-only", "live")),
+      false,
+    );
+    assert.equal(
+      isClassifiedTestOnlyBenchmarkExport(
+        exported.replaceAll(
+          "no statistical significance or superiority claim",
+          "superiority proven",
+        ),
+      ),
+      false,
+    );
     await assert.rejects(
       upsertBlindReview(database.binding, partner, created.id, {
         cardId: reviewer.cards[1]!.cardId,

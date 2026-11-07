@@ -1,0 +1,39 @@
+name: Property Watch exact acceptance alert recovery
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: la-property-ingestion
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Remove only the two inspected unchanged acceptance alerts
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          pnpm --filter la-property-watch-web exec node --experimental-strip-types --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import { CloudflareD1 } from '../../scripts/ingest-production.ts';
+          const db = new CloudflareD1({accountId: process.env.CLOUDFLARE_ACCOUNT_ID, apiToken: process.env.CLOUDFLARE_API_TOKEN});
+          await db.discover();
+          const propertyKey = 'norfolk-va:00000202';
+          const ids = ['followup:ericventor97_gmail_com:ad8cbffb-30cb-471c-bf55-7b4505697903', 'followup:rhwcreative_gmail_com:dcfac31f-1554-4e65-9f45-88a435e267ed'];
+          const createdAt = '2026-11-07T22:24:09.839Z';
+          const availableAt = '2026-11-07T22:23:09.813Z';
+          const predicate = "id IN (?,?) AND property_key=? AND kind='due_follow_up' AND created_at=? AND available_at=? AND read_at IS NULL";
+          const params = [...ids, propertyKey, createdAt, availableAt];
+          const before = await db.prepare(`SELECT id FROM property_alerts WHERE ${predicate}`).bind(...params).all();
+          assert.deepEqual(before.results.map(row => row.id).sort(), [...ids].sort(), 'Inspected alert ownership changed; refuse recovery');
+          const result = await db.prepare(`DELETE FROM property_alerts WHERE ${predicate} AND (SELECT COUNT(*) FROM property_alerts WHERE ${predicate})=2 AND NOT EXISTS (SELECT 1 FROM partner_properties WHERE property_key=?)`).bind(...params, ...params, propertyKey).run();
+          assert.equal(result.meta.changes, 2, 'Concurrent change prevented exact recovery');
+          const after = await db.prepare('SELECT id FROM property_alerts WHERE id IN (?,?)').bind(...ids).all();
+          assert.equal(after.results.length, 0, 'Exact orphan alerts remain');
+          console.log(JSON.stringify({verified: true, propertyKey, removedExactAlertIds: ids, remainingExactAlerts: after.results.length, scope: 'unchanged orphan alerts from acceptance run 42420326735 only'}));
+          JS

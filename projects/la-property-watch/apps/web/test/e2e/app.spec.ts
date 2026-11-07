@@ -97,10 +97,24 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
 
   await page.getByLabel("Search properties").fill("");
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  const codeResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/research/data" && url.searchParams.get("signal") === "code_violation"
+    );
+  });
   await page.getByLabel("Signal type").selectOption("code_violation");
+  expect((await codeResponse).status()).toBe(200);
   await expect(page.getByText("1 properties · page 1 of 1")).toBeVisible();
   await expect(page.getByRole("button", { name: /2800 VIMY RIDGE AV/ })).toBeVisible();
+  const taxResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/research/data" && url.searchParams.get("signal") === "tax_delinquency"
+    );
+  });
   await page.getByLabel("Signal type").selectOption("tax_delinquency");
+  expect((await taxResponse).status()).toBe(200);
   await expect(page.getByText("2 properties · page 1 of 1")).toBeVisible();
   await expect(page.getByRole("link", { name: /Export evidence CSV/ })).toHaveAttribute(
     "href",

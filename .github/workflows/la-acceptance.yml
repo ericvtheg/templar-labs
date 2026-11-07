@@ -2,6 +2,14 @@ name: Property Watch production acceptance
 on:
   workflow_dispatch:
     inputs:
+      browser:
+        description: Browser engine for real production layout acceptance
+        type: choice
+        options:
+          - chromium
+          - webkit
+        default: chromium
+        required: true
       import_nyc:
         description: Import only NYC ACRIS before read-only acceptance
         type: boolean
@@ -28,15 +36,16 @@ jobs:
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
         run: node --experimental-strip-types projects/la-property-watch/scripts/verify-production.ts --read-only
       - name: Install browser
-        run: pnpm --filter la-property-watch-web exec playwright install --with-deps chromium
+        run: pnpm --filter la-property-watch-web exec playwright install --with-deps ${{ inputs.browser }}
       - name: Verify authenticated desktop and mobile
         env:
+          LA_BROWSER_ENGINE: ${{ inputs.browser }}
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
         run: pnpm --filter la-property-watch-web exec node --experimental-strip-types scripts/verify-browser.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: property-watch-production-evidence
+          name: property-watch-production-evidence-${{ inputs.browser }}
           path: projects/la-property-watch/apps/web/test/.results/production/
           if-no-files-found: ignore
           retention-days: 7

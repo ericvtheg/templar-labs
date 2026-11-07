@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import { createHash, randomBytes, webcrypto } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { test } from "node:test";
-import { chromium, expect } from "@playwright/test";
+import { chromium, expect, type Page, webkit } from "@playwright/test";
 
 const baseURL = process.env["LA_PROPERTY_WATCH_URL"] ?? "https://la-property-watch.breli.app";
 const secret = process.env["TEMPLAR_AUTH_SECRET"];
 assert(secret, "TEMPLAR_AUTH_SECRET is required");
 const origin = new URL(baseURL).origin;
+const layoutWidths = [
+  320, 375, 390, 430, 431, 719, 720, 721, 759, 760, 761, 768, 819, 820, 821, 850, 1024, 1049, 1050,
+  1051, 1100, 1440,
+] as const;
+const browserEngine = process.env["LA_BROWSER_ENGINE"] ?? "chromium";
+assert(["chromium", "webkit"].includes(browserEngine), "Unsupported browser engine");
 assert(
   origin === "https://la-property-watch.breli.app" ||
     ["127.0.0.1", "localhost"].includes(new URL(origin).hostname),
@@ -49,8 +55,99 @@ async function cookie(email: string, verified: boolean) {
     sameSite: "Lax" as const,
   };
 }
+
+async function assertPropertyRowsContained(page: Page, context: string) {
+  const violations = await page.locator(".property-row").evaluateAll((rows) => {
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- browser-evaluated callbacks must be self-contained.
+    const overlap = (left: DOMRect, right: DOMRect) =>
+      Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left)) *
+      Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top));
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- browser-evaluated callbacks must be self-contained.
+    const contains = (outer: DOMRect, inner: DOMRect) =>
+      inner.left >= outer.left - 0.75 &&
+      inner.right <= outer.right + 0.75 &&
+      inner.top >= outer.top - 0.75 &&
+      inner.bottom <= outer.bottom + 0.75;
+    const failures: string[] = [];
+    if (rows.length === 0) {
+      failures.push("No rendered rows to measure");
+    }
+    for (const row of rows) {
+      const rowKey =
+        row.closest<HTMLElement>(".property-row-wrap")?.dataset["propertyKey"] ?? "row";
+      const badge = row.querySelector<HTMLElement>(".score-box");
+      const score = badge?.querySelector<HTMLElement>("strong");
+      const label = badge?.querySelector<HTMLElement>("span");
+      const address = row.querySelector<HTMLElement>(".property-address");
+      const addressHeading = address?.querySelector<HTMLElement>("strong");
+      if (!(badge && score && label && address && addressHeading)) {
+        failures.push(`${rowKey}: missing badge/address DOM`);
+        continue;
+      }
+      const badgeRect = badge.getBoundingClientRect();
+      const addressRect = address.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      if (
+        row.scrollWidth > row.clientWidth + 1 ||
+        rowRect.left < -1 ||
+        rowRect.right > innerWidth + 1
+      ) {
+        failures.push(`${rowKey}: row escapes its available width`);
+      }
+      for (const child of Array.from(row.children)) {
+        const childRect = child.getBoundingClientRect();
+        if (childRect.width > 0 && childRect.height > 0 && !contains(rowRect, childRect)) {
+          failures.push(`${rowKey}: ${child.className} escapes row bounds`);
+        }
+      }
+      if (overlap(badgeRect, addressRect) > 0.25) {
+        failures.push(`${rowKey}: badge intersects address`);
+      }
+      if (
+        !contains(badgeRect, score.getBoundingClientRect()) ||
+        !contains(badgeRect, label.getBoundingClientRect()) ||
+        badge.scrollWidth > badge.clientWidth + 1 ||
+        badge.scrollHeight > badge.clientHeight + 1
+      ) {
+        failures.push(`${rowKey}: badge text is not contained`);
+      }
+      const range = document.createRange();
+      range.selectNodeContents(score);
+      if (range.getClientRects().length !== 1) {
+        failures.push(`${rowKey}: distress label splits across lines`);
+      }
+      const addressStyle = getComputedStyle(addressHeading);
+      if (
+        addressStyle.overflow === "hidden" ||
+        addressStyle.textOverflow === "ellipsis" ||
+        addressStyle.whiteSpace === "nowrap"
+      ) {
+        failures.push(`${rowKey}: address is clipped rather than wrapped`);
+      }
+      const children = Array.from(row.children);
+      for (let leftIndex = 0; leftIndex < children.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < children.length; rightIndex += 1) {
+          const left = children[leftIndex];
+          const right = children[rightIndex];
+          if (
+            left &&
+            right &&
+            overlap(left.getBoundingClientRect(), right.getBoundingClientRect()) > 0.25
+          ) {
+            failures.push(`${rowKey}: row siblings intersect`);
+          }
+        }
+      }
+    }
+    return failures;
+  });
+  if (violations.length > 0) {
+    throw new Error(`${context}: ${violations.join("; ")}`);
+  }
+}
+
 await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await (browserEngine === "webkit" ? webkit : chromium).launch({ headless: true });
   try {
     const anonymous = await browser.newContext();
     const publicPage = await anonymous.newPage();
@@ -86,6 +183,77 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(origin);
       await expect(page.getByRole("heading", { name: /Find distress earlier/ })).toBeVisible();
+      await expect(page.locator(".property-row").first()).toBeVisible();
+      if (viewport.width === 1440) {
+        for (const textScalePercent of [100, 200]) {
+          if (textScalePercent === 200) {
+            await page.evaluate(() => {
+              const style = document.createElement("style");
+              style.id = "property-watch-text-scale-verification";
+              style.textContent = "html { font-size: 200% !important; }";
+              document.head.appendChild(style);
+            });
+          }
+          for (const width of layoutWidths) {
+            await page.setViewportSize({ width, height: width <= 430 ? 900 : 1000 });
+            await assertPropertyRowsContained(
+              page,
+              `Default shortlist at ${width}px and ${textScalePercent}% text`,
+            );
+            if (textScalePercent === 100 && [320, 768, 1440].includes(width)) {
+              await page.locator(".records-section").screenshot({
+                path: `test/.results/production/shortlist-${width}.png`,
+              });
+            }
+          }
+          await page.evaluate(() =>
+            document.getElementById("property-watch-text-scale-verification")?.remove(),
+          );
+        }
+        await page.setViewportSize(viewport);
+
+        const denverQuery = "1555 S TENNYSON ST";
+        const denverParams = new URLSearchParams({ query: denverQuery });
+        const denverResponse = await context.request.get(
+          `${origin}/api/research/data?${denverParams}`,
+        );
+        assert.equal(denverResponse.status(), 200);
+        const denverData = (await denverResponse.json()) as {
+          properties: Array<{ address: string | null; propertyKey: string }>;
+        };
+        const denverProperty = denverData.properties.find(
+          (candidate) => candidate.address?.toUpperCase() === denverQuery,
+        );
+        assert(denverProperty, `Expected the production Denver ${denverQuery} shortlist row`);
+        await page.getByLabel("Search properties").fill(denverQuery);
+        const denverFiltered = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return (
+            url.pathname === "/api/research/data" &&
+            url.searchParams.get("query") === denverQuery &&
+            candidate.ok()
+          );
+        });
+        await page.getByRole("button", { name: "Search", exact: true }).click();
+        await denverFiltered;
+        const denverRow = page.locator(
+          `.property-row-wrap[data-property-key="${denverProperty.propertyKey}"] .property-row`,
+        );
+        await expect(denverRow).toBeVisible();
+        await expect(denverRow).toContainText("1555 S TENNYSON ST");
+        await expect(denverRow).toContainText("No authoritative parcel key · kept unmatched");
+        for (const width of layoutWidths) {
+          await page.setViewportSize({ width, height: 1000 });
+          await assertPropertyRowsContained(page, `Exact Denver unmatched row at ${width}px`);
+          if (width === 390 || width === 1440) {
+            await denverRow.evaluate((element) =>
+              window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 110),
+            );
+            await page.screenshot({ path: `test/.results/production/denver-${width}.png` });
+          }
+        }
+        await page.setViewportSize(viewport);
+      }
       const params = new URLSearchParams({
         jurisdiction: "norfolk-va",
         signal: "code_violation",
@@ -198,15 +366,41 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       });
       await page.getByRole("button", { name: "Search", exact: true }).click();
       await clearedResponse;
-      const marketResponse = page.waitForResponse((candidate) => {
-        const url = new URL(candidate.url());
-        return (
-          url.pathname === "/api/research/data" &&
-          url.searchParams.get("jurisdiction") === "norfolk-va"
+      const marketsToVerify =
+        viewport.width === 1440
+          ? ["travis-county-tx", "denver-co", "nyc-ny", "norfolk-va"]
+          : ["norfolk-va"];
+      for (const market of marketsToVerify) {
+        const marketResponse = page.waitForResponse((candidate) => {
+          const url = new URL(candidate.url());
+          return (
+            url.pathname === "/api/research/data" &&
+            url.searchParams.get("jurisdiction") === market &&
+            candidate.ok()
+          );
+        });
+        await page.getByLabel("Market jurisdiction").selectOption(market);
+        const marketHttpResponse = await marketResponse;
+        const marketData = (await marketHttpResponse.json()) as {
+          page: { total: number };
+          properties: Array<{ propertyKey: string }>;
+        };
+        assert(marketData.page.total > 0, `Expected current production rows for ${market}`);
+        const expectedKeys = marketData.properties.map(
+          (marketProperty) => marketProperty.propertyKey,
         );
-      });
-      await page.getByLabel("Market jurisdiction").selectOption("norfolk-va");
-      await marketResponse;
+        await expect
+          .poll(() =>
+            page
+              .locator(".property-row-wrap")
+              .evaluateAll((rows) =>
+                rows.map((row) => (row as HTMLElement).dataset["propertyKey"]),
+              ),
+          )
+          .toEqual(expectedKeys);
+        await expect(page.locator(".property-row").first()).toBeEnabled();
+        await assertPropertyRowsContained(page, `${market} shortlist rows`);
+      }
       const signalResponse = page.waitForResponse((candidate) => {
         const url = new URL(candidate.url());
         return (

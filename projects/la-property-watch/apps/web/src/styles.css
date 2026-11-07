@@ -171,7 +171,7 @@
   height: auto;
   min-height: 58px;
   padding: 0.45rem 0.35rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .score-box strong {
@@ -244,6 +244,18 @@
   min-width: 0;
   color: var(--ink-soft);
   font-size: 0.78rem;
+}
+
+.scenario-form input:not([type="checkbox"]),
+.scenario-form select,
+.benchmark-form input:not([type="checkbox"]),
+.benchmark-form select,
+.benchmark-form textarea,
+.buy-box-form input:not([type="checkbox"]),
+.buy-box-form select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .scenario-input-grid {
@@ -421,9 +433,16 @@
 .pipeline-editor label {
   display: grid;
   gap: 0.35rem;
-  min-width: 10rem;
+  min-width: min(100%, 10rem);
+  max-width: 100%;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.pipeline-editor input:not([type="checkbox"]),
+.pipeline-editor select {
+  width: 100%;
+  min-width: 0;
 }
 
 .pipeline-editor .eyebrow {
@@ -492,7 +511,8 @@
 .property-select input {
   width: 1.2rem;
   height: 1.2rem;
-  margin: auto;
+  margin: 0;
+  justify-self: center;
 }
 
 .qualification-grid {
@@ -1663,9 +1683,23 @@ select:focus-visible {
   }
   .section-heading {
     align-items: start;
+    flex-wrap: wrap;
   }
   .section-heading > span {
     text-align: right;
+  }
+  .section-heading > select {
+    width: 100%;
+    min-width: 0;
+  }
+  .investigation-section > * {
+    min-width: 0;
+  }
+  .investigation-section .source-links > .button {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
   }
   .detail-panel {
     padding: 30px 20px;
@@ -1717,6 +1751,7 @@ select:focus-visible {
   line-height: 1.05;
   overflow-wrap: normal;
   word-break: normal;
+  white-space: nowrap;
 }
 @media (max-width: 820px) {
   .app-shell .hero {
@@ -1785,10 +1820,7 @@ select:focus-visible {
   width: 100%;
   min-height: 118px;
   display: grid;
-  grid-template-columns: 64px minmax(210px, 1.25fr) minmax(150px, 0.8fr) minmax(130px, 0.65fr) minmax(
-      220px,
-      1fr
-    ) 20px;
+  grid-template-columns: max-content minmax(0, 1.25fr) minmax(0, 0.8fr) max-content minmax(0, 1fr) 20px;
   gap: 18px;
   align-items: center;
   padding: 18px 10px;
@@ -1825,6 +1857,7 @@ select:focus-visible {
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 .property-address,
 .property-totals,
@@ -1834,9 +1867,10 @@ select:focus-visible {
   min-width: 0;
 }
 .property-address > strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+  white-space: normal;
   font-size: 14px;
 }
 .property-address span,
@@ -1849,6 +1883,7 @@ select:focus-visible {
 .property-signals {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
   gap: 5px;
 }
 .property-signals span,
@@ -2003,10 +2038,24 @@ select:focus-visible {
 
 @media (max-width: 1050px) {
   .property-row {
-    grid-template-columns: 60px minmax(200px, 1fr) minmax(130px, 0.7fr) minmax(120px, 0.6fr) 18px;
+    grid-template-columns: max-content minmax(0, 1fr) minmax(0, 0.7fr) max-content 18px;
   }
   .property-reasons {
     display: none;
+  }
+}
+@media (max-width: 820px) {
+  .property-row {
+    grid-template-columns: max-content minmax(0, 1fr) 18px;
+    gap: 11px;
+  }
+  .property-signals,
+  .property-totals {
+    grid-column: 2;
+  }
+  .property-row > svg {
+    grid-column: 3;
+    grid-row: 1 / 4;
   }
 }
 @media (max-width: 720px) {
@@ -2017,21 +2066,8 @@ select:focus-visible {
   .current-filters {
     grid-template-columns: 1fr;
   }
-  .property-row {
-    grid-template-columns: 52px minmax(0, 1fr) 18px;
-    gap: 11px;
-  }
   .score-box {
-    width: 48px;
-    height: 48px;
-  }
-  .property-signals,
-  .property-totals {
-    grid-column: 2;
-  }
-  .property-row > svg {
-    grid-column: 3;
-    grid-row: 1 / 4;
+    height: auto;
   }
   .evidence-head {
     display: grid;
@@ -2044,5 +2080,21 @@ select:focus-visible {
   }
   .evidence-card dl .wide {
     grid-column: auto;
+  }
+}
+@media (max-width: 430px) {
+  .property-row {
+    grid-template-columns: minmax(0, 1fr) 18px;
+  }
+  .score-box,
+  .property-address,
+  .property-signals,
+  .property-totals {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .property-row > svg {
+    grid-column: 2;
+    grid-row: 1 / 5;
   }
 }

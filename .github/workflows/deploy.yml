@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
+      refresh_sources:
+        description: Reload Property Watch sources during deployment
+        type: boolean
+        default: true
       project:
         description: Project to deploy
         type: choice
@@ -147,7 +151,7 @@ jobs:
           pnpm --filter china audio:upload
 
       - name: Bootstrap LA Property Watch live sources
-        if: inputs.project == 'la-property-watch'
+        if: inputs.project == 'la-property-watch' && inputs.refresh_sources
         timeout-minutes: 45
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -162,7 +166,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TEMPLAR_AUTH_SECRET: ${{ secrets.TEMPLAR_AUTH_SECRET }}
         run: |
-          pnpm --filter la-property-watch verify:production
+          node --experimental-strip-types projects/la-property-watch/scripts/verify-production.ts --read-only
           pnpm --filter la-property-watch-web exec node --experimental-strip-types scripts/verify-browser.ts
 
       - name: Upload LA production browser evidence

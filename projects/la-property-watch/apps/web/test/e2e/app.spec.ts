@@ -30,7 +30,7 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
   await expect(page.getByText(/Denver registry use requires permission/)).toBeVisible();
 
   await page.getByLabel("Search properties").fill("15834200");
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   const property = page.getByRole("button", { name: /2800 VIMY RIDGE AV/ });
   await expect(property).toBeVisible();
   await property.click();
@@ -40,7 +40,7 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
   await expect(dialog.getByRole("heading", { name: "58 source rows" })).toBeVisible();
   await expect(dialog.getByText("Showing 1–50 · page 1 of 2")).toBeVisible();
   await expect(dialog.locator(".evidence-card").first()).toContainText(
-    "Present in latest complete snapshot",
+    "Present in latest source observation",
   );
   await expect(dialog.getByText("$272.26 + $0.00 + $0.00 = $272.26")).toBeVisible();
   await expect(dialog.getByText(/two independent signal types/)).toBeVisible();
@@ -51,7 +51,7 @@ test("authorized researcher ranks, filters, and paginates exact current-first ev
   await page.getByRole("button", { name: "Close details" }).click();
 
   await page.getByLabel("Search properties").fill("");
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await page.getByLabel("Signal type").selectOption("code_violation");
   await expect(page.getByText("1 properties · page 1 of 1")).toBeVisible();
   await expect(page.getByRole("button", { name: /2800 VIMY RIDGE AV/ })).toBeVisible();

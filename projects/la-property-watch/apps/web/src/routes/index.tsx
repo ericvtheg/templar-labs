@@ -703,7 +703,7 @@ function EvidenceCard({ record }: { record: ResearchRecord }) {
         </div>
         <span>
           {record.snapshotPresence === "present"
-            ? "Present in latest complete snapshot"
+            ? "Present in latest source observation"
             : "No longer present · not proof of resolution"}
         </span>
       </div>

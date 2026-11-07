@@ -12,7 +12,7 @@ test("mobile ranked workflow and evidence continuation remain usable without ove
     await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
   ).toBe(false);
   await page.getByLabel("Search properties").fill("VIMY RIDGE");
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await page.getByRole("button", { name: /2800 VIMY RIDGE AV/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

@@ -179,6 +179,7 @@ type DashboardPayload = {
     jurisdictionId: string;
     signalTypes: string[];
     evidenceCount: number;
+    score: number;
   }>;
   page: { total: number };
   refreshJobs: Array<{ id: string; status: string }>;
@@ -252,6 +253,12 @@ async function currentMarket(jurisdiction: string): Promise<DashboardPayload> {
     payload.properties.every((property) => property.jurisdictionId === jurisdiction),
     `${jurisdiction} filter returned a different jurisdiction.`,
   );
+  check(
+    payload.properties.every(
+      (property, index) => index === 0 || property.score <= payload.properties[index - 1]!.score,
+    ),
+    `${jurisdiction} ranking was not descending.`,
+  );
   return payload;
 }
 const markets = Object.fromEntries(
@@ -262,6 +269,63 @@ const markets = Object.fromEntries(
     ]),
   ),
 ) as Record<string, DashboardPayload>;
+
+const representativeEvidence = [];
+for (const [jurisdiction, market] of Object.entries(markets)) {
+  const candidate = market.properties[0];
+  check(candidate, `${jurisdiction} missing representative property`);
+  const response = await request(
+    `/api/research/properties/${encodeURIComponent(candidate.propertyKey)}?evidencePageSize=50`,
+    { cookie: authorized },
+  );
+  check(response.status === 200, `${jurisdiction} detail failed`);
+  const detail = (await response.json()) as {
+    evidence: Array<{
+      sourceRecordId: string;
+      sourceUrl: string;
+      observedAt: string;
+      sourceUpdatedAt: string | null;
+      sourceGoodThrough: string | null;
+      eventDate: string | null;
+      delinquentAmountCents: number | null;
+      taxDueCents: number | null;
+      penaltyDueCents: number | null;
+      interestDueCents: number | null;
+      signalType: string;
+    }>;
+  };
+  check(detail.evidence.length > 0, `${jurisdiction} missing evidence`);
+  check(
+    detail.evidence.every((row) => row.sourceRecordId && row.sourceUrl && row.observedAt),
+    `${jurisdiction} incomplete provenance`,
+  );
+  if (jurisdiction === "norfolk-va" || jurisdiction === "travis-county-tx") {
+    const tax = detail.evidence.find((row) => row.signalType === "tax_delinquency");
+    check(
+      tax && Number.isSafeInteger(tax.delinquentAmountCents) && tax.delinquentAmountCents! > 0,
+      `${jurisdiction} missing exact tax amount`,
+    );
+    check(tax.sourceUpdatedAt, `${jurisdiction} missing source date`);
+    if (jurisdiction === "norfolk-va") {
+      check(
+        tax.delinquentAmountCents ===
+          (tax.taxDueCents ?? 0) + (tax.penaltyDueCents ?? 0) + (tax.interestDueCents ?? 0),
+        "Norfolk amount components do not reconcile",
+      );
+    }
+  }
+  if (jurisdiction === "nyc-ny") {
+    check(
+      detail.evidence.every((row) => row.sourceGoodThrough && row.eventDate),
+      "ACRIS lost row coverage or recording date",
+    );
+  }
+  representativeEvidence.push({
+    jurisdiction,
+    propertyKey: candidate.propertyKey,
+    evidence: detail.evidence.slice(0, 3),
+  });
+}
 
 const codeResponse = await request(
   "/api/research/data?jurisdiction=norfolk-va&signal=code_violation",
@@ -332,6 +396,7 @@ console.log(
     {
       origin: baseUrl.origin,
       authorizationChecks: "passed",
+      representativeEvidence,
       interactiveAuthRedirect: "central Templar auth -> Google",
       refreshJobId: jobId,
       rankedPropertiesOnFirstPage: dashboard.properties.length,

@@ -120,11 +120,11 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       await page
         .getByLabel("Search properties")
         .fill(property.parcelId ?? property.address ?? property.propertyKey);
-      await page.getByRole("button", { name: "Search" }).click();
+      await page.getByRole("button", { name: "Search", exact: true }).click();
       await page.locator(".property-row").first().click();
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
-      await expect(dialog.getByText("Present in latest complete snapshot").first()).toBeVisible();
+      await expect(dialog.getByText("Present in latest source observation").first()).toBeVisible();
       await expect(dialog.getByText(/deterministic prioritization/)).toBeVisible();
       await expect(
         dialog.getByRole("link", { name: "Open source", exact: true }).first(),
@@ -136,7 +136,15 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
       await page.screenshot({ path: `test/.results/production/detail-${viewport.width}.png` });
       await page.getByRole("button", { name: "Close details" }).click();
       await page.getByLabel("Search properties").fill("");
-      await page.getByRole("button", { name: "Search" }).click();
+      await page.getByRole("button", { name: "Search", exact: true }).click();
+      await page.getByLabel("Market jurisdiction").selectOption("norfolk-va");
+      await page.getByLabel("Signal type").selectOption("code_violation");
+      await expect(page.locator(".property-row").first()).toBeVisible();
+      await expect(page.locator(".property-row").first()).toContainText("Code violation");
+      const downloadPromise = page.waitForEvent("download");
+      await page.getByRole("link", { name: /Export evidence CSV/ }).click();
+      const download = await downloadPromise;
+      assert.equal(await download.failure(), null, "CSV download failed");
       await page.screenshot({ path: `test/.results/production/dashboard-${viewport.width}.png` });
       await page.getByRole("button", { name: "Sign out", exact: true }).click();
       await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();

@@ -22,6 +22,7 @@ type QueryResult<T = Record<string, unknown>> = {
 };
 type Envelope<T> = {
   success: boolean;
+  errors?: Array<{ code?: number; message?: string }>;
   result: T;
   result_info?: { total_pages?: number; total_count?: number };
 };
@@ -32,6 +33,39 @@ type ApiOptions = {
   timeoutMs?: number;
   retryDelayMs?: number;
 };
+
+export function safeD1ErrorSummary(errors: unknown): string {
+  if (!Array.isArray(errors)) {
+    return "provider detail unavailable";
+  }
+  return (
+    errors
+      .slice(0, 3)
+      .map((error: unknown) => {
+        if (!error || typeof error !== "object") {
+          return "unclassified provider error";
+        }
+        const value = error as { code?: unknown; message?: unknown };
+        const code = typeof value.code === "number" ? String(value.code) : "unknown";
+        const message = typeof value.message === "string" ? value.message : "";
+        const categories = [
+          [/row.*(?:read|writ)|(?:read|writ).*row/i, "row usage"],
+          [/limit|quota|exceed/i, "limit exceeded"],
+          [/size|storage|disk|full/i, "storage"],
+          [/timeout|duration|execution time/i, "execution timeout"],
+          [/syntax|no such|column|table|schema/i, "SQL/schema"],
+          [/constraint|unique|foreign key/i, "constraint"],
+          [/auth|permission|token/i, "authorization"],
+          [/batch|body|parameter|binding/i, "request contract"],
+        ] as const;
+        const labels = categories
+          .filter(([pattern]) => pattern.test(message))
+          .map(([, label]) => label);
+        return `code ${code}: ${labels.join(", ") || "unclassified provider error"}`;
+      })
+      .join("; ") || "provider detail unavailable"
+  );
+}
 
 export class CloudflareD1 {
   private readonly options: ApiOptions;
@@ -89,7 +123,7 @@ export class CloudflareD1 {
           continue;
         }
         throw new Error(
-          `Cloudflare D1 HTTP ${response.status}; ${readOnly ? "read failed" : "write outcome may be unknown"}.`,
+          `Cloudflare D1 HTTP ${response.status}; ${readOnly ? "read failed" : "write outcome may be unknown"}; ${safeD1ErrorSummary(payload.errors)}.`,
         );
       }
       if (payload.success !== true || !Array.isArray(payload.result)) {

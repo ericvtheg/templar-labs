@@ -70,7 +70,22 @@ async function assertPropertyRowsContained(page: Page, context: string) {
       inner.bottom <= outer.bottom + 0.75;
     const failures: string[] = [];
     if (document.documentElement.scrollWidth > innerWidth + 1) {
-      failures.push("Page overflows horizontally");
+      const escaped = Array.from(document.querySelectorAll("body *"))
+        .filter(
+          (element) =>
+            element.getClientRects().length > 0 &&
+            !element.closest(".workspace-nav") &&
+            element.getBoundingClientRect().right > innerWidth + 1,
+        )
+        .slice(0, 20)
+        .map((element) => ({
+          tag: element.tagName,
+          className: element.getAttribute("class"),
+          parent: element.parentElement?.getAttribute("class"),
+          right: element.getBoundingClientRect().right,
+          width: element.getBoundingClientRect().width,
+        }));
+      failures.push(`Page overflows horizontally: ${JSON.stringify(escaped)}`);
     }
     if (rows.length === 0) {
       failures.push("No rendered rows to measure");
@@ -145,6 +160,7 @@ async function assertPropertyRowsContained(page: Page, context: string) {
     return failures;
   });
   if (violations.length > 0) {
+    await page.screenshot({ path: "test/.results/production/layout-failure.png", fullPage: true });
     throw new Error(`${context}: ${violations.join("; ")}`);
   }
 }

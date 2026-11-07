@@ -157,6 +157,16 @@ test("shortlist badges and row content remain geometrically contained", async ({
   await page.goto("/");
   await expect(page.locator("[data-hydrated=true]")).toBeVisible();
   await expect(page.locator(".property-row")).toHaveCount(5);
+  // Typography-only stress values: preserve the five actual test rows and their behavior.
+  await page.locator(".metric strong").evaluateAll((metrics) => {
+    const counts = ["17,093", "49,640", "9", "184"];
+    if (metrics.length !== counts.length) {
+      throw new Error("Expected every summary metric for the large-count regression");
+    }
+    metrics.forEach((metric, index) => {
+      metric.textContent = counts[index] ?? "";
+    });
+  });
 
   const samples: GeometrySample[] = [];
   const violations: string[] = [];

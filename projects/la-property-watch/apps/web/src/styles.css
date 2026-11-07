@@ -85,6 +85,7 @@
 
 .app-shell .metric-grid {
   order: 4;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
 }
 
 .app-shell .diagnostics-disclosure {

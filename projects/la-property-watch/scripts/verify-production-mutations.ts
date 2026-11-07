@@ -645,6 +645,7 @@ try {
       sources: {
         tax: { status: string; recordCount: number };
         code: { status: string; recordCount: number };
+        assessor: { status: string; recordCount: number; error: string | null };
       };
     };
   }>(`/api/research/rechecks/${encodeURIComponent(propertyKey)}`, {});
@@ -655,6 +656,10 @@ try {
       recheck.findings.sources.tax.status === "success" &&
       recheck.findings.sources.code.status === "success",
     "Fresh exact tax/code recheck did not complete; no global verification claim is allowed.",
+  );
+  check(
+    recheck.findings.sources.assessor.status === "success",
+    `Selected assessor join was not verified: ${recheck.findings.sources.assessor.error ?? "unavailable"}. This acceptance target must have an exact published identifier; do not pad or repair it.`,
   );
   const enrichedBrief = await jsonRequest<{
     saleCandidates: Array<{ id: string; qualificationStatus: string }>;
@@ -1264,6 +1269,7 @@ if (cleanupFailure) {
         propertyKey,
         runId,
         pipelineToken: { version: latestPipelineVersion, updatedAt: latestPipelineUpdatedAt },
+        retainedOfficialData,
         preferenceToken: { version: preferenceVersion, updatedAt: preferenceUpdatedAt },
         rankingToken,
         testOwnedIds: {

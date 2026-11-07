@@ -174,6 +174,9 @@ test("shortlist badges and row content remain geometrically contained", async ({
       );
       const rows = await measure(page);
       samples.push({ rows, textScalePercent, viewport });
+      if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) {
+        violations.push(`${textScalePercent}%/${width}px: page overflows horizontally`);
+      }
 
       if (textScalePercent === 100 && (width === 390 || width === 1440)) {
         await page

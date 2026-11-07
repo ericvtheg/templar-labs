@@ -69,6 +69,9 @@ async function assertPropertyRowsContained(page: Page, context: string) {
       inner.top >= outer.top - 0.75 &&
       inner.bottom <= outer.bottom + 0.75;
     const failures: string[] = [];
+    if (document.documentElement.scrollWidth > innerWidth + 1) {
+      failures.push("Page overflows horizontally");
+    }
     if (rows.length === 0) {
       failures.push("No rendered rows to measure");
     }

@@ -1763,7 +1763,7 @@ select:focus-visible {
     display: none;
   }
   .app-shell .hero-actions {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
     min-width: 0;
   }
@@ -1771,12 +1771,17 @@ select:focus-visible {
     grid-column: 1 / -1;
   }
   .app-shell .hero-actions .button {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
     min-height: 42px;
     padding: 0.6rem 0.7rem;
     font-size: 0.72rem;
   }
   .app-shell .hero-actions p {
     grid-column: 1 / -1;
+    min-width: 0;
+    max-width: 100%;
     font-size: 0.68rem;
   }
   .app-shell .score-box {
@@ -1811,7 +1816,15 @@ select:focus-visible {
   line-height: 1.65;
 }
 .current-filters {
-  grid-template-columns: minmax(260px, 1fr) auto auto auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+.current-filters > label {
+  min-width: 0;
+}
+.current-filters select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 .property-list {
   border-top: 1px solid var(--ink);

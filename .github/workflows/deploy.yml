@@ -81,7 +81,8 @@ jobs:
           elif [ "${{ inputs.project }}" = "la-property-watch" ]; then
             pnpm db:migrate:prod la-property-watch
           elif [ "${{ inputs.project }}" = "templar-auth" ]; then
-            pnpm db:migrate:prod templar-auth
+            # Shared auth owns package migrations through Alchemy, not scripts/db.mjs.
+            printf '%s\n' 'Shared auth migrations are managed by its deployment.'
           else
             pnpm db:migrate:ci
           fi

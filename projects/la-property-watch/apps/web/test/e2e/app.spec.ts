@@ -21,6 +21,7 @@ test("failed OAuth callbacks explain the failure instead of silently returning t
   await page.goto("/api/auth/callback?error=oauth");
   await expect(page.getByRole("alert")).toContainText("missing_transaction");
   await expect(page.getByRole("alert")).toContainText("Start sign-in again");
+  expect(new URL(page.url()).searchParams.has("failure")).toBe(false);
 
   const start = await page.request.get("/api/auth/sign-in?returnTo=/", { maxRedirects: 0 });
   expect(start.status()).toBe(302);

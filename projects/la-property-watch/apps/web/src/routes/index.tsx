@@ -30,7 +30,10 @@ import {
 } from "../lib/model.ts";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>) => ({ failure: authFailure(search) }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const failure = authFailure(search);
+    return failure ? { error: "auth", auth_reason: failure.reason } : {};
+  },
   loader: () => loadApp(),
   component: App,
 });
@@ -47,7 +50,7 @@ function App() {
 }
 
 function SignIn() {
-  const { failure } = Route.useSearch();
+  const failure = authFailure(Route.useSearch());
   return (
     <main className="auth-page">
       <section className="auth-card">

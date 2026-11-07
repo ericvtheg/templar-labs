@@ -14,9 +14,9 @@ import {
   runRefreshJob,
 } from "../apps/web/src/lib/repository.ts";
 
-// Run with Node 24: node scripts/ingest-production.ts [--queued-only]
+// Run with Node 24: node scripts/ingest-production.ts [--queued-only | --source=SOURCE_ID]
 // Requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (D1 read/write).
-// Serialize invocations in Actions; a running job older than five minutes is
+// Serialize invocations in Actions; a running job older than 45 minutes is
 // considered terminated. No fixtures or source overrides are used by the CLI.
 type Query = { sql: string; params: unknown[] };
 type QueryResult<T = Record<string, unknown>> = {
@@ -403,12 +403,27 @@ async function main() {
   }
   const adapter = new CloudflareD1({ accountId, apiToken });
   await adapter.discover();
+  if (options.sources) {
+    const queued = await adapter
+      .prepare("SELECT id FROM refresh_jobs WHERE status = 'queued' LIMIT 1")
+      .first();
+    if (queued) {
+      throw new Error(
+        "A full refresh is already queued; targeted ingestion must not consume it. Run the queued worker first.",
+      );
+    }
+  }
   // This intentionally implements only the repository's prepare/bind/run/first/all
   // and batch surface, not D1 exec/dump/raw/sessions. Keep the cast at this boundary.
   const summary = await runOnce(adapter as unknown as D1Database, {
     ...options,
   });
   console.log(JSON.stringify(summary, null, 2));
+  if (options.sources && (summary.skipped || summary.runs.length !== 1)) {
+    throw new Error(
+      "Targeted source import did not execute; inspect the persisted summary before retrying.",
+    );
+  }
   if (summary.job?.status === "failed" || summary.runs.some((run) => run.status === "failed")) {
     process.exitCode = 1;
   }

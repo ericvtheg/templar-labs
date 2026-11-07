@@ -134,13 +134,18 @@ await test("deployed browser acceptance", { timeout: 180_000 }, async () => {
         "Horizontal viewport overflow",
       );
       await page.screenshot({ path: `test/.results/production/detail-${viewport.width}.png` });
+      const evidenceCard = dialog.locator(".evidence-card").first();
+      await evidenceCard.scrollIntoViewIfNeeded();
+      await expect(evidenceCard.getByText("Source updated", { exact: true })).toBeVisible();
+      await expect(evidenceCard.getByText("Evidence total", { exact: true })).toBeVisible();
+      await page.screenshot({ path: `test/.results/production/evidence-${viewport.width}.png` });
       await page.getByRole("button", { name: "Close details" }).click();
       await page.getByLabel("Search properties").fill("");
       await page.getByRole("button", { name: "Search", exact: true }).click();
       await page.getByLabel("Market jurisdiction").selectOption("norfolk-va");
       await page.getByLabel("Signal type").selectOption("code_violation");
       await expect(page.locator(".property-row").first()).toBeVisible();
-      await expect(page.locator(".property-row").first()).toContainText("Code violation");
+      await expect(page.locator(".property-row").first()).toContainText("Active code violation");
       const downloadPromise = page.waitForEvent("download");
       await page.getByRole("link", { name: /Export evidence CSV/ }).click();
       const download = await downloadPromise;
